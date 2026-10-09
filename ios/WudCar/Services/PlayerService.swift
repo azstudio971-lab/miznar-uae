@@ -1,3 +1,4 @@
+import SwiftUI
 import AVKit
 import MediaPlayer
 import Combine

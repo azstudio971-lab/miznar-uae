@@ -13,7 +13,7 @@
         ],
         [
           "المدينة والوسائط",
-          "تختار المدينة يدويًا لعرض الطقس ومواعيد الصلاة؛ لا نطلب موقعًا مستمرًا. مصادر الوسائط والمفضلة تحفظ على جهازك ولا ترفع إلى لوحة الإدارة. الاتصال بمصدر تختاره يكشف عنوان الشبكة وبيانات الطلب لمزود المصدر وفق سياسته."
+          "تختار المدينة يدويًا كتفضيل شخصي. الطقس ومواعيد الصلاة غير مفعّلين في هذا الإصدار؛ لا نطلب موقعًا مستمرًا. مصادر الوسائط والمفضلة تحفظ على جهازك ولا ترفع إلى لوحة الإدارة. الاتصال بمصدر تختاره يكشف عنوان الشبكة وبيانات الطلب لمزود المصدر وفق سياسته."
         ],
         [
           "المعالجة والمشاركة",
@@ -21,11 +21,11 @@
         ],
         [
           "الاشتراكات",
-          "عند تفعيل الاشتراكات تعالج Apple عمليات الشراء؛ لا نستلم رقم بطاقتك. يتحقق التطبيق من حالة الاستحقاق عبر StoreKit. وقت التجربة الفعلي يحفظ على الجهاز؛ لا يبدأ اشتراك مدفوع تلقائيًا عند نفاده."
+          "عند تفعيل الاشتراكات تعالج Apple عمليات الشراء؛ لا نستلم رقم بطاقتك. يتحقق التطبيق من حالة الاستحقاق عبر StoreKit. تتبع وقت التجربة والدفع غير مفعّلين في هذا الإصدار؛ لن يبدأ اشتراك مدفوع دون تأكيدك عبر Apple."
         ],
         [
           "الاحتفاظ والحذف",
-          "تحفظ التفضيلات حتى تمسح البيانات المحلية أو تحذف حسابك. حذف الحساب يزيل ملفك وتفضيلاتك السحابية وسجلات القراءة المرتبطة به؛ سجلات البنية التحتية والنسخ الاحتياطية قد تبقى لفترة الاحتفاظ لدى مزود الخدمة. حذف الحساب لا يلغي اشتراك Apple؛ يمكنك إدارته من إعدادات App Store."
+          "تحفظ التفضيلات حتى تمسح البيانات المحلية أو تحذف حسابك. حذف الحساب يزيل ملفك وتفضيلاتك السحابية ؛ سجلات البنية التحتية والنسخ الاحتياطية قد تبقى لفترة الاحتفاظ لدى مزود الخدمة. حذف الحساب لا يلغي اشتراك Apple؛ يمكنك إدارته من إعدادات App Store."
         ],
         [
           "اختياراتك",
@@ -50,7 +50,7 @@
         ],
         [
           "City and media",
-          "You choose a city manually for weather and prayer information; continuous location is not requested. Media sources and favorites stay on your device and are not sent to the admin dashboard. Playing a source you choose shares network and request information with that provider under its own policy."
+          "You choose a city manually as a preference. Weather and prayer information are not enabled in this build; continuous location is not requested. Media sources and favorites stay on your device and are not sent to the admin dashboard. Playing a source you choose shares network and request information with that provider under its own policy."
         ],
         [
           "Processing and sharing",
@@ -58,11 +58,11 @@
         ],
         [
           "Subscriptions",
-          "When subscriptions are enabled, Apple handles purchases; we do not receive card details. StoreKit verifies access. Actual trial usage is stored on-device. Exhausting a usage allowance does not automatically create a paid subscription."
+          "When subscriptions are enabled, Apple handles purchases; we do not receive card details. StoreKit verifies access. Trial usage tracking and payments are not enabled in this build. A paid subscription will not start without your confirmation through Apple."
         ],
         [
           "Retention and deletion",
-          "Preferences remain until you clear local data or delete your account. Account deletion removes your profile, cloud preferences and linked message receipts. Infrastructure logs and backups may remain for the provider retention period. Account deletion does not cancel Apple subscriptions; manage them in App Store settings."
+          "Preferences remain until you clear local data or delete your account. Account deletion removes your profile, cloud preferences . Infrastructure logs and backups may remain for the provider retention period. Account deletion does not cancel Apple subscriptions; manage them in App Store settings."
         ],
         [
           "Your choices",
@@ -153,7 +153,7 @@
         ],
         [
           "ما الذي يحدث؟",
-          "يحذف الحساب وملفك والتفضيلات السحابية وسجلات قراءة الرسائل، ثم تمسح بيانات التطبيق المحلية. حذف البيانات إجراء دائم. يمكنك استخدام التطبيق كضيف بعدها."
+          "يحذف الحساب وملفك والتفضيلات السحابية ، ثم تمسح بيانات التطبيق المحلية. حذف البيانات إجراء دائم. يمكنك استخدام التطبيق كضيف بعدها."
         ],
         [
           "الاشتراك",
@@ -174,7 +174,7 @@
         ],
         [
           "What is removed?",
-          "Your account, profile, cloud preferences and message receipts are deleted, then local app data is cleared. This is permanent. You may continue as a guest afterwards."
+          "Your account, profile, cloud preferences  are deleted, then local app data is cleared. This is permanent. You may continue as a guest afterwards."
         ],
         [
           "Subscription",

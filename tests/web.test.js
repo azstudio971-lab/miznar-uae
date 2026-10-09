@@ -11,7 +11,7 @@ test('web DOM: bilingual navigation, theme choice, greeting and cloud-unavailabl
  execute(window,window.document,window.location,window.history,window.localStorage,null,policies,defaultSlots,validateSlots,greeting,()=>{},()=>{throw Error('Unexpected write');},()=>{});
  const d=window.document;assert.equal(d.documentElement.dir,'rtl');
  const name=d.querySelector('#preview-name');name.value='راشد';name.dispatchEvent(new window.Event('input'));assert.match(d.querySelector('.clock').textContent,/راشد/);
- d.querySelector('[data-period="night"]').click();assert.match(d.querySelector('#scene img').src,/ultrawide\/night.png$/);
+ d.querySelector('[data-period="night"]').click();assert.match(d.querySelector('#scene img').src,/ultrawide\/night.png$/);assert.match(d.querySelector('.clock').textContent,/راشد/);
  d.querySelector('#shape').click();assert.match(d.querySelector('#scene img').src,/compact\/night.png$/);
  d.querySelector('#lang').click();assert.equal(d.documentElement.dir,'ltr');
  d.querySelector('a[href="/admin"]').click();assert.equal(d.querySelector('#login button').disabled,true);

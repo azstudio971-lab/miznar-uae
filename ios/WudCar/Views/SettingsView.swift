@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var auth = false
     @State private var deleting = false
     @State private var busy = false
+    @State private var clearLocal = false
     var body: some View {
         Form {
             Section(state.text("شخصي", "Personal")) {
@@ -29,9 +30,13 @@ struct SettingsView: View {
             }
             Section(state.text("الاشتراك", "Subscription")) { Text(state.text("الاشتراكات غير مفعّلة في هذه النسخة. ستظهر الأسعار وشروط التجربة من Apple عند إتاحة الشراء.", "Subscriptions are not enabled in this build. Apple pricing and trial terms will be shown when purchases become available.")); Link(state.text("إدارة اشتراكات Apple", "Manage Apple subscriptions"), destination: URL(string: "https://apps.apple.com/account/subscriptions")!) }
             Section { NavigationLink(state.text("الخصوصية", "Privacy")) { PolicyView(kind: "privacy") }; NavigationLink(state.text("الشروط والأحكام", "Terms")) { PolicyView(kind: "terms") }; NavigationLink(state.text("حذف الحساب", "Account deletion")) { PolicyView(kind: "delete") }; Link(state.text("تواصل معنا", "Contact support"), destination: URL(string: "mailto:az.studio971@gmail.com")!) }
+            Section { Button(state.text("مسح البيانات المحلية", "Clear local data"), role: .destructive) { clearLocal = true } }
             Section { Text("WudCar 0.1 · Rashed Saeed").font(.caption); Text(state.text("CarPlay: طلبا Audio وVideo بانتظار الموافقة. تشغيل الفيديو في السيارة مرتبط بدعم السيارة وقيود Apple.", "CarPlay: Audio and Video entitlement requests are pending. In-car video depends on vehicle support and Apple restrictions.")).font(.caption) }
         }.navigationTitle(state.text("الإعدادات", "Settings"))
         .sheet(isPresented: $auth) { AuthView() }
+        .confirmationDialog(state.text("مسح التفضيلات والوسائط المحلية؟ يبقى حسابك السحابي قائمًا.", "Clear local preferences and media? Your cloud account will remain."), isPresented: $clearLocal, titleVisibility: .visible) {
+            Button(state.text("مسح وتسجيل الخروج", "Clear and sign out"), role: .destructive) { Task { await cloud.signOut(); state.clearPersonalData() } }
+        }
         .confirmationDialog(state.text("حذف الحساب والبيانات المرتبطة به؟ الاشتراك لدى Apple لا يُلغى تلقائيًا.", "Delete your account and associated data? Apple subscriptions are not automatically canceled."), isPresented: $deleting, titleVisibility: .visible) {
             Button(state.text("حذف نهائي", "Delete permanently"), role: .destructive) { busy = true; Task { defer { busy = false }; do { try await cloud.deleteAccount(); state.clearPersonalData() } catch { state.notice = error.localizedDescription } } }
         }
