@@ -1,6 +1,7 @@
 # WudCar — Approved brand identity
 
-Approved by Abdulaziz on 2026-10-09 (Asia/Dubai).
+Approved by the app owner on 2026-10-09 (Asia/Dubai).
+Legal developer identity: Rashed Saeed (Individual).
 
 English app name: WudCar
 Arabic app name: وُد كار
@@ -25,7 +26,7 @@ Tagline is lighter gray, subordinate to both wordmarks.
 Deep petrol teal, white symbol, warm amber sun, warm white presentation ground, gray tagline. Use source images as color authority; any extracted hex values are approximate, not a new approved palette.
 Symbol conveys a road, movement and a friendly companion for journeys.
 App icon: opaque full square artwork; platform applies its own corner mask. No tiny tagline inside the icon.
-Raster originals are retained at their generated size. Xcode export sizes and asset catalog still need preparation during implementation.
+Raster originals are retained at their generated size. The separate Xcode asset catalog includes the prepared 1024px app icon and both scene layouts.
 
 ## Reuse
 Use this package as the authoritative brand reference when work resumes in another session. Preserve original images and generate derivatives non-destructively. Apply the same identity in app UI, web administration, splash/loading screens and marketing designs.

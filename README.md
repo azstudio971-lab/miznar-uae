@@ -11,6 +11,7 @@ Bilingual SwiftUI iPhone/iPad app, web administration, and Supabase backend sour
 - **Checks:** `npm run check`. Browser tests: `npx playwright install chromium && npm run test:ui`.
 - **Cloud setup:** [docs/SETUP.md](docs/SETUP.md).
 - **Mac handoff:** [docs/XCODE-HANDOFF.md](docs/XCODE-HANDOFF.md).
+- **Binding master specification:** [docs/MASTER-SPEC.md](docs/MASTER-SPEC.md).
 - **Verified status and remaining work:** [docs/STATUS.md](docs/STATUS.md).
 
 ## Included
@@ -19,9 +20,11 @@ Bilingual SwiftUI iPhone/iPad app, web administration, and Supabase backend sour
 - Eight approved Spirit of the UAE images: dawn/morning/sunset/night, compact and ultra-wide layouts.
 - Personal HTTPS media sources, M3U playlists, imported audio/video files, favorites, AVPlayer/AirPlay and Now Playing controls.
 - Email account flow, preference sync, password recovery and authenticated permanent deletion (requires cloud configuration).
-- Admin authorization, theme schedules and uploads, audio library, city-targeted inbox messages and public default theme.
-- Bilingual privacy, terms, support and deletion pages.
-- RLS database migration, private storage, signed public catalog, authenticated account deletion function.
+- Role-based administration, advanced theme/media/widget editor, independent file cloning, saved version restoration, playlists, sourced religious content, users, staff, audit, legal editing and password changes.
+- Native information pages with WeatherKit/AlAdhan, cached city data, digital/analog clock, Hijri date, widget customization and optional music. WeatherKit needs its signing capability before live service works.
+- Device/session administration, foreground catalog refresh and bounded image caching.
+- Bilingual privacy, terms, EULA, subscription, refund, retention, support and deletion drafts.
+- Two RLS migrations, protected staff/entitlement data, server-clock trial accounting, private storage, signed catalog and authenticated account/device/admin functions. Cloud setup and actual-use trial integration remain pending.
 - StoreKit 2 service implementation **disabled pending product setup and purchase validation**.
 - CarPlay audio template delegate **not activated pending Apple entitlement approval and device validation**.
 

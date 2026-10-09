@@ -33,3 +33,5 @@ The requested initial password is not committed. scripts/bootstrap-admin.mjs acc
 This is an implementation checkpoint, not a finished or published application.
 
 Additional local database checks verify independent storage permissions, suspended staff access and restoration of a saved widget layout into a new version snapshot.
+
+Final source verification: checkpoint 9d278f9483f5598333248e3dd90e4c468929e42a passed both real Chromium checks and unsigned simulator Xcode compilation in GitHub Actions run 37955201106. Subsequent documentation changes do not alter executable code.
