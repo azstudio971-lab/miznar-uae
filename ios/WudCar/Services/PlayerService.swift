@@ -15,6 +15,9 @@ import Combine
         MPRemoteCommandCenter.shared().pauseCommand.addTarget { [weak self] _ in Task { @MainActor in self?.player.pause() }; return .success }
     }
     func play(url: URL, name: String) {
+        guard !UsageMeter.shared.enabled || UsageMeter.shared.allowed else {
+            error = AppState.shared.text("افتح معاينة الثيم لبدء التجربة أو تحقق من اشتراكك.", "Open the theme preview to start your trial or check your subscription."); return
+        }
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
             try AVAudioSession.sharedInstance().setActive(true)

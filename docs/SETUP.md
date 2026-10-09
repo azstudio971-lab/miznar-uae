@@ -5,7 +5,7 @@
 No project was available in the connected organization at the time of implementation. Cloud flows are written but must be deployed and tested against an actual project.
 
 1. Create a Supabase project after confirming the plan/cost. Select a suitable region and record data processing terms.
-2. Apply all versioned files in `supabase/migrations/` using `npx supabase db push` after linking the project. Both the initial schema and full-platform migration are required.
+2. Apply all versioned files in `supabase/migrations/` using `npx supabase db push` after linking the project. Apply every migration, including the trial lifecycle migration.
 3. Deploy `catalog`, `delete-account`, `device-session` and `admin-ops` from `supabase/functions/`. Both have gateway JWT checks disabled deliberately: catalog serves a curated public response; deletion **verifies the bearer with Auth getUser** and derives the identity server-side. Never remove that check.
 4. Configure `ALLOWED_ORIGINS` on functions to exact HTTPS web origins, comma-separated. Native apps have no Origin header. Keep the service role key only in Edge Function runtime secrets.
 5. Enable email confirmation; configure production SMTP, password requirements, rate limits and short-lived access tokens. Set Site URL to the deployed site and allow its `/reset-password` redirect. iPhone recovery emails use this web recovery page.

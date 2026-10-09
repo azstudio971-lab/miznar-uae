@@ -10,10 +10,10 @@ enum WudError:LocalizedError {case message(String);var errorDescription:String?{
     @Published private(set) var session:AuthSession?
     private var refreshTask:Task<Void,Error>?
     init(){if let d=SecureStore.load("auth-session"){session=try? JSONDecoder().decode(AuthSession.self,from:d)}}
-    func request(_ path:String,method:String="GET",body:Data?=nil,authenticated:Bool=false,extra:[String:String]=[:])async throws->Data {
+    func request(_ path:String,method:String="GET",body:Data?=nil,authenticated:Bool=false,extra:[String:String]=[:],timeout:TimeInterval=25)async throws->Data {
         guard AppConfiguration.configured,let url=URL(string:AppConfiguration.supabaseURL+path)else{throw WudError.message("Cloud service is not configured / الخدمة السحابية غير مهيأة")}
         if authenticated {try await refreshIfNeeded()}
-        var r=URLRequest(url:url);r.httpMethod=method;r.timeoutInterval=25;r.httpBody=body;r.setValue(AppConfiguration.publishableKey,forHTTPHeaderField:"apikey");r.setValue("application/json",forHTTPHeaderField:"Content-Type")
+        var r=URLRequest(url:url);r.httpMethod=method;r.timeoutInterval=timeout;r.httpBody=body;r.setValue(AppConfiguration.publishableKey,forHTTPHeaderField:"apikey");r.setValue("application/json",forHTTPHeaderField:"Content-Type")
         if authenticated {guard let s=session else{throw WudError.message("Please sign in / يرجى تسجيل الدخول")};r.setValue("Bearer \(s.access_token)",forHTTPHeaderField:"Authorization")}
         for(k,v)in extra{r.setValue(v,forHTTPHeaderField:k)}
         let(d,response)=try await URLSession.shared.data(for:r);guard let h=response as? HTTPURLResponse,(200..<300).contains(h.statusCode)else{let obj=(try? JSONSerialization.jsonObject(with:d)) as? [String:Any];throw WudError.message(obj?["msg"] as? String ?? obj?["message"] as? String ?? obj?["error_description"] as? String ?? "Request failed / تعذر إتمام الطلب")};return d
@@ -29,8 +29,8 @@ enum WudError:LocalizedError {case message(String);var errorDescription:String?{
         let task=Task {let b=try JSONSerialization.data(withJSONObject:["refresh_token":s.refresh_token]);let d=try await self.request("/auth/v1/token?grant_type=refresh_token",method:"POST",body:b);try self.keep(JSONDecoder().decode(AuthSession.self,from:d))};refreshTask=task
         defer{refreshTask=nil};try await task.value
     }
-    func signOut()async {if session != nil{_=try? await request("/auth/v1/logout",method:"POST",authenticated:true)};SecureStore.remove("auth-session");SecureStore.remove("device-session-id");session=nil}
-    func deleteAccount()async throws {let b=try JSONSerialization.data(withJSONObject:["confirmation":"DELETE"]);_=try await request("/functions/v1/delete-account",method:"POST",body:b,authenticated:true);SecureStore.remove("auth-session");SecureStore.remove("device-session-id");session=nil}
+    func signOut()async {PlayerService.shared.stop();UsageMeter.shared.reset();if session != nil{_=try? await request("/auth/v1/logout",method:"POST",authenticated:true)};SecureStore.remove("auth-session");SecureStore.remove("device-session-id");session=nil;UsageMeter.shared.reset()}
+    func deleteAccount()async throws {let b=try JSONSerialization.data(withJSONObject:["confirmation":"DELETE"]);_=try await request("/functions/v1/delete-account",method:"POST",body:b,authenticated:true);SecureStore.remove("auth-session");SecureStore.remove("device-session-id");session=nil;UsageMeter.shared.reset()}
     var deviceID:String {
         if let data=SecureStore.load("device-session-id"),let value=String(data:data,encoding:.utf8),UUID(uuidString:value) != nil {return value}
         let value=UUID().uuidString;try? SecureStore.save(Data(value.utf8),key:"device-session-id");return value

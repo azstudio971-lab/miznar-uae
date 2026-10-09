@@ -10,6 +10,8 @@ import SwiftUI
                 .environment(\.locale, Locale(identifier: state.preferences.language))
                 .preferredColorScheme(state.preferences.appearance == "dark" ? .dark : state.preferences.appearance == "light" ? .light : nil)
                 .tint(Color(red: 0.09, green: 0.40, blue: 0.36))
+                .task { await UsageMeter.shared.run() }
+                .onChange(of: phase) { _, value in UsageMeter.shared.foreground = value == .active }
                 .task(id:phase) {
                     guard phase == .active else{return}
                     while !Task.isCancelled {

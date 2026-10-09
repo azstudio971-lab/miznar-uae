@@ -83,7 +83,7 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 Text(state.text("رفيق مشاويرك", "Your journey companion")).font(.title.bold())
-                ThemeCanvas(theme: state.theme).frame(height: 290)
+                ThemeCanvas(theme: state.theme).frame(height: 290).modifier(MeteredPreview())
                 HStack { Label(state.preferences.city, systemImage: "location"); Spacer(); Text(state.theme.name(state.preferences.language)).font(.caption) }.foregroundStyle(.secondary)
                 NavigationLink { CarPreviewView() } label: { Label(state.text("معاينة روح الإمارات", "Preview Spirit of the UAE"), systemImage: "car.side") }.buttonStyle(.bordered)
                 Text(state.text("هذه معاينة تصميم داخل الهاتف. تعرض CarPlay قوالب Apple المعتمدة، ولا تستبدل خلفية نظام السيارة.", "This is an in-phone design preview. CarPlay uses approved Apple templates and does not replace your car’s system wallpaper.")).font(.caption).foregroundStyle(.secondary)
@@ -105,7 +105,7 @@ struct CarPreviewView: View {
             ThemeCanvas(theme: state.theme, forcedPeriod: period,editable:editing).aspectRatio(3, contentMode: .fit)
             ThemeCanvas(theme: state.theme, forcedPeriod: period,editable:editing).aspectRatio(1.25, contentMode: .fit)
             Text(state.text("يتغير توزيع المعاينة تلقائيًا حسب نسبة العرض إلى الارتفاع.", "Preview layout adapts to the viewport aspect ratio.")).font(.caption)
-        }.padding() }.navigationTitle(state.text("معاينة الثيم", "Theme preview"))
+        }.padding().modifier(MeteredPreview()) }.navigationTitle(state.text("معاينة الثيم", "Theme preview"))
     }
 }
 struct ThemesView: View {

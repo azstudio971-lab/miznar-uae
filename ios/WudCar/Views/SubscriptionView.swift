@@ -4,9 +4,17 @@ import StoreKit
 struct SubscriptionView:View {
     @EnvironmentObject var state:AppState
     @StateObject private var store=SubscriptionStore()
+    @ObservedObject private var meter=UsageMeter.shared
     var body:some View {
         List {
             Section { Text(state.text("رفيق مشاويرك", "Your journey companion")).font(.title2.bold());Text(state.text("الثيمات والأدوات والوسائط المدعومة حسب الخطة المتاحة.", "Themes, widgets and supported media according to the available plan.")) }
+            if meter.enabled {
+                Section(state.text("30 دقيقة من الاستخدام الفعلي", "30 minutes of actual use")) {
+                    if let status=meter.status { Text(state.text("المتبقي: ", "Remaining: ")+"\(status.remaining_seconds / 60):"+String(format:"%02d",status.remaining_seconds % 60)) }
+                    Text(state.text("تُحتسب أثناء عرض المعاينة أو تشغيل الوسائط فعلياً؛ لا تُحتسب في الإعدادات أو عند توقف التشغيل. يلزم الاتصال للتحقق من الوقت المتبقي.", "Time counts while viewing the preview or playing media, not in Settings or while playback is paused. A connection is required to verify remaining time."))
+                    if let message=meter.message { Text(message).foregroundStyle(.secondary) }
+                }
+            }
             if !AppConfiguration.subscriptionsEnabled {
                 Section { Text(state.text("الشراء والتجربة المدفوعة غير مفعّلين في نسخة التطوير. لن يُخصم أي مبلغ.", "Purchases and metered evaluation are disabled in this development build. No charge will be made.")) }
             } else {
@@ -24,7 +32,7 @@ struct SubscriptionView:View {
             }
             if let message=store.message { Section { Text(message).foregroundStyle(.secondary) } }
             Section { Link(state.text("إدارة اشتراكات Apple", "Manage Apple subscriptions"),destination:URL(string:"https://apps.apple.com/account/subscriptions")!);NavigationLink(state.text("شروط الاشتراك", "Subscription terms")) { PolicyView(kind:"subscription") };NavigationLink(state.text("الخصوصية", "Privacy")) { PolicyView(kind:"privacy") };NavigationLink(state.text("الترخيص", "License")) { PolicyView(kind:"eula") };NavigationLink(state.text("الاسترداد", "Refunds")) { PolicyView(kind:"refund") } }
-        }.navigationTitle(state.text("الاشتراك", "Subscription")).task { await store.load() }
+        }.navigationTitle(state.text("الاشتراك", "Subscription")).task { await store.load(); await meter.loadStatus() }
     }
     private func period(_ period:Product.SubscriptionPeriod)->String {
         let unit:String

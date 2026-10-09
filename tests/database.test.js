@@ -9,6 +9,7 @@ test('migration enforces owner/admin isolation, publication validation and delet
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key,bucket_id text,name text);alter table storage.objects enable row level security;grant usage on schema storage to authenticated;grant all on storage.objects to authenticated;`);
  await db.exec(readFileSync('supabase/migrations/20261009140504_initial_schema.sql','utf8'));
  await db.exec(readFileSync('supabase/migrations/20261009151105_full_platform.sql','utf8'));
+ await db.exec(readFileSync('supabase/migrations/20261009190000_trial_lifecycle.sql','utf8'));
 
  await db.exec(`insert into auth.users values('${a}'),('${b}'),('${admin}');insert into public.admin_roles values('${admin}');insert into public.staff_accounts(user_id,role_key) values('${admin}','super_admin');insert into public.profiles(user_id,display_name) values('${a}','A'),('${b}','B');set role authenticated;select set_config('request.jwt.claim.sub','${a}',false);`);
  assert.deepEqual((await db.query('select display_name from public.profiles')).rows,[{display_name:'A'}]);
@@ -32,6 +33,36 @@ test('migration enforces owner/admin isolation, publication validation and delet
  const replay=(await db.query(`select public.trial_heartbeat('${sid}','${a}',2,true) as result`)).rows[0].result;
  assert.equal(replay.used_seconds,tick.used_seconds);assert.equal(replay.replayed,true);
  await assert.rejects(db.exec(`update public.trial_accounts set used_seconds=0`));
+ // Opening a status screen never creates a usage account or consumes time.
+ await db.exec(`select set_config('request.jwt.claim.sub','${b}',false);`);
+ const fresh=(await db.query('select public.trial_status() as result')).rows[0].result;
+ assert.equal(fresh.remaining_seconds,1800);
+ assert.equal((await db.query('select * from public.trial_accounts')).rows.length,0);
+ await db.exec(`select set_config('request.jwt.claim.sub','${a}',false);`);
+ await assert.rejects(db.query(`select public.trial_heartbeat('${sid}','${a}',4,true)`));
+ const sid2='77777777-7777-4777-8777-777777777777';
+ await db.query(`select public.trial_heartbeat('${sid}','${a}',3,false)`);
+ await db.query(`select public.trial_heartbeat('${sid2}','${a}',1,true)`);
+ // Existing paused sessions must obey the same one-device rule as new sessions.
+ await assert.rejects(db.query(`select public.trial_heartbeat('${sid}','${a}',4,true)`));
+ await db.query(`select public.trial_heartbeat('${sid2}','${a}',2,false)`);
+ assert.equal((await db.query(`select public.trial_heartbeat('${sid2}','${a}',2,false) as result`)).rows[0].result.lease_seconds,0);
+ await db.exec(`reset role;update public.trial_sessions set last_heartbeat=clock_timestamp()-interval '1 hour' where id='${sid2}';set role authenticated;`);
+ const paused=(await db.query(`select public.trial_heartbeat('${sid2}','${a}',3,false) as result`)).rows[0].result;
+ const afterPause=(await db.query(`select public.trial_heartbeat('${sid2}','${a}',4,true) as result`)).rows[0].result;
+ assert.equal(afterPause.used_seconds,paused.used_seconds);
+ await db.exec(`reset role;update public.trial_accounts set used_seconds=1798 where user_id='${a}';update public.trial_sessions set last_heartbeat=clock_timestamp()-interval '8 seconds' where id='${sid2}';set role authenticated;`);
+ const expired=(await db.query(`select public.trial_heartbeat('${sid2}','${a}',5,true) as result`)).rows[0].result;
+ assert.equal(expired.used_seconds,1800);assert.equal(expired.lease_seconds,0);
+ assert.equal((await db.query(`select active from public.trial_sessions where id='${sid2}'`)).rows[0].active,false);
+ const reinstall=(await db.query(`select public.trial_heartbeat('88888888-8888-4888-8888-888888888888','${a}',1,true) as result`)).rows[0].result;
+ assert.equal(reinstall.remaining_seconds,0);
+ await db.exec(`reset role;insert into public.subscription_entitlements(user_id,product_id,original_transaction_id,expires_at,status,environment) values('${a}','test','sandbox-only-fixture',now()+interval '1 day','active','Sandbox');set role authenticated;`);
+ const paid=(await db.query(`select public.trial_heartbeat('${sid2}','${a}',6,true) as result`)).rows[0].result;
+ assert.equal(paid.entitled,true);assert.equal(paid.lease_seconds,15);
+ await db.exec(`reset role;update public.devices set revoked_at=now() where id='${a}';set role authenticated;`);
+ await assert.rejects(db.query(`select public.trial_heartbeat('${sid2}','${a}',7,true)`));
+
  await db.exec(`select set_config('request.jwt.claim.sub','${b}',false);`);
  const caps=(await db.query('select public.my_permissions() as p')).rows[0].p;
  assert.ok(caps.includes('themes.write'));assert.ok(!caps.includes('staff.write'));

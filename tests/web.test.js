@@ -31,5 +31,18 @@ test('phone preview saves a name, renders it on Home and blocks invalid media UR
  d.querySelector('[data-p-moment="night"]').click();assert.match(d.querySelector('.p-scene>img').src,/night.png$/);
  d.querySelector('[data-p-tab="library"]').click();d.querySelector('input[name="name"]').value='Test';d.querySelector('input[name="url"]').value='javascript:alert(1)';d.querySelector('#p-source-form').dispatchEvent(new window.Event('submit',{cancelable:true}));assert.match(d.querySelector('#p-source-error').textContent,/HTTPS/);
  d.querySelector('input[name="url"]').value='https://example.com/music.mp3';d.querySelector('#p-source-form').dispatchEvent(new window.Event('submit',{cancelable:true}));assert.equal(d.querySelectorAll('.p-source').length,1);
+ d.querySelector('[data-p-tab="subscription"]').click();
+ assert.match(d.querySelector('#p-trial-status').textContent,/30:00/);
+ assert.equal(d.querySelector('#p-trial-minute').disabled,true);
+ d.querySelector('#p-trial-pause').click();d.querySelector('#p-trial-minute').click();
+ assert.match(d.querySelector('#p-trial-status').textContent,/29:00/);
+ d.querySelector('#p-trial-pause').click();assert.equal(d.querySelector('#p-trial-minute').disabled,true);
+ d.querySelector('[data-p-tab="home"]').click();d.querySelector('[data-p-tab="subscription"]').click();
+ assert.match(d.querySelector('#p-trial-status').textContent,/29:00/);
+ const mode=d.querySelector('#p-trial-mode');mode.value='paid';mode.dispatchEvent(new window.Event('change'));
+ assert.match(d.querySelector('#p-trial-status').textContent,/اشتراك/);assert.equal(d.querySelector('#p-trial-minute').disabled,true);
+ d.querySelector('#p-trial-mode').value='expired';d.querySelector('#p-trial-mode').dispatchEvent(new window.Event('change'));
+ assert.match(d.querySelector('#p-trial-status').textContent,/انتهت/);
+
  window.happyDOM.abort();
 });
