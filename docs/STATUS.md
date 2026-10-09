@@ -1,52 +1,33 @@
 # WudCar implementation status — 2026-10-09
 
-This is an initial integrated development build. Source implementation, local verification, live cloud deployment, device validation and App Review are separate milestones.
+The binding scope is [MASTER-SPEC.md](MASTER-SPEC.md). WudCar is the only current app identity. The approved logo and eight Spirit of the UAE scenes remain the asset source of truth. Apple developer: Rashed Saeed; bundle ID com.azpixel.wudcar; team QS29RVJPUT. Audio and Video entitlement requests remain pending.
 
-| Area | Actual status |
-|---|---|
-| Web production bundle | `npm run build` passed |
-| Domain tests | Five passed: schedule boundaries, invalid schedules, greeting, aspect ratio, M3U |
-| Database security | PGlite PostgreSQL test passed with stub Auth/Storage schemas: migration executes, own-profile isolation, admin access, role escalation blocked, invalid publication blocked, deleted-user rows/messages inaccessible |
-| Web interaction | Happy DOM test passed: RTL/LTR, period/layout selection, greeting, policies and unavailable-admin state |
-| Real browser tests | Three Playwright tests passed in real Chromium on GitHub Actions run 37945507933; local browser download was unavailable |
-| iPhone | Unsigned iOS simulator build passed on GitHub macOS Xcode in run 37945507933 after fixing the SwiftUI import. This confirms compilation, not interactive simulator launch or real-device/CarPlay validation. |
-| Artwork | Original local PNGs decode successfully. Replaced unreadable repository copies with matching original designs; generated separate 1024px app icon |
-| Cloud | Supabase schema/functions written; no project provisioned or live E2E verification |
-| Hosting | Netlify configuration ready; local CLI not signed in and connected plugin did not expose deploy operation. No live URL claimed |
-| CarPlay Audio | Delegate implementation prepared; base app excludes CarPlay scene/entitlement until approved |
-| CarPlay Video | AirPlay playback available in source. iOS 27 video-browsing CarPlay integration and entitlement/device tests remain pending |
-| Subscription | Verified StoreKit transaction service implemented, but disabled; products/pricing/purchase UI/trial enforcement and sandbox tests remain pending |
-| Account deletion | Confirmation UI and authenticated server function implemented; local schema cascade tested; live Auth deletion must be verified after deployment |
-| Weather / prayer / adhkar | Not yet implemented. No fabricated live data or prayer times are shown |
-| Advanced themes | Static bundled/remote image scenes and four time slots implemented. Video backgrounds, drag placement, widget extensions, complete offline remote caching not implemented |
-| Legal text | Bilingual privacy/terms/support/deletion drafts included. Review against final deployed providers/features before store submission |
+## Implemented source and verification
 
-Verified commit: `5d7e16bf9af706895b5b50613e7859855431dfe4`.
+- Native iPhone source: onboarding and preferred name, bilingual RTL/LTR, themes, media library, account/auth/deletion, legal pages, city settings and system/light/dark appearance.
+- Expanded native source: catalog cache, theme scheduling/priority, bounded image cache, rotating media, silent video backgrounds inside the phone preview, digital/analog clocks, Hijri date, per-theme widget positions and saved customization, optional music controls, WeatherKit and AlAdhan information pages, sourced religious content.
+- Admin source: capability-filtered navigation, advanced bilingual theme editor, draft/scheduled/published states, two layouts and four time slots, media sequences, widget permissions, version restoration, staff roles, users/status/export, server entitlements/trial records, religious content, legal documents, audit records and password change with current-password reauthentication.
+- Supabase migrations/functions: role-based row access, ownership isolation, last-super-admin guard, protected entitlement records, server-clock 30-minute trial accounting, duplicate-heartbeat protection, devices, authenticated staff operations, signed curated catalog, account deletion.
+- Local check: eight domain, DOM and PostgreSQL/PGlite tests passed; Vite production build passed. Tests include role escalation, own-data isolation, trial replay and resetting prevention. PGlite uses Auth/Storage fixtures; it is not a hosted Supabase test.
+- Branch checkpoint 18febf1361cb296b0aeee28eef303ea6afaf79cb: real Chromium checks passed in GitHub Actions 37953120784. Its Xcode compilation exposed syntax errors in ThemeEngine; the following checkpoint corrects them. Do not treat the earlier successful baseline Xcode run as proof that new code compiles.
 
-Build evidence: https://github.com/azstudio971-lab/miznar-uae/actions/runs/37945507933
+## External deployment blockers
 
-## Verification flow
+No Supabase project exists in the connected organization. The connector advertises get_cost but returns UNAVAILABLE when called, preventing the required project provisioning sequence. There is no provisioned database, production Auth user, or verified account deletion endpoint.
 
-Story: user opens the bilingual site → previews a theme/name → opens admin → authorized admin edits content through Supabase → iPhone downloads curated catalog.
+Netlify source/build/security routing configuration is ready. The connected plugin does not expose the required upload/build/environment mutation operations, and the local CLI is not authenticated. No Netlify deployment or live admin password activation is claimed. The old Sites preview is not the requested production host; its obsolete reference document has been removed.
 
-The public DOM interaction and build are verified. The first unverified live boundary is the cloud connection: no Supabase URL/key/project is configured. The admin UI therefore explicitly blocks sign-in and does not show fictional saved content. Database access rules were exercised separately in local PostgreSQL (PGlite), not represented as proof of hosted Auth or Storage operation.
+The requested initial password is not committed. scripts/bootstrap-admin.mjs accepts a password interactively after a real project exists. The app-level admin password change screen is implemented; live verification remains pending.
 
-## Known limits to finish
+## Remaining work before release
 
-- Complete real browser/simulator/device tests, VoiceOver/Dynamic Type and locked-device audio.
-- Provision Supabase; apply migration and role bootstrap; deploy functions; configure SMTP/recovery origin; run full two-user/admin tests.
-- Configure and verify Netlify Git deployment; make legal/support pages publicly reachable for Apple.
-- Refresh signed media URLs for sessions longer than an hour; cache successful remote artwork with storage limits and fallback.
-- Add real provider-backed weather and clearly attributed/validated prayer data if retained in scope. City selection currently stores preference only.
-- Improve CarPlay library refresh while already connected, playlist browsing, and current-SDK video integration after entitlement approval.
-- Add subscription purchase UI, introductory eligibility, secure actual-use trial accounting, sandbox renewals/refunds/restore tests before enabling monetization.
-- Review privacy manifest, App Store privacy declarations, export compliance, age rating, content rights and review notes against the final release.
+- Verify the expanded native source on Xcode CI, then launch the simulator and test real devices, accessibility and background audio.
+- Complete subscription purchase UI, server-side Apple signed-transaction/notification verification, StoreKit sandbox purchase/renewal/refund/restoration testing, and connect the trial heartbeat to actual native active use. Payments stay disabled.
+- Finish playlist administration, complete theme cloning and comprehensive version snapshot coverage, automatic refresh scheduling and rollout edge cases.
+- Add supported Apple WidgetKit/CarPlay presentation only through current official APIs. Custom phone dashboard artwork is not a replacement for the CarPlay system wallpaper. Supported parked video integration needs entitlement approval and vehicle tests.
+- Enable WeatherKit in Apple developer signing before expecting live weather; test source attribution, unavailable/cache states and prayer calculation against selected method. Religious content is not fabricated; only manually verified published records are displayed.
+- Provision Supabase, apply both migrations, deploy functions, configure Auth recovery/SMTP and secure origins, bootstrap the owner, and run real two-user/admin/device/storage tests.
+- Configure Netlify Git deployment and public support/legal endpoints; verify a real production URL and login before handing out access.
+- Update legal/privacy declarations against the final active services, retention and billing behavior. Review current Apple guidelines, content rights, App Review notes and required capabilities before submission.
 
-## Apple references
-
-- https://developer.apple.com/app-store/review/guidelines/
-- https://developer.apple.com/help/app-review/guideline-reference/5-1-1-account-deletion
-- https://developer.apple.com/documentation/carplay/requesting-carplay-entitlements
-- https://developer.apple.com/videos/play/wwdc2026/212/
-
-Apple identity is based on the developer's supplied registration record. Submitted entitlement requests are not approved entitlements.
+This is an implementation checkpoint, not a finished or published application.

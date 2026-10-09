@@ -30,28 +30,51 @@ struct WelcomeView: View {
 }
 struct ThemeCanvas: View {
     @EnvironmentObject var state: AppState
+    @ObservedObject var cache=ThemeCache.shared
     var theme: Theme
     var forcedPeriod: String? = nil
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 30)) { context in
+    var editable=false
+    private let identifiers=["clock","date","greeting","weather","prayer","adhkar","music"]
+    var body:some View {
+        TimelineView(.periodic(from:.now,by:1)) { context in
             GeometryReader { geometry in
-                let layout = WudDomain.layout(width: geometry.size.width, height: geometry.size.height)
-                let period = forcedPeriod ?? WudDomain.period(date: context.date, theme: theme)
-                ZStack(alignment: .topTrailing) {
-                    if let asset = theme.assets.first(where: { $0.layout == layout && $0.period == period && $0.kind == "image" }), let url = URL(string: asset.url) {
-                        AsyncImage(url: url) { image in image.resizable().scaledToFill() } placeholder: { builtin(period: period, layout: layout) }
-                    } else { builtin(period: period, layout: layout) }
-                    LinearGradient(colors: [.black.opacity(0.55), .clear], startPoint: .topTrailing, endPoint: .bottomLeading)
-                    VStack(alignment: .trailing, spacing: 5) {
-                        if state.preferences.widgets["clock"] == true && theme.widgets["clock"] != false { Text(context.date, style: .time).font(.system(size: 34, weight: .light, design: .rounded)) }
-                        if state.preferences.widgets["date"] == true && theme.widgets["date"] != false { Text(context.date, style: .date).font(.caption) }
-                        if state.preferences.widgets["greeting"] == true && theme.widgets["greeting"] != false { Text(WudDomain.greeting(name: state.preferences.name, hour: Calendar.current.component(.hour, from: context.date), language: state.preferences.language)).font(.callout) }
-                    }.foregroundStyle(.white).padding(22).opacity(state.preferences.widgetOpacity).scaleEffect(state.preferences.widgetScale, anchor: .topTrailing)
-                }.frame(width: geometry.size.width, height: geometry.size.height).clipped()
+                let layout=WudDomain.layout(width:geometry.size.width,height:geometry.size.height)
+                let period=forcedPeriod ?? WudDomain.period(date:context.date,theme:theme)
+                ZStack {
+                    background(layout:layout,period:period,date:context.date)
+                    LinearGradient(colors:[.black.opacity(0.55),.clear],startPoint:.topTrailing,endPoint:.bottomLeading)
+                    ForEach(identifiers.sorted{theme.widget($0).sort_order<theme.widget($1).sort_order},id:\.self) { id in
+                        let setting=theme.widget(id)
+                        let custom=state.preferences.widgetOverrides[theme.id+":"+id]
+                        if setting.visible && (state.preferences.widgets[id] ?? true) && !(setting.allow_hide && custom?.hidden==true) {
+                            ThemeWidget(id:id,date:context.date,theme:theme)
+                                .scaleEffect((setting.allow_resize ? custom?.scale ?? setting.scale : setting.scale)*state.preferences.widgetScale)
+                                .opacity((custom?.opacity ?? setting.opacity)*state.preferences.widgetOpacity)
+                                .position(x:geometry.size.width*(custom?.x ?? setting.x),y:geometry.size.height*(custom?.y ?? setting.y))
+                                .gesture(DragGesture().onEnded { value in
+                                    guard editable && setting.allow_move else{return}
+                                    let x=min(0.95,max(0.05,(custom?.x ?? setting.x)+value.translation.width/geometry.size.width))
+                                    let y=min(0.95,max(0.05,(custom?.y ?? setting.y)+value.translation.height/geometry.size.height))
+                                    state.preferences.widgetOverrides[theme.id+":"+id]=WidgetCustomization(x:x,y:y,scale:custom?.scale ?? setting.scale,opacity:custom?.opacity ?? setting.opacity,hidden:false)
+                                    Task { await state.sync() }
+                                },including:editable && setting.allow_move ? .all : .none)
+                        }
+                    }
+                }.frame(width:geometry.size.width,height:geometry.size.height).clipped()
             }
-        }.clipShape(RoundedRectangle(cornerRadius: 24))
+        }.clipShape(RoundedRectangle(cornerRadius:24)).task(id:"\(theme.id)-\(theme.version)") { await cache.prepare(theme:theme) }
     }
-    private func builtin(period: String, layout: String) -> some View { Image("\(layout)-\(period)").resizable().scaledToFill() }
+    @ViewBuilder private func background(layout:String,period:String,date:Date)->some View {
+        if forcedPeriod==nil,let medium=theme.currentMedium(layout:layout,date:date),let url=WudDomain.validURL(medium.url) { remote(url: url,identifier:medium.id,kind:medium.kind,layout:layout,period:period) }
+        else if let asset=theme.assets.first(where:{$0.layout==layout && $0.period==period}),let url=WudDomain.validURL(asset.url) { remote(url:url,identifier:asset.id,kind:asset.kind,layout:layout,period:period) }
+        else { builtin(period:period,layout:layout) }
+    }
+    @ViewBuilder private func remote(url:URL,identifier:String,kind:String,layout:String,period:String)->some View {
+        if kind=="video" { ZStack { builtin(period:period,layout:layout);SilentThemeVideo(url:url) } }
+        else if let file=cache.cached(theme:theme,identifier:identifier),let image=UIImage(contentsOfFile:file.path) { Image(uiImage:image).resizable().scaledToFill() }
+        else { AsyncImage(url:url) { image in image.resizable().scaledToFill() } placeholder: { builtin(period:period,layout:layout) } }
+    }
+    private func builtin(period:String,layout:String)->some View { Image("\(layout)-\(period)").resizable().scaledToFill() }
 }
 struct HomeView: View {
     @EnvironmentObject var state: AppState
@@ -74,11 +97,13 @@ struct HomeView: View {
 struct CarPreviewView: View {
     @EnvironmentObject var state: AppState
     @State private var period = "morning"
+    @State private var editing = false
     var body: some View {
         ScrollView { VStack(spacing: 20) {
+            Toggle(state.text("تعديل مواضع الأدوات المسموح بها", "Move permitted widgets"),isOn:$editing)
             Picker(state.text("الوقت", "Time"), selection: $period) { Text(state.text("الفجر", "Dawn")).tag("dawn"); Text(state.text("الصباح", "Morning")).tag("morning"); Text(state.text("المغرب", "Sunset")).tag("sunset"); Text(state.text("الليل", "Night")).tag("night") }.pickerStyle(.segmented)
-            ThemeCanvas(theme: state.theme, forcedPeriod: period).aspectRatio(3, contentMode: .fit)
-            ThemeCanvas(theme: state.theme, forcedPeriod: period).aspectRatio(1.25, contentMode: .fit)
+            ThemeCanvas(theme: state.theme, forcedPeriod: period,editable:editing).aspectRatio(3, contentMode: .fit)
+            ThemeCanvas(theme: state.theme, forcedPeriod: period,editable:editing).aspectRatio(1.25, contentMode: .fit)
             Text(state.text("يتغير توزيع المعاينة تلقائيًا حسب نسبة العرض إلى الارتفاع.", "Preview layout adapts to the viewport aspect ratio.")).font(.caption)
         }.padding() }.navigationTitle(state.text("معاينة الثيم", "Theme preview"))
     }

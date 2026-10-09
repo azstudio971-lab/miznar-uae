@@ -166,3 +166,23 @@ grant execute on function private.is_admin(),private.account_exists(),private.ca
 -- Keep public settings free of secrets. Sensitive provider credentials live only in server environment variables.
 update public.app_settings set value=value||'{"maintenance":false,"minimum_version":"0.1.0","subscriptions_enabled":false,"trial_enabled":false,"refresh_seconds":600,"splash_enabled":true,"splash_duration":1.2}';
 commit;
+
+create or replace function private.validate_theme() returns trigger language plpgsql set search_path = '' as $$
+declare slot jsonb; seen text[] := '{}'; counts integer[] := array_fill(0,array[1440]); m integer; finish integer; i integer;
+begin
+ if not exists(select 1 from pg_timezone_names where name=new.timezone) then raise exception 'Unknown timezone'; end if;
+ if jsonb_typeof(new.slots) <> 'array' or jsonb_array_length(new.slots)<>4 then raise exception 'Four periods required'; end if;
+ for slot in select value from jsonb_array_elements(new.slots) loop
+   if slot->>'period' is null or slot->>'period' not in ('dawn','morning','sunset','night') or slot->>'period'=any(seen) then raise exception 'Invalid period'; end if;
+   seen := array_append(seen,slot->>'period'); m := (slot->>'start')::integer; finish := (slot->>'end')::integer;
+   if m is null or finish is null or m<0 or m>1439 or finish<0 or finish>1439 or m=finish then raise exception 'Invalid time'; end if;
+   while m<>finish loop counts[m+1]:=counts[m+1]+1; m:=(m+1)%1440; end loop;
+ end loop;
+ for i in 1..1440 loop if counts[i]<>1 then raise exception 'Schedule must cover each minute exactly once'; end if; end loop;
+ if new.status in ('published','scheduled') and new.id<>'spirit-of-the-uae' and exists(
+  select 1 from (values('compact'),('ultrawide')) l(layout) cross join (values('dawn'),('morning'),('sunset'),('night')) p(period)
+  where not exists(select 1 from public.theme_assets a where a.theme_id=new.id and a.layout=l.layout and a.period=p.period)
+    and not exists(select 1 from public.theme_media m where m.theme_id=new.id and m.layout=l.layout and m.period in(p.period,'any'))
+ ) then raise exception 'Media required for each layout and daily period before publishing';end if;
+ return new;
+end $$;

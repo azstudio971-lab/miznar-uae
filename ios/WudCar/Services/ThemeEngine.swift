@@ -22,8 +22,8 @@ extension Theme {
     }
     func widget(_ id:String)->WidgetLayout {
         if let configured=widget_settings?.first(where:{$0.widget_id==id}){return configured}
-        let positions:[String:(Double,Double)]=["clock":(.76,.15),"date":(.76,.31),"greeting":(.65,.44),"weather":(.2,.16),"prayer":(.2,.4),"adhkar":(.5,.76),"music":(.5,.91)]
-        let p=positions[id] ?? (.5,.5)
+        let positions:[String:(Double,Double)]=["clock":(0.76,0.15),"date":(0.76,0.31),"greeting":(0.65,0.44),"weather":(0.2,0.16),"prayer":(0.2,0.4),"adhkar":(0.5,0.76),"music":(0.5,0.91)]
+        let p=positions[id] ?? (0.5,0.5)
         return WidgetLayout(widget_id:id,visible:widgets[id] ?? false,x:p.0,y:p.1,scale:1,opacity:1,sort_order:0,allow_move:widgets["allow_move"] ?? false,allow_resize:widgets["allow_resize"] ?? true,allow_hide:true)
     }
 }
@@ -32,7 +32,7 @@ extension Theme {
     @Published var revision=0
     private let root=LocalFiles.root.appendingPathComponent("ThemeCache",isDirectory:true)
     private func file(theme:Theme,identifier:String)->URL {let key="\(theme.id)-\(theme.version)-\(identifier)";let hash=SHA256.hash(data:Data(key.utf8)).map{String(format:"%02x",$0)}.joined();return root.appendingPathComponent(hash)}
-    func cached(theme:Theme,identifier:String)->URL? {let url=file(theme:theme,identifier:identifier);return FileManager.default.fileExists(atPath:url.path)?url:nil}
+    func cached(theme:Theme,identifier:String)->URL? {let url=file(theme:theme,identifier:identifier);return FileManager.default.fileExists(atPath:url.path) ? url : nil}
     func prepare(theme:Theme)async {
         try? FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
         let assets=theme.assets.map{($0.id,$0.url,$0.kind)}+(theme.media ?? []).map{($0.id,$0.url,$0.kind)}

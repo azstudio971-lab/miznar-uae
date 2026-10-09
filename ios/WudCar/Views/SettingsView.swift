@@ -16,11 +16,13 @@ struct SettingsView: View {
             }
             Section(state.text("المظهر والمواقيت", "Appearance and prayer times")) {
                 Picker(state.text("المظهر", "Appearance"),selection:$state.preferences.appearance) { Text(state.text("تلقائي", "System")).tag("system");Text(state.text("فاتح", "Light")).tag("light");Text(state.text("داكن", "Dark")).tag("dark") }
+                Picker(state.text("شكل الساعة", "Clock style"),selection:$state.preferences.clockStyle) { Text(state.text("رقمية", "Digital")).tag("digital");Text(state.text("عقارب", "Analog")).tag("analog") }
                 Toggle(state.text("نظام 24 ساعة", "24-hour clock"),isOn:$state.preferences.uses24HourClock)
                 Toggle(state.text("التاريخ الهجري", "Hijri date"),isOn:$state.preferences.showHijri)
                 Picker(state.text("طريقة حساب الصلاة", "Prayer calculation method"),selection:$state.preferences.prayerMethod) { Text(state.text("الخليج", "Gulf")).tag(8);Text("Muslim World League").tag(3);Text("Umm Al-Qura").tag(4);Text(state.text("دبي — تجريبية", "Dubai — experimental")).tag(16) }
             }
             Section(state.text("معاينة الثيم على الهاتف", "Phone theme preview")) {
+                NavigationLink(state.text("تخصيص أدوات الثيم", "Customize theme widgets")) { WidgetSettingsView() }
                 ForEach(["clock", "date", "greeting"], id: \.self) { key in Toggle(widgetName(key), isOn: Binding(get: { state.preferences.widgets[key] ?? true }, set: { state.preferences.widgets[key] = $0 })) }
                 Text(state.text("حجم النص", "Text scale")); Slider(value: $state.preferences.widgetScale, in: 0.8...1.3)
                 Text(state.text("الوضوح", "Opacity")); Slider(value: $state.preferences.widgetOpacity, in: 0.5...1)
