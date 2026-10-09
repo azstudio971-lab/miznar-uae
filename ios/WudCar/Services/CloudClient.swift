@@ -31,7 +31,14 @@ enum WudError:LocalizedError {case message(String);var errorDescription:String?{
     }
     func signOut()async {if session != nil{_=try? await request("/auth/v1/logout",method:"POST",authenticated:true)};SecureStore.remove("auth-session");session=nil}
     func deleteAccount()async throws {let b=try JSONSerialization.data(withJSONObject:["confirmation":"DELETE"]);_=try await request("/functions/v1/delete-account",method:"POST",body:b,authenticated:true);SecureStore.remove("auth-session");session=nil}
-    func saveProfile(_ p:Preferences)async throws {guard let s=session else{return};let value=CloudProfile(user_id:s.user.id,display_name:p.name,language:p.language,city:p.city,preferences:p);_=try await request("/rest/v1/profiles?on_conflict=user_id",method:"POST",body:JSONEncoder().encode(value),authenticated:true,extra:["Prefer":"resolution=merge-duplicates"])}
+    func saveProfile(_ p:Preferences)async throws {
+        guard let s=session else{return}
+        let value=CloudProfile(user_id:s.user.id,display_name:p.name,language:p.language,city:p.city,preferences:p)
+        _=try await request("/rest/v1/profiles?on_conflict=user_id",method:"POST",body:JSONEncoder().encode(value),authenticated:true,extra:["Prefer":"resolution=ignore-duplicates"])
+        struct Update:Encodable {let display_name:String;let language:String;let city:String;let preferences:Preferences}
+        let update=Update(display_name:p.name,language:p.language,city:p.city,preferences:p)
+        _=try await request("/rest/v1/profiles?user_id=eq.\(s.user.id)",method:"PATCH",body:JSONEncoder().encode(update),authenticated:true)
+    }
     func profile()async throws->Preferences? {guard let s=session else{return nil};let d=try await request("/rest/v1/profiles?user_id=eq.\(s.user.id)&select=*",authenticated:true);return try JSONDecoder().decode([CloudProfile].self,from:d).first?.preferences}
     func catalog()async throws->Catalog {let d=try await request("/functions/v1/catalog");return try JSONDecoder().decode(Catalog.self,from:d)}
     func inbox()async throws->[InboxMessage] {let d=try await request("/rest/v1/messages?select=id,title_ar,title_en,body_ar,body_en&order=starts_at.desc",authenticated:true);return try JSONDecoder().decode([InboxMessage].self,from:d)}

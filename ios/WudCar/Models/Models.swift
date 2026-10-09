@@ -2,7 +2,7 @@ import Foundation
 
 struct Preferences: Codable, Equatable {
     var name = ""
-    var language = "ar"
+    var language = Locale.preferredLanguages.first?.hasPrefix("ar") == true ? "ar" : "en"
     var city = "Dubai"
     var themeID = "spirit-of-the-uae"
     var musicEnabled = false
@@ -12,6 +12,12 @@ struct Preferences: Codable, Equatable {
     var clockX = 0.72
     var clockY = 0.20
     var onboarded = false
+    var clockStyle = "digital"
+    var uses24HourClock = false
+    var showHijri = true
+    var appearance = "system"
+    var prayerMethod = 8
+    var widgetOverrides: [String:WidgetCustomization] = [:]
 }
 struct ThemeSlot: Codable, Equatable { let period: String; let start: Int; let end: Int }
 struct ThemeAsset: Codable, Identifiable {
@@ -23,11 +29,15 @@ struct Theme: Codable, Identifiable {
     var timezone: String; var slots: [ThemeSlot]; var widgets: [String: Bool]
     var music_mode: String; var music_ids: [String]; var assets: [ThemeAsset]
     var forced: Bool?; var starts_at: String?; var ends_at: String?
+    var priority: Int?; var sort_order: Int?; var weekdays: [Int]?
+    var description_ar: String?; var description_en: String?
+    var thumbnail_url: String?; var fallback_url: String?
+    var media: [ThemeMedium]?; var widget_settings: [WidgetLayout]?
     func name(_ language: String) -> String { language == "ar" ? name_ar : name_en }
     static let builtin = Theme(id: "spirit-of-the-uae", name_ar: "روح الإمارات", name_en: "Spirit of the UAE", version: 1, timezone: "Asia/Dubai", slots: [ThemeSlot(period:"dawn",start:300,end:420), ThemeSlot(period:"morning",start:420,end:1020), ThemeSlot(period:"sunset",start:1020,end:1140), ThemeSlot(period:"night",start:1140,end:300)], widgets: ["clock":true,"date":true,"greeting":true,"weather":true,"prayer":true,"adhkar":true,"allow_move":true,"allow_resize":true], music_mode:"all",music_ids:[],assets:[])
 }
 struct Track: Codable, Identifiable {let id: String;let name_ar: String;let name_en: String;let url: String}
-struct Catalog: Codable {let themes:[Theme];let music:[Track];let default_theme:String?}
+struct Catalog: Codable {let themes:[Theme];let music:[Track];let default_theme:String?;let religious:[ReligiousContent]?;let settings:CatalogSettings?;let legal:[RemotePolicy]?}
 struct InboxMessage: Codable, Identifiable {let id:String;let title_ar:String;let title_en:String;let body_ar:String;let body_en:String}
 struct MediaSource: Codable, Identifiable, Equatable {
     var id = UUID().uuidString
@@ -45,7 +55,7 @@ enum WudDomain {
     static func greeting(name:String,hour:Int,language:String)->String {
         let value=String(name.trimmingCharacters(in:.whitespacesAndNewlines).prefix(40))
         let greeting=language == "ar" ? (hour < 12 ? "صباح الخير" : "مساء الخير") : (hour < 12 ? "Good morning" : "Good evening")
-        return greeting + (value.isEmpty ? "" : (language == "ar" ? "، " : ", ") + value)
+        return greeting + (value.isEmpty ? "" : (language == "ar" ? " يا " : ", ") + value)
     }
     static func layout(width:Double,height:Double)->String {height > 0 && width/height >= 1.9 ? "ultrawide" : "compact"}
     static func validURL(_ text:String)->URL? {guard let u=URL(string:text.trimmingCharacters(in:.whitespacesAndNewlines)),u.scheme?.lowercased()=="https",u.host != nil,u.user==nil,u.password==nil else{return nil};return u}
@@ -67,5 +77,37 @@ enum WudDomain {
             if line.hasPrefix("#EXTINF:") {name=line.split(separator:",",maxSplits:1).last.map(String.init) ?? "Media";group="";if let range=line.range(of:"group-title=\""){let rest=line[range.upperBound...];group=String(rest.prefix{ $0 != "\"" })}}
             else if !line.isEmpty && !line.hasPrefix("#"),let u=URL(string:line,relativeTo:base)?.absoluteURL,validURL(u.absoluteString) != nil {result.append(MediaItem(name:name,url:u,group:group));name="Media";group=""}
         };return result
+    }
+}
+
+struct WidgetCustomization: Codable, Equatable { var x:Double;var y:Double;var scale:Double;var opacity:Double;var hidden:Bool }
+struct WidgetLayout: Codable, Identifiable {var id:String{widget_id};let widget_id:String;var visible:Bool;var x:Double;var y:Double;var scale:Double;var opacity:Double;var sort_order:Int;var allow_move:Bool;var allow_resize:Bool;var allow_hide:Bool}
+struct ThemeMedium: Codable, Identifiable {let id:String;let layout:String;let period:String;let kind:String;let url:String;let sort_order:Int;let duration_seconds:Int}
+struct ReligiousContent: Codable, Identifiable {let id:String;let kind:String;let title_ar:String;let title_en:String;let text_ar:String;let text_en:String;let source_title:String;let source_url:String}
+struct CatalogSettings:Codable {var maintenance:Bool?;var minimum_version:String?;var refresh_seconds:Int?;var splash_enabled:Bool?;var splash_duration:Double?;var subscriptions_enabled:Bool?;var trial_enabled:Bool?}
+struct RemotePolicy:Codable,Identifiable {let id:String;let title_ar:String;let title_en:String;let sections_ar:[[String]];let sections_en:[[String]];let version:Int}
+struct RegisteredDevice:Codable,Identifiable {let id:String;let name:String;let last_seen_at:String;let revoked_at:String?}
+
+extension Preferences {
+    private enum CodingKeys:String,CodingKey {case name,language,city,themeID,musicEnabled,widgets,widgetScale,widgetOpacity,clockX,clockY,onboarded,clockStyle,uses24HourClock,showHijri,appearance,prayerMethod,widgetOverrides}
+    init(from decoder:Decoder)throws {
+        self.init();let c=try decoder.container(keyedBy:CodingKeys.self)
+        name=try c.decodeIfPresent(String.self,forKey:.name) ?? name
+        language=try c.decodeIfPresent(String.self,forKey:.language) ?? language
+        city=try c.decodeIfPresent(String.self,forKey:.city) ?? city
+        themeID=try c.decodeIfPresent(String.self,forKey:.themeID) ?? themeID
+        musicEnabled=try c.decodeIfPresent(Bool.self,forKey:.musicEnabled) ?? musicEnabled
+        widgets=try c.decodeIfPresent([String:Bool].self,forKey:.widgets) ?? widgets
+        widgetScale=try c.decodeIfPresent(Double.self,forKey:.widgetScale) ?? widgetScale
+        widgetOpacity=try c.decodeIfPresent(Double.self,forKey:.widgetOpacity) ?? widgetOpacity
+        clockX=try c.decodeIfPresent(Double.self,forKey:.clockX) ?? clockX
+        clockY=try c.decodeIfPresent(Double.self,forKey:.clockY) ?? clockY
+        onboarded=try c.decodeIfPresent(Bool.self,forKey:.onboarded) ?? onboarded
+        clockStyle=try c.decodeIfPresent(String.self,forKey:.clockStyle) ?? clockStyle
+        uses24HourClock=try c.decodeIfPresent(Bool.self,forKey:.uses24HourClock) ?? uses24HourClock
+        showHijri=try c.decodeIfPresent(Bool.self,forKey:.showHijri) ?? showHijri
+        appearance=try c.decodeIfPresent(String.self,forKey:.appearance) ?? appearance
+        prayerMethod=try c.decodeIfPresent(Int.self,forKey:.prayerMethod) ?? prayerMethod
+        widgetOverrides=try c.decodeIfPresent([String:WidgetCustomization].self,forKey:.widgetOverrides) ?? widgetOverrides
     }
 }

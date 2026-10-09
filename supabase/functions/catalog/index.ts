@@ -1,19 +1,25 @@
-import { headers, json, service } from '../_shared/http.ts';
-Deno.serve(async request => {
-  if (request.method === 'OPTIONS') return new Response(null, { headers: headers(request) });
-  if (request.method !== 'GET') return json(request, 405, { error: 'Method not allowed' });
-  try {
-    const db = service(); const now = Date.now();
-    const { data: rows, error } = await db.from('themes').select('*,theme_assets(*)').eq('status', 'published');
-    if (error) throw error;
-    const active = (rows ?? []).filter(t => (!t.starts_at || Date.parse(t.starts_at) <= now) && (!t.ends_at || Date.parse(t.ends_at) > now));
-    const sign = async (path: string) => { const { data, error } = await db.storage.from('theme-media').createSignedUrl(path, 3600); if (error || !data) throw error ?? Error('Asset unavailable'); return data.signedUrl; };
-    const themes = await Promise.all(active.map(async t => ({ id: t.id, name_ar: t.name_ar, name_en: t.name_en, version: t.version, timezone: t.timezone, slots: t.slots, widgets: t.widgets, music_mode: t.music_mode, music_ids: t.music_ids, forced: t.forced, starts_at: t.starts_at, ends_at: t.ends_at,
-      assets: await Promise.all(t.theme_assets.map(async (a: {layout:string;period:string;kind:string;path:string}) => ({layout:a.layout,period:a.period,kind:a.kind,url:await sign(a.path)}))) })));
-    const { data: songs, error: musicError } = await db.from('music').select('*').eq('enabled', true); if (musicError) throw musicError;
-    const permitted = (songs ?? []).filter(m => active.some(t => t.music_mode === 'all' || (t.music_mode === 'selected' && t.music_ids.includes(m.id))));
-    const music = await Promise.all(permitted.map(async m => ({ id:m.id,name_ar:m.name_ar,name_en:m.name_en,url:await sign(m.path) })));
-    const { data: setting, error: settingError } = await db.from('app_settings').select('value').eq('id', 'public').maybeSingle(); if (settingError) throw settingError;
-    return json(request, 200, { themes, music, default_theme: setting?.value?.default_theme ?? 'spirit-of-the-uae' });
-  } catch { return json(request, 503, { error: 'Catalog temporarily unavailable' }); }
+import {headers,json,service} from '../_shared/http.ts';
+Deno.serve(async request=>{
+ if(request.method==='OPTIONS')return new Response(null,{headers:headers(request)});
+ if(request.method!=='GET')return json(request,405,{error:'Method not allowed'});
+ try {
+  const db=service(),now=Date.now();
+  const {data:rows,error}=await db.from('themes').select('*,theme_assets(*),theme_media(*),theme_widget_settings(*),theme_playlists(*)').in('status',['published','scheduled']).order('priority',{ascending:false}).order('sort_order');if(error)throw error;
+  const active=(rows??[]).filter(t=>{
+   if((t.starts_at&&Date.parse(t.starts_at)>now)||(t.ends_at&&Date.parse(t.ends_at)<=now))return false;
+   const day=new Intl.DateTimeFormat('en-US',{timeZone:t.timezone,weekday:'short'}).format(new Date());return (t.weekdays??[0,1,2,3,4,5,6]).includes(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(day));
+  });
+  const sign=async(path:string|null)=>{if(!path)return null;const {data,error}=await db.storage.from('theme-media').createSignedUrl(path,3600);if(error||!data)throw error??Error('Asset unavailable');return data.signedUrl;};
+  const themes=await Promise.all(active.map(async t=>({id:t.id,name_ar:t.name_ar,name_en:t.name_en,description_ar:t.description_ar,description_en:t.description_en,version:t.version,timezone:t.timezone,slots:t.slots,widgets:t.widgets,music_mode:t.music_mode,music_ids:t.music_ids,forced:t.forced,priority:t.priority,sort_order:t.sort_order,weekdays:t.weekdays,starts_at:t.starts_at,ends_at:t.ends_at,thumbnail_url:await sign(t.thumbnail_path),fallback_url:await sign(t.fallback_path),widget_settings:t.theme_widget_settings,
+   assets:await Promise.all(t.theme_assets.map(async(a:{layout:string;period:string;kind:string;path:string})=>({layout:a.layout,period:a.period,kind:a.kind,url:await sign(a.path)}))),
+   media:await Promise.all(t.theme_media.filter((m:{starts_at:string|null;ends_at:string|null})=>(!m.starts_at||Date.parse(m.starts_at)<=now)&&(!m.ends_at||Date.parse(m.ends_at)>now)).map(async(m:{id:string;layout:string;period:string;kind:string;path:string;sort_order:number;duration_seconds:number})=>({id:m.id,layout:m.layout,period:m.period,kind:m.kind,url:await sign(m.path),sort_order:m.sort_order,duration_seconds:m.duration_seconds})))
+  })));
+  const results=await Promise.all([db.from('music').select('*').eq('enabled',true).order('sort_order'),db.from('playlists').select('*,playlist_tracks(*)').eq('enabled',true).order('sort_order'),db.from('religious_content').select('*').eq('status','published').eq('verified',true).order('sort_order'),db.from('app_settings').select('value').eq('id','public').maybeSingle(),db.from('legal_documents').select('*').eq('published',true)]);for(const result of results)if(result.error)throw result.error;
+  const [songs,lists,religious,setting,legal]=results;
+  const selectedPlaylistIDs=new Set(active.flatMap(t=>t.theme_playlists.map((p:{playlist_id:string})=>p.playlist_id)));
+  const selectedTracks=new Set((lists.data??[]).filter(p=>selectedPlaylistIDs.has(p.id)).flatMap(p=>p.playlist_tracks.map((a:{track_id:string})=>a.track_id)));
+  const permitted=(songs.data??[]).filter(m=>active.some(t=>t.music_mode==='all'||(t.music_mode==='selected'&&(t.music_ids.includes(m.id)||selectedTracks.has(m.id)))));
+  const music=await Promise.all(permitted.map(async m=>({id:m.id,name_ar:m.name_ar,name_en:m.name_en,url:await sign(m.path),sort_order:m.sort_order})));
+  return json(request,200,{themes,music,playlists:lists.data??[],religious:religious.data??[],legal:legal.data??[],settings:setting.data?.value??{},default_theme:setting.data?.value?.default_theme??'spirit-of-the-uae',generated_at:new Date().toISOString()});
+ }catch{return json(request,503,{error:'Catalog temporarily unavailable'});}
 });

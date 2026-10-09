@@ -8,13 +8,24 @@ import Combine
     @Published var themes = [Theme.builtin]
     @Published var tracks: [Track] = []
     @Published var messages: [InboxMessage] = []
+    @Published var religious: [ReligiousContent] = []
+    @Published var catalogSettings: CatalogSettings?
+    @Published var legal: [RemotePolicy] = []
     @Published var notice: String?
-    init() { preferences = LocalFiles.load(Preferences.self, name: "preferences.json") ?? Preferences(); sources = LocalFiles.load([MediaSource].self, name: "sources.json") ?? [] }
-    var theme: Theme { themes.first { $0.forced == true } ?? themes.first { $0.id == preferences.themeID } ?? .builtin }
+    init() { preferences = LocalFiles.load(Preferences.self, name: "preferences.json") ?? Preferences(); sources = LocalFiles.load([MediaSource].self, name: "sources.json") ?? []
+        if let cached=LocalFiles.load(Catalog.self,name:"catalog.json") { apply(cached) }
+    }
+    private func apply(_ catalog:Catalog) { themes=catalog.themes.isEmpty ? [.builtin] : catalog.themes;tracks=catalog.music;religious=catalog.religious ?? [];catalogSettings=catalog.settings;legal=catalog.legal ?? [] }
+
+    var theme: Theme {
+        let available=themes.filter{$0.isAvailable(at:Date())}.sorted{($0.priority ?? 0)>($1.priority ?? 0)}
+        return available.first{$0.forced==true} ?? available.first{$0.id==preferences.themeID} ?? .builtin
+    }
     func text(_ ar: String, _ en: String) -> String { preferences.language == "ar" ? ar : en }
     func refresh() async {
+        await InformationService.shared.refresh(city:preferences.city,method:preferences.prayerMethod)
         guard AppConfiguration.configured else { return }
-        do { let catalog = try await CloudClient.shared.catalog(); themes = catalog.themes.isEmpty ? [.builtin] : catalog.themes; tracks = catalog.music
+        do { let catalog = try await CloudClient.shared.catalog(); apply(catalog);try? LocalFiles.save(catalog,name:"catalog.json");await ThemeCache.shared.prepare(theme:theme)
             if CloudClient.shared.session != nil { messages = try await CloudClient.shared.inbox() }
         } catch { notice = error.localizedDescription }
     }

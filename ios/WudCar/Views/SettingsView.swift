@@ -14,6 +14,12 @@ struct SettingsView: View {
                 Picker(state.text("اللغة", "Language"), selection: $state.preferences.language) { Text("العربية").tag("ar"); Text("English").tag("en") }
                 Picker(state.text("المدينة", "City"), selection: $state.preferences.city) { ForEach(City.all) { city in Text(state.preferences.language == "ar" ? city.arabic : city.name).tag(city.name) } }
             }
+            Section(state.text("المظهر والمواقيت", "Appearance and prayer times")) {
+                Picker(state.text("المظهر", "Appearance"),selection:$state.preferences.appearance) { Text(state.text("تلقائي", "System")).tag("system");Text(state.text("فاتح", "Light")).tag("light");Text(state.text("داكن", "Dark")).tag("dark") }
+                Toggle(state.text("نظام 24 ساعة", "24-hour clock"),isOn:$state.preferences.uses24HourClock)
+                Toggle(state.text("التاريخ الهجري", "Hijri date"),isOn:$state.preferences.showHijri)
+                Picker(state.text("طريقة حساب الصلاة", "Prayer calculation method"),selection:$state.preferences.prayerMethod) { Text(state.text("الخليج", "Gulf")).tag(8);Text("Muslim World League").tag(3);Text("Umm Al-Qura").tag(4);Text(state.text("دبي — تجريبية", "Dubai — experimental")).tag(16) }
+            }
             Section(state.text("معاينة الثيم على الهاتف", "Phone theme preview")) {
                 ForEach(["clock", "date", "greeting"], id: \.self) { key in Toggle(widgetName(key), isOn: Binding(get: { state.preferences.widgets[key] ?? true }, set: { state.preferences.widgets[key] = $0 })) }
                 Text(state.text("حجم النص", "Text scale")); Slider(value: $state.preferences.widgetScale, in: 0.8...1.3)

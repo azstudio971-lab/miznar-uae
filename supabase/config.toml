@@ -3,3 +3,7 @@ project_id = "wudcar"
 verify_jwt = false
 [functions.delete-account]
 verify_jwt = false
+[functions.device-session]
+verify_jwt = false
+[functions.admin-ops]
+verify_jwt = false

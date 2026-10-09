@@ -7,6 +7,7 @@ struct RootView: View {
         TabView {
             NavigationStack { HomeView() }.tabItem { Label(state.text("الرئيسية", "Home"), systemImage: "house") }
             NavigationStack { ThemesView() }.tabItem { Label(state.text("الثيمات", "Themes"), systemImage: "sparkles") }
+            NavigationStack { InformationView() }.tabItem { Label(state.text("المعلومات", "Information"), systemImage: "sun.max") }
             NavigationStack { MediaView() }.tabItem { Label(state.text("مكتبتي", "Library"), systemImage: "play.rectangle") }
             NavigationStack { SettingsView() }.tabItem { Label(state.text("الإعدادات", "Settings"), systemImage: "slider.horizontal.3") }
         }
@@ -21,7 +22,7 @@ struct WelcomeView: View {
             Image("BrandIcon").resizable().scaledToFit().frame(width: 100, height: 100).clipShape(RoundedRectangle(cornerRadius: 24))
             Text("WudCar").font(.largeTitle.bold()); Text(state.text("رفيق مشاويرك", "Your journey companion")).font(.title2)
             Picker("Language", selection: $state.preferences.language) { Text("العربية").tag("ar"); Text("English").tag("en") }.pickerStyle(.segmented)
-            TextField(state.text("اسمك — اختياري", "Your name — optional"), text: $state.preferences.name).textFieldStyle(.roundedBorder).onChange(of: state.preferences.name) { _, value in state.preferences.name = String(value.prefix(40)) }
+            TextField(state.text("ما الاسم الذي تحب أن نناديك به؟", "What name would you like us to use?"), text: $state.preferences.name).textFieldStyle(.roundedBorder).onChange(of: state.preferences.name) { _, value in state.preferences.name = String(value.prefix(40)) }
             Text(state.text("ابدأ كضيف. تحتاج بعض الخدمات إلى الإنترنت. اعتمد على الطريق أثناء القيادة؛ واجهة CarPlay تخضع لما تسمح به Apple وسيارتك.", "Start as a guest. Some services require internet. Keep your attention on the road; CarPlay features depend on Apple approval and your vehicle.")).font(.callout).foregroundStyle(.secondary)
             Button(state.text("ابدأ رحلتك", "Start your journey")) { state.preferences.onboarded = true }.buttonStyle(.borderedProminent)
         }.padding(28)

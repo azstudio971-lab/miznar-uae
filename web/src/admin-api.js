@@ -1,0 +1,6 @@
+import {db} from './api.js';
+export async function permissions(){const {data,error}=await db.rpc('my_permissions');if(error)throw error;return data||[];}
+export const can=(caps,action)=>caps.includes('*')||caps.includes(action);
+export async function serverAction(body){const {data,error}=await db.functions.invoke('admin-ops',{body});if(error)throw error;if(data?.error)throw Error(data.error);return data;}
+export async function changePassword(currentPassword,newPassword){const {data:{user},error:userError}=await db.auth.getUser();if(userError||!user)throw Error('Session invalid');const login=await db.auth.signInWithPassword({email:user.email,password:currentPassword});if(login.error)throw login.error;const result=await db.auth.updateUser({password:newPassword});if(result.error)throw result.error;await db.auth.signOut({scope:'others'});}
+export function downloadCSV(name,rows){const keys=Object.keys(rows[0]||{});const cell=value=>'"'+String(value??'').replaceAll('"','""').replace(/^[=+@-]/,"'$&")+'"';const csv='\uFEFF'+[keys.map(cell).join(','),...rows.map(row=>keys.map(k=>cell(row[k])).join(','))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);}
