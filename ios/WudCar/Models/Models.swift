@@ -4,9 +4,16 @@ struct Preferences: Codable, Equatable {
     var name = ""
     var language = Locale.preferredLanguages.first?.hasPrefix("ar") == true ? "ar" : "en"
     var city = "Dubai"
+    var region = "Dubai"
+    var country = "AE"
+    var timezone = "Asia/Dubai"
+    var locationMode = "manual"
+    var latitude: Double?
+    var longitude: Double?
+    var favoriteIDs: [String] = []
     var themeID = "spirit-of-the-uae"
     var musicEnabled = false
-    var widgets = ["clock": true, "date": true, "greeting": true, "weather": true, "prayer": true, "adhkar": true]
+    var widgets = ["clock": true, "date": true, "greeting": true, "weather": true, "prayer": true, "adhkar": true, "music": false]
     var widgetScale = 1.0
     var widgetOpacity = 1.0
     var clockX = 0.72
@@ -37,7 +44,7 @@ struct Theme: Codable, Identifiable {
     static let builtin = Theme(id: "spirit-of-the-uae", name_ar: "روح الإمارات", name_en: "Spirit of the UAE", version: 1, timezone: "Asia/Dubai", slots: [ThemeSlot(period:"dawn",start:300,end:420), ThemeSlot(period:"morning",start:420,end:1020), ThemeSlot(period:"sunset",start:1020,end:1140), ThemeSlot(period:"night",start:1140,end:300)], widgets: ["clock":true,"date":true,"greeting":true,"weather":true,"prayer":true,"adhkar":true,"allow_move":true,"allow_resize":true], music_mode:"all",music_ids:[],assets:[])
 }
 struct Track: Codable, Identifiable {let id: String;let name_ar: String;let name_en: String;let url: String}
-struct Catalog: Codable {let themes:[Theme];let music:[Track];let default_theme:String?;let religious:[ReligiousContent]?;let settings:CatalogSettings?;let legal:[RemotePolicy]?}
+struct Catalog: Codable {let themes:[Theme];let music:[Track];let default_theme:String?;let religious:[ReligiousContent]?;let settings:CatalogSettings?;let legal:[RemotePolicy]?;let library:[LibraryItem]?;let updates:[AppUpdate]?}
 struct InboxMessage: Codable, Identifiable {let id:String;let title_ar:String;let title_en:String;let body_ar:String;let body_en:String}
 struct MediaSource: Codable, Identifiable, Equatable {
     var id = UUID().uuidString
@@ -89,12 +96,19 @@ struct RemotePolicy:Codable,Identifiable {let id:String;let title_ar:String;let 
 struct RegisteredDevice:Codable,Identifiable {let id:String;let name:String;let last_seen_at:String;let revoked_at:String?}
 
 extension Preferences {
-    private enum CodingKeys:String,CodingKey {case name,language,city,themeID,musicEnabled,widgets,widgetScale,widgetOpacity,clockX,clockY,onboarded,clockStyle,uses24HourClock,showHijri,appearance,prayerMethod,widgetOverrides}
+    private enum CodingKeys:String,CodingKey {case region,country,timezone,locationMode,latitude,longitude,favoriteIDs,name,language,city,themeID,musicEnabled,widgets,widgetScale,widgetOpacity,clockX,clockY,onboarded,clockStyle,uses24HourClock,showHijri,appearance,prayerMethod,widgetOverrides}
     init(from decoder:Decoder)throws {
         self.init();let c=try decoder.container(keyedBy:CodingKeys.self)
         name=try c.decodeIfPresent(String.self,forKey:.name) ?? name
         language=try c.decodeIfPresent(String.self,forKey:.language) ?? language
         city=try c.decodeIfPresent(String.self,forKey:.city) ?? city
+        region=try c.decodeIfPresent(String.self,forKey:.region) ?? region
+        country=try c.decodeIfPresent(String.self,forKey:.country) ?? country
+        timezone=try c.decodeIfPresent(String.self,forKey:.timezone) ?? timezone
+        locationMode=try c.decodeIfPresent(String.self,forKey:.locationMode) ?? locationMode
+        latitude=try c.decodeIfPresent(Double.self,forKey:.latitude)
+        longitude=try c.decodeIfPresent(Double.self,forKey:.longitude)
+        favoriteIDs=try c.decodeIfPresent([String].self,forKey:.favoriteIDs) ?? []
         themeID=try c.decodeIfPresent(String.self,forKey:.themeID) ?? themeID
         musicEnabled=try c.decodeIfPresent(Bool.self,forKey:.musicEnabled) ?? musicEnabled
         widgets=try c.decodeIfPresent([String:Bool].self,forKey:.widgets) ?? widgets
@@ -111,3 +125,8 @@ extension Preferences {
         widgetOverrides=try c.decodeIfPresent([String:WidgetCustomization].self,forKey:.widgetOverrides) ?? widgetOverrides
     }
 }
+
+struct LibraryItem: Codable, Identifiable {let id:String;let kind:String;let name_ar:String;let name_en:String;let url:String;let icon_url:String?;let description_ar:String?;let description_en:String?
+    func name(_ lang:String)->String {lang == "ar" ? name_ar : name_en}
+}
+struct AppUpdate: Codable, Identifiable {let id:String;let title_ar:String;let title_en:String;let body_ar:String;let body_en:String;let version:String}

@@ -11,7 +11,7 @@ struct InformationView: View {
                     Label("\(Int(weather.temperature.rounded()))°C · \(weather.city)",systemImage:weather.symbol).font(.title2)
                     if let low=weather.tomorrowLow,let high=weather.tomorrowHigh { Text(state.text("غدًا", "Tomorrow")+": \(Int(low.rounded()))–\(Int(high.rounded()))°C") }
                     Text(state.text("آخر تحديث", "Last updated")+": "+weather.fetchedAt.formatted()).font(.caption)
-                    if let url=URL(string:weather.attributionURL) { Link(destination:url) { HStack { if let mark=URL(string:weather.attributionMark) { AsyncImage(url:mark) { image in image.resizable().scaledToFit() } placeholder:{ Text("Apple Weather") }.frame(height:18) };Text(state.text("المصدر والترخيص", "Source and attribution")).font(.caption) } } }
+                    if let url=URL(string:weather.attributionURL) { Link(destination:url) { HStack { if let mark=URL(string:weather.attributionMark) { AsyncImage(url:mark) { image in image.resizable().scaledToFit() } placeholder:{ Text("MET Norway · CC BY 4.0") }.frame(height:18) };Text(state.text("المصدر والترخيص", "Source and attribution")).font(.caption) } } }
                 } else { Text(state.text("لا توجد نتيجة طقس متاحة لهذه المدينة.", "Weather is not available for this city.")) }
                 if let error=information.weatherError { Text(error).font(.caption).foregroundStyle(.secondary) }
             }

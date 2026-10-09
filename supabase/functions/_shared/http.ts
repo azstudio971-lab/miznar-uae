@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 export function headers(request: Request): HeadersInit {
   const origin = request.headers.get('Origin');
-  const allowed = (Deno.env.get('ALLOWED_ORIGINS') ?? '').split(',').filter(Boolean);
+  const allowed = (Deno.env.get('ALLOWED_ORIGINS') ?? 'https://wudcar.netlify.app,http://localhost:5173,http://127.0.0.1:5173').split(',').filter(Boolean);
   return { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Vary': 'Origin',
     ...(origin && allowed.includes(origin) ? { 'Access-Control-Allow-Origin': origin } : {}),
     'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',

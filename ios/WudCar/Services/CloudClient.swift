@@ -57,3 +57,24 @@ enum WudError:LocalizedError {case message(String);var errorDescription:String?{
     func catalog()async throws->Catalog {let d=try await request("/functions/v1/catalog");return try JSONDecoder().decode(Catalog.self,from:d)}
     func inbox()async throws->[InboxMessage] {let d=try await request("/rest/v1/messages?select=id,title_ar,title_en,body_ar,body_en&order=starts_at.desc",authenticated:true);return try JSONDecoder().decode([InboxMessage].self,from:d)}
 }
+
+extension CloudClient {
+    struct LibraryLink: Codable { let id: String; let name: String?; let name_ar: String?; let name_en: String?; let url: String; let kind: String }
+    struct SavedLibrary: Codable { let user_id: String; let items: [LibraryLink]; let favorites: [String] }
+    func loadLibrary() async throws {
+        guard let session else { return }
+        let data = try await request("/rest/v1/user_library?user_id=eq.\(session.user.id)&select=*", authenticated: true)
+        guard let saved = try JSONDecoder().decode([SavedLibrary].self, from: data).first else { return }
+        let state = AppState.shared
+        state.sources = saved.items.map { MediaSource(id: $0.id, name: $0.name ?? $0.name_ar ?? $0.name_en ?? "Link", url: $0.url, type: $0.kind == "website" ? "website" : "stream", mediaKind: "video", favorite: saved.favorites.contains($0.id)) }
+        state.preferences.favoriteIDs = saved.favorites
+    }
+    func saveLibrary() async throws {
+        guard let session else { return }
+        let state = AppState.shared
+        let links = state.sources.filter { $0.type != "local" }.map { LibraryLink(id: $0.id, name: $0.name, name_ar: $0.name, name_en: $0.name, url: $0.url, kind: $0.type == "website" ? "website" : "live") }
+        let favorites = Array(Set(state.preferences.favoriteIDs + state.sources.filter(\.favorite).map(\.id)))
+        let payload = SavedLibrary(user_id: session.user.id, items: links, favorites: favorites)
+        _ = try await request("/rest/v1/user_library?on_conflict=user_id", method: "POST", body: JSONEncoder().encode(payload), authenticated: true, extra: ["Prefer": "resolution=merge-duplicates"])
+    }
+}

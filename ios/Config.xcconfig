@@ -1,4 +1,5 @@
-// Public client configuration only. Never put a Supabase service role key here.
-WUD_SUPABASE_URL =
-WUD_SUPABASE_KEY =
+// Public client keys; secrets belong only in server configuration.
+WUD_SUPABASE_URL = https:/$()/mvahcjupspppnjozrbfi.supabase.co
+WUD_SUPABASE_KEY = sb_publishable_5gjIhC4uWXcDDz15Ugq0iQ_sepbXruq
+WUD_APNS_ENVIRONMENT = sandbox
 #include? "Local.xcconfig"

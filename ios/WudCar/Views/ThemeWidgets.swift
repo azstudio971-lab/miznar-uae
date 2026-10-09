@@ -13,7 +13,7 @@ struct ThemeWidget: View {
         Group {
             switch id {
             case "clock":
-                if state.preferences.clockStyle=="analog" { AnalogClock(date:date).frame(width:70,height:70) }
+                if state.preferences.clockStyle=="analog" { AnalogClock(date:date,timezone:state.preferences.timezone).frame(width:70,height:70) }
                 else { Text(formatDate(date,pattern:state.preferences.uses24HourClock ? "HH:mm" : "h:mm a")).font(.system(size:28,weight:.light,design:.rounded)).monospacedDigit() }
             case "date":
                 VStack(spacing:3) { Text(formatDate(date,pattern:"EEE, d MMM"));if state.preferences.showHijri { Text(formatDate(date,pattern:"d MMM yyyy",hijri:true)).font(.caption2) } }
@@ -34,13 +34,15 @@ struct ThemeWidget: View {
             }
         }.font(.caption).foregroundStyle(.white).shadow(color:.black.opacity(0.5),radius:4)
     }
-    private func formatDate(_ date:Date,pattern:String,hijri:Bool=false)->String { let formatter=DateFormatter();formatter.locale=Locale(identifier:state.preferences.language);formatter.timeZone=TimeZone(identifier:theme.timezone);formatter.calendar=Calendar(identifier:hijri ? .islamicUmmAlQura : .gregorian);formatter.dateFormat=pattern;return formatter.string(from:date) }
+    private func formatDate(_ date:Date,pattern:String,hijri:Bool=false)->String { let formatter=DateFormatter();formatter.locale=Locale(identifier:state.preferences.language);formatter.timeZone=TimeZone(identifier:state.preferences.timezone);formatter.calendar=Calendar(identifier:hijri ? .islamicUmmAlQura : .gregorian);formatter.dateFormat=pattern;return formatter.string(from:date) }
     private func prayerArabic(_ key:String)->String { ["Fajr":"الفجر","Dhuhr":"الظهر","Asr":"العصر","Maghrib":"المغرب","Isha":"العشاء"][key] ?? key }
 }
 struct AnalogClock:View {
+    private var calendar:Calendar { var c=Calendar.current;c.timeZone=TimeZone(identifier:timezone) ?? .current;return c }
     let date:Date
+    var timezone:String
     var body:some View {
-        let components=Calendar.current.dateComponents([.hour,.minute],from:date)
+        let components=calendar.dateComponents([.hour,.minute],from:date)
         let minutes=Double(components.minute ?? 0),hours=Double((components.hour ?? 0)%12)+minutes/60
         ZStack { Circle().stroke(.white.opacity(0.7),lineWidth:1);ForEach(0..<12,id:\.self) { tick in Capsule().fill(.white).frame(width:2,height:5).offset(y:-30).rotationEffect(.degrees(Double(tick)*30)) };Capsule().fill(.white).frame(width:3,height:20).offset(y:-10).rotationEffect(.degrees(hours*30));Capsule().fill(.white).frame(width:2,height:28).offset(y:-14).rotationEffect(.degrees(minutes*6));Circle().fill(.white).frame(width:5,height:5) }.accessibilityLabel(date.formatted(date:.omitted,time:.shortened))
     }

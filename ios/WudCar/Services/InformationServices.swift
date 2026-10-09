@@ -1,6 +1,4 @@
 import Foundation
-import WeatherKit
-import CoreLocation
 import Combine
 
 struct WeatherSnapshot:Codable {let city:String;let temperature:Double;let symbol:String;let tomorrowLow:Double?;let tomorrowHigh:Double?;let fetchedAt:Date;let attributionURL:String;let attributionMark:String}
@@ -12,29 +10,27 @@ struct PrayerSnapshot:Codable {let city:String;let method:Int;let day:String;let
     @Published var weatherError:String?
     @Published var prayerError:String?
     @Published var refreshing=false
+    private var lastKey=""
+    private var lastFetch=Date.distantPast
     init(){weather=LocalFiles.load(WeatherSnapshot.self,name:"weather.json");prayer=LocalFiles.load(PrayerSnapshot.self,name:"prayer.json")}
     func refresh(city:String,method:Int)async {
-        guard !refreshing,let region=City.all.first(where:{$0.name==city})else{return};refreshing=true;defer{refreshing=false}
-        await updateWeather(region);await updatePrayer(region,method:method)
-    }
-    private func updateWeather(_ city:City)async {
-        if let weather,weather.city==city.name,Date().timeIntervalSince(weather.fetchedAt)<1800{return}
+        guard !refreshing else{return}
+        let prefs=AppState.shared.preferences
+        let region=City.all.first(where:{$0.name==city}) ?? City.all[0]
+        let lat=prefs.locationMode=="auto" ? (prefs.latitude ?? region.lat) : region.lat
+        let lon=prefs.locationMode=="auto" ? (prefs.longitude ?? region.lon) : region.lon
+        let key="\(lat),\(lon),\(method),\(prefs.timezone)"
+        if key==lastKey && Date().timeIntervalSince(lastFetch)<600{return}
+        refreshing=true;defer{refreshing=false}
         do {
-            let result=try await WeatherService.shared.weather(for:CLLocation(latitude:city.lat,longitude:city.lon))
-            let attribution=try await WeatherService.shared.attribution
-            var calendar=Calendar(identifier:.gregorian);calendar.timeZone=TimeZone(identifier:"Asia/Dubai")!
-            let tomorrow=result.dailyForecast.first{calendar.isDateInTomorrow($0.date)}
-            let snapshot=WeatherSnapshot(city:city.name,temperature:result.currentWeather.temperature.converted(to:.celsius).value,symbol:result.currentWeather.symbolName,tomorrowLow:tomorrow?.lowTemperature.converted(to:.celsius).value,tomorrowHigh:tomorrow?.highTemperature.converted(to:.celsius).value,fetchedAt:Date(),attributionURL:attribution.legalPageURL.absoluteString,attributionMark:attribution.combinedMarkDarkURL.absoluteString)
-            weather=snapshot;weatherError=nil;try? LocalFiles.save(snapshot,name:"weather.json")
-        }catch{weatherError="Weather is unavailable. Cached data is shown when available. / الطقس غير متاح؛ تظهر آخر نتيجة محفوظة عند توفرها."}
-    }
-    private func updatePrayer(_ city:City,method:Int)async {
-        let formatter=DateFormatter();formatter.dateFormat="dd-MM-yyyy";formatter.locale=Locale(identifier:"en_US_POSIX");formatter.timeZone=TimeZone(identifier:"Asia/Dubai");let day=formatter.string(from:Date())
-        if let prayer,prayer.city==city.name,prayer.method==method,prayer.day==day{return}
-        guard [3,4,8,16].contains(method)else{return}
-        var components=URLComponents(string:"https://api.aladhan.com/v1/timings/\(day)")!;components.queryItems=[URLQueryItem(name:"latitude",value:String(city.lat)),URLQueryItem(name:"longitude",value:String(city.lon)),URLQueryItem(name:"method",value:String(method)),URLQueryItem(name:"timezonestring",value:"Asia/Dubai")]
-        do {var request=URLRequest(url:components.url!);request.timeoutInterval=20;let(data,response)=try await URLSession.shared.data(for:request);guard let http=response as? HTTPURLResponse,(200..<300).contains(http.statusCode),let root=(try JSONSerialization.jsonObject(with:data)) as? [String:Any],let value=root["data"] as? [String:Any],let times=value["timings"] as? [String:String]else{throw WudError.message("Prayer response invalid")};let snapshot=PrayerSnapshot(city:city.name,method:method,day:day,timezone:"Asia/Dubai",timings:times.mapValues{String($0.prefix(5))},fetchedAt:Date());prayer=snapshot;prayerError=nil;try? LocalFiles.save(snapshot,name:"prayer.json")}
-        catch{prayerError="Prayer data is unavailable. Check the date of cached information. / بيانات الصلاة غير متاحة؛ تحقق من تاريخ آخر نتيجة محفوظة."}
+            var c=URLComponents();c.queryItems=[URLQueryItem(name:"lat",value:String(lat)),URLQueryItem(name:"lon",value:String(lon)),URLQueryItem(name:"method",value:String(method)),URLQueryItem(name:"timezone",value:prefs.timezone)]
+            let d=try await CloudClient.shared.request("/functions/v1/location-info?"+(c.percentEncodedQuery ?? ""))
+            struct Reply:Decodable {struct Weather:Decodable{let temperature:Double;let symbol:String};let weather:Weather?;let prayer:[String:String]?;let day:String;let timezone:String}
+            let result=try JSONDecoder().decode(Reply.self,from:d)
+            if let w=result.weather {weather=WeatherSnapshot(city:city,temperature:w.temperature,symbol:w.symbol.contains("rain") ? "cloud.rain" : w.symbol.contains("cloud") ? "cloud.sun" : "sun.max",tomorrowLow:nil,tomorrowHigh:nil,fetchedAt:Date(),attributionURL:"https://www.met.no/",attributionMark:"");try? LocalFiles.save(weather,name:"weather.json");weatherError=nil} else {weather=nil;weatherError="الطقس غير متاح حالياً / Weather unavailable"}
+            if let times=result.prayer {prayer=PrayerSnapshot(city:city,method:method,day:result.day,timezone:result.timezone,timings:times,fetchedAt:Date());try? LocalFiles.save(prayer,name:"prayer.json");prayerError=nil} else {prayer=nil;prayerError="مواقيت الصلاة غير متاحة / Prayer times unavailable"}
+            lastKey=key;lastFetch=Date()
+        }catch{weatherError=error.localizedDescription;prayerError=error.localizedDescription}
     }
     func nextPrayer(at date:Date)->(String,Date)? {
         guard let prayer else{return nil};let formatter=DateFormatter();formatter.locale=Locale(identifier:"en_US_POSIX");formatter.timeZone=TimeZone(identifier:prayer.timezone);formatter.dateFormat="dd-MM-yyyy HH:mm"

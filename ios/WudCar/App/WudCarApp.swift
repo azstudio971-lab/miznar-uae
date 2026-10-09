@@ -1,6 +1,7 @@
 import SwiftUI
 
 @main struct WudCarApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var state = AppState.shared
     @Environment(\.scenePhase) private var phase
     var body: some Scene {
@@ -16,6 +17,7 @@ import SwiftUI
                     guard phase == .active else{return}
                     while !Task.isCancelled {
                         await state.refresh()
+                        await PushService.shared.sync()
                         do { try await Task.sleep(for:.seconds(max(60,min(1800,state.catalogSettings?.refresh_seconds ?? 600)))) } catch { return }
                     }
                 }

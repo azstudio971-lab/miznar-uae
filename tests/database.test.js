@@ -6,10 +6,12 @@ const a='11111111-1111-4111-8111-111111111111',b='22222222-2222-4222-8222-222222
 test('migration enforces owner/admin isolation, publication validation and deletion cascade',async()=>{
  const db=new PGlite();
  try {
- await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key,bucket_id text,name text);alter table storage.objects enable row level security;grant usage on schema storage to authenticated;grant all on storage.objects to authenticated;`);
+ await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key,bucket_id text,name text);alter table storage.objects enable row level security;grant usage on schema storage to authenticated;grant all on storage.objects to authenticated;`);
  await db.exec(readFileSync('supabase/migrations/20261009140504_initial_schema.sql','utf8'));
  await db.exec(readFileSync('supabase/migrations/20261009151105_full_platform.sql','utf8'));
  await db.exec(readFileSync('supabase/migrations/20261009190000_trial_lifecycle.sql','utf8'));
+ await db.exec(readFileSync('supabase/migrations/20261009195730_wudcar_111.sql','utf8'));
+ await db.exec(readFileSync('supabase/migrations/20261009201841_permissions_hardening.sql','utf8'));
 
  await db.exec(`insert into auth.users values('${a}'),('${b}'),('${admin}');insert into public.admin_roles values('${admin}');insert into public.staff_accounts(user_id,role_key) values('${admin}','super_admin');insert into public.profiles(user_id,display_name) values('${a}','A'),('${b}','B');set role authenticated;select set_config('request.jwt.claim.sub','${a}',false);`);
  assert.deepEqual((await db.query('select display_name from public.profiles')).rows,[{display_name:'A'}]);
@@ -80,6 +82,13 @@ test('migration enforces owner/admin isolation, publication validation and delet
  assert.deepEqual((await db.query('select public.my_permissions() as p')).rows[0].p,[]);
  await db.exec(`select set_config('request.jwt.claim.sub','${admin}',false);`);
 
+
+ await db.exec(`reset role;set role authenticated;select set_config('request.jwt.claim.sub','${a}',false);insert into public.user_library(user_id,items) values('${a}','[]');`);
+ await assert.rejects(db.exec(`insert into public.user_library(user_id,items) values('${b}','[]')`));
+ await assert.rejects(db.exec(`select * from public.push_devices`));
+ await assert.rejects(db.exec(`insert into public.push_campaigns(title,body,audience) values('A','B','all')`));
+ await db.exec(`select set_config('request.jwt.claim.sub','${admin}',false);insert into public.theme_playlists(theme_id,playlist_id) select 'spirit-of-the-uae',id from public.playlists limit 1;`);
+ await assert.rejects(db.exec(`insert into public.theme_playlists(theme_id,playlist_id) select 'spirit-of-the-uae',id from public.playlists where id not in (select playlist_id from public.theme_playlists) limit 1`));
  await assert.rejects(db.exec(`update public.themes set slots='[]' where id='spirit-of-the-uae'`));
  await assert.rejects(db.exec(`insert into public.themes(id,name_ar,name_en,status,slots) select 'new','جديد','New','published',slots from public.themes limit 1`));
  await db.exec(`insert into public.messages(title_ar,title_en,body_ar,body_en,expires_at) values('أ','A','ب','B',now()+interval '1 day');reset role;delete from auth.users where id='${a}';set role authenticated;select set_config('request.jwt.claim.sub','${a}',false);`);

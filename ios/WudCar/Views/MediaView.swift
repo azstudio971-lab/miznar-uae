@@ -1,69 +1,67 @@
 import SwiftUI
-import UniformTypeIdentifiers
+import AVKit
 
 struct MediaView: View {
     @EnvironmentObject var state: AppState
+    @Environment(\.openURL) private var openURL
+    @ObservedObject private var player = PlayerService.shared
+    @State private var section = "website"
     @State private var adding = false
-    @State private var importing = false
+    @State private var showingPlayer = false
     @State private var name = ""
     @State private var address = ""
-    @State private var type = "stream"
-    @State private var kind = "audio"
-    @State private var items: [MediaItem] = []
-    @State private var loading = false
-    @State private var loadingID: UUID?
+    @State private var query = ""
+    private var entries: [MediaSource] {
+        let official = state.library.map { MediaSource(id: $0.id, name: $0.name(state.preferences.language), url: $0.url, type: $0.kind == "website" ? "website" : "stream", mediaKind: "video", favorite: state.preferences.favoriteIDs.contains($0.id)) }
+        return (official + state.sources).filter { (section == "website" ? $0.type == "website" : $0.type != "website") && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query)) }
+    }
     var body: some View {
-        List {
-            Section { Text(state.text("أضف ملفاتك أو روابط لديك حق تشغيلها. لا يتضمن التطبيق قنوات أو محتوى مدفوعًا.", "Add your own files or links you are authorized to play. No channels or paid content are bundled.")).font(.caption).foregroundStyle(.secondary) }
-            Section {
-                Button { adding = true } label: { Label(state.text("إضافة رابط", "Add a link"), systemImage: "link.badge.plus") }
-                Button { importing = true } label: { Label(state.text("استيراد ملف", "Import a file"), systemImage: "folder") }
-            }
-            if loading { ProgressView() }
-            if !state.tracks.isEmpty && state.theme.music_mode != "none" {
-                Section(state.text("مكتبة الثيم", "Theme audio")) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                Picker(state.text("المكتبة", "Library"), selection: $section) { Text(state.text("المواقع", "Websites")).tag("website"); Text(state.text("البث المباشر", "Live streams")).tag("live") }.pickerStyle(.segmented)
+                TextField(state.text("ابحث في مكتبتك", "Search your library"), text: $query).textFieldStyle(.roundedBorder)
+                grid(entries)
+                Text(state.text("المفضلة", "Favorites")).font(.title3.bold())
+                if entries.contains(where: \.favorite) { grid(entries.filter(\.favorite)) } else { Text(state.text("اضغط النجمة لحفظ رابطك المفضل.", "Tap a star to save a favorite.")).font(.caption).foregroundStyle(.secondary) }
+                Button { adding = true } label: { Label(state.text("إضافة رابط", "Add a link"), systemImage: "plus").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent)
+                if section == "live" && entries.isEmpty { ContentUnavailableView(state.text("أضف أول بث مباشر", "Add your first live stream"), systemImage: "dot.radiowaves.left.and.right") }
+                if !state.tracks.isEmpty && state.theme.music_mode != "none" {
+                    Text(state.text("قائمة الثيم", "Theme playlist")).font(.title3.bold())
                     ForEach(state.tracks.filter { state.theme.music_mode == "all" || state.theme.music_ids.contains($0.id) }) { track in
-                        Button(state.preferences.language == "ar" ? track.name_ar : track.name_en) { if let url = WudDomain.validURL(track.url) { PlayerService.shared.play(url: url, name: state.preferences.language == "ar" ? track.name_ar : track.name_en) } }
+                        Button(state.text(track.name_ar, track.name_en)) { if let url = WudDomain.validURL(track.url) { player.play(url: url, name: state.text(track.name_ar, track.name_en)); showingPlayer = true } }
                     }
                 }
-            }
-            ForEach(state.sources) { source in
-                Button { Task { await open(source) } } label: { HStack { Image(systemName: source.mediaKind == "video" ? "play.rectangle" : "waveform"); VStack(alignment: .leading) { Text(source.name); Text(source.type.uppercased()).font(.caption).foregroundStyle(.secondary) }; Spacer(); if source.favorite { Image(systemName: "star.fill") } } }
-                    .swipeActions { Button(role: .destructive) { remove(source) } label: { Label(state.text("حذف", "Delete"), systemImage: "trash") }; Button { if let i = state.sources.firstIndex(where: { $0.id == source.id }) { state.sources[i].favorite.toggle() } } label: { Label(state.text("المفضلة", "Favorite"), systemImage: "star") }.tint(.orange) }
-            }
-            if state.sources.isEmpty { ContentUnavailableView(state.text("مكتبتك جاهزة", "Your library is ready"), systemImage: "play.rectangle.on.rectangle", description: Text(state.text("ابدأ بإضافة مصدر صوت أو فيديو خاص بك.", "Start by adding your own audio or video source."))) }
-            if !items.isEmpty { Section(state.text("قائمة التشغيل", "Playlist")) { ForEach(items) { item in Button(item.name) { PlayerService.shared.play(url: item.url, name: item.name) } } } }
+            }.padding()
         }.navigationTitle(state.text("مكتبتي", "My library"))
+        .onChange(of: state.sources) { _, _ in Task { do { try await CloudClient.shared.saveLibrary() } catch { state.notice = error.localizedDescription } } }
+        .sheet(isPresented: $showingPlayer) { VStack { Text(player.title).font(.headline); VideoPlayer(player: player.player); AirPlayButton().frame(width: 44, height: 44); if let error = player.error { Text(error).foregroundStyle(.red) }; Button(state.text("إغلاق", "Close")) { player.stop(); showingPlayer = false } }.padding() }
         .sheet(isPresented: $adding) { NavigationStack { Form {
             TextField(state.text("الاسم", "Name"), text: $name)
             TextField("https://", text: $address).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
-            Picker(state.text("النوع", "Type"), selection: $type) { Text(state.text("بث مباشر / HLS", "Stream / HLS")).tag("stream"); Text("M3U").tag("playlist") }
-            Picker(state.text("المحتوى", "Media"), selection: $kind) { Text(state.text("صوت", "Audio")).tag("audio"); Text(state.text("فيديو", "Video")).tag("video") }
-            Button(state.text("حفظ", "Save")) { guard let url = WudDomain.validURL(address), !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }; state.sources.append(MediaSource(name: String(name.prefix(100)), url: url.absoluteString, type: type, mediaKind: kind)); adding = false; name = ""; address = "" }.disabled(WudDomain.validURL(address) == nil || name.isEmpty)
-        }.navigationTitle(state.text("مصدر جديد", "New source")).toolbar { Button(state.text("إلغاء", "Cancel")) { adding = false } } } }
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.audio, .movie]) { result in
-            do { let url = try result.get(); let access = url.startAccessingSecurityScopedResource(); defer { if access { url.stopAccessingSecurityScopedResource() } }
-                let folder = LocalFiles.root.appendingPathComponent("Media", isDirectory: true); try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-                let filename = UUID().uuidString + "." + url.pathExtension; let destination = folder.appendingPathComponent(filename)
-                try FileManager.default.copyItem(at: url, to: destination)
-                let contentType = try url.resourceValues(forKeys: [.contentTypeKey]).contentType
-                state.sources.append(MediaSource(name: url.deletingPathExtension().lastPathComponent, url: filename, type: "local", mediaKind: contentType?.conforms(to: .movie) == true ? "video" : "audio"))
-            } catch { state.notice = error.localizedDescription }
+            Text(state.text("المواقع تفتح في المتصفح. البث يحتاج رابط فيديو مباشر مثل HLS.", "Websites open in your browser. Live streams need a direct video URL, such as HLS.")).font(.caption)
+            Button(state.text("حفظ في المفضلة", "Save to favorites")) { guard let url = WudDomain.validURL(address) else { return }; state.sources.append(MediaSource(name: String(name.prefix(80)), url: url.absoluteString, type: section == "website" ? "website" : "stream", mediaKind: "video", favorite: true)); adding = false; name = ""; address = "" }.disabled(WudDomain.validURL(address) == nil || name.trimmingCharacters(in: .whitespaces).isEmpty)
+        }.navigationTitle(state.text("إضافة رابط", "Add a link")).toolbar { Button(state.text("إلغاء", "Cancel")) { adding = false } } } }
+    }
+    private func grid(_ sources: [MediaSource]) -> some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: 3), spacing: 22) {
+            ForEach(sources) { source in VStack(spacing: 9) {
+                Button { open(source) } label: { VStack(spacing: 10) {
+                    ZStack { RoundedRectangle(cornerRadius: 18).fill(Color(red: 0.04, green: 0.32, blue: 0.38)); Text(String(source.name.prefix(2))).font(.title2.bold()).foregroundStyle(.white) }.frame(width: 66, height: 66)
+                    Text(source.name).font(.caption).lineLimit(1)
+                } }.buttonStyle(.plain)
+                Button { favorite(source) } label: { Image(systemName: source.favorite ? "star.fill" : "star").foregroundStyle(source.favorite ? Color.orange : Color.secondary) }.accessibilityLabel(state.text("المفضلة", "Favorite") + " " + source.name)
+            }.contextMenu { if state.sources.contains(where: { $0.id == source.id }) { Button(state.text("حذف", "Delete"), role: .destructive) { state.sources.removeAll { $0.id == source.id } } } } }
         }
     }
-    private func remove(_ source: MediaSource) { if source.type == "local" { try? FileManager.default.removeItem(at: LocalFiles.root.appendingPathComponent("Media").appendingPathComponent(source.url)) }; state.sources.removeAll { $0.id == source.id } }
-    private func open(_ source: MediaSource) async {
-        if source.type == "local" { PlayerService.shared.play(url: LocalFiles.root.appendingPathComponent("Media").appendingPathComponent(source.url), name: source.name); return }
+    private func favorite(_ source: MediaSource) {
+        if let i = state.sources.firstIndex(where: { $0.id == source.id }) { state.sources[i].favorite.toggle() }
+        else if state.preferences.favoriteIDs.contains(source.id) { state.preferences.favoriteIDs.removeAll { $0 == source.id } }
+        else { state.preferences.favoriteIDs.append(source.id) }
+        Task { await state.sync(); do { try await CloudClient.shared.saveLibrary() } catch { state.notice = error.localizedDescription } }
+    }
+    private func open(_ source: MediaSource) {
         guard let url = WudDomain.validURL(source.url) else { return }
-        if source.type != "playlist" { PlayerService.shared.play(url: url, name: source.name); return }
-        let id = UUID(); loadingID = id; loading = true
-        defer { if loadingID == id { loading = false } }
-        do { var request = URLRequest(url: url); request.timeoutInterval = 20
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode), data.count < 5_000_000, let text = String(data: data, encoding: .utf8) else { throw WudError.message(state.text("تعذر قراءة القائمة", "Could not read playlist")) }
-            guard loadingID == id else { return }
-            if text.contains("#EXT-X-") { PlayerService.shared.play(url: url, name: source.name); items = [] }
-            else { var seen = Set<String>(); items = WudDomain.parseM3U(text, base: url).filter { seen.insert($0.id).inserted }; if items.isEmpty { throw WudError.message(state.text("القائمة فارغة أو غير مدعومة", "Playlist is empty or unsupported")) } }
-        } catch { if loadingID == id { state.notice = error.localizedDescription } }
+        if source.type == "website" { openURL(url) }
+        else { player.play(url: url, name: source.name); showingPlayer = true }
     }
 }

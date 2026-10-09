@@ -7,7 +7,6 @@ struct RootView: View {
         TabView {
             NavigationStack { HomeView() }.tabItem { Label(state.text("الرئيسية", "Home"), systemImage: "house") }
             NavigationStack { ThemesView() }.tabItem { Label(state.text("الثيمات", "Themes"), systemImage: "sparkles") }
-            NavigationStack { InformationView() }.tabItem { Label(state.text("المعلومات", "Information"), systemImage: "sun.max") }
             NavigationStack { MediaView() }.tabItem { Label(state.text("مكتبتي", "Library"), systemImage: "play.rectangle") }
             NavigationStack { SettingsView() }.tabItem { Label(state.text("الإعدادات", "Settings"), systemImage: "slider.horizontal.3") }
         }
@@ -78,20 +77,28 @@ struct ThemeCanvas: View {
 }
 struct HomeView: View {
     @EnvironmentObject var state: AppState
-    @ObservedObject var player = PlayerService.shared
+    @ObservedObject private var meter = UsageMeter.shared
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                Text(state.text("رفيق مشاويرك", "Your journey companion")).font(.title.bold())
-                ThemeCanvas(theme: state.theme).frame(height: 290).modifier(MeteredPreview())
-                HStack { Label(state.preferences.city, systemImage: "location"); Spacer(); Text(state.theme.name(state.preferences.language)).font(.caption) }.foregroundStyle(.secondary)
-                NavigationLink { CarPreviewView() } label: { Label(state.text("معاينة روح الإمارات", "Preview Spirit of the UAE"), systemImage: "car.side") }.buttonStyle(.bordered)
-                Text(state.text("هذه معاينة تصميم داخل الهاتف. تعرض CarPlay قوالب Apple المعتمدة، ولا تستبدل خلفية نظام السيارة.", "This is an in-phone design preview. CarPlay uses approved Apple templates and does not replace your car’s system wallpaper.")).font(.caption).foregroundStyle(.secondary)
-                if !player.title.isEmpty { VStack { Text(player.title).font(.headline); VideoPlayer(player: player.player).frame(height: 210); AirPlayButton().frame(width: 44, height: 44); Button(state.text("إيقاف", "Stop")) { player.stop() } } }
-                if let error = player.error { Text(error).foregroundStyle(.red) }
-                if !state.messages.isEmpty { Text(state.text("رسائلك", "Your messages")).font(.headline); ForEach(state.messages) { item in VStack(alignment: .leading) { Text(state.preferences.language == "ar" ? item.title_ar : item.title_en).bold(); Text(state.preferences.language == "ar" ? item.body_ar : item.body_en) }.padding().background(.quaternary, in: RoundedRectangle(cornerRadius: 14)) } }
-            }.padding()
-        }.navigationTitle("WudCar").refreshable { await state.refresh() }
+            VStack(alignment: .leading, spacing: 24) {
+                Image("BrandIcon").resizable().frame(width: 42, height: 42).clipShape(RoundedRectangle(cornerRadius: 12))
+                Text(state.text("مرحباً", "Welcome") + (state.preferences.name.isEmpty ? " 👋" : "، " + state.preferences.name)).font(.largeTitle.bold())
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(state.text("خطتك الحالية", "YOUR PLAN")).font(.caption)
+                    Text(meter.status?.entitled == true ? state.text("اشتراك نشط", "Active subscription") : state.text("التجربة المجانية", "Free trial")).font(.title2.bold())
+                    Text(state.text("٣٠ دقيقة من الاستخدام الفعلي", "30 minutes of actual use")).font(.subheadline)
+                    if let status = meter.status { Text(state.text("المتبقي: ", "Remaining: ") + "\(Int(ceil(Double(status.remaining_seconds)/60))) " + state.text("دقيقة", "minutes")) }
+                    NavigationLink(state.text("تفاصيل الاشتراك", "Subscription details")) { SubscriptionView() }.tint(.white)
+                }.padding(24).frame(maxWidth: .infinity, alignment: .leading).foregroundStyle(.white).background(Color(red: 0.04, green: 0.30, blue: 0.36), in: RoundedRectangle(cornerRadius: 22))
+                Text(state.text("آخر التحديثات", "Latest updates")).font(.title3.bold())
+                ForEach(state.updates) { item in VStack(alignment: .leading, spacing: 10) {
+                    Text(item.version).font(.caption).foregroundStyle(.secondary)
+                    Text(state.text(item.title_ar, item.title_en)).font(.headline)
+                    Text(state.text(item.body_ar, item.body_en)).font(.subheadline).foregroundStyle(.secondary)
+                }.padding(20).frame(maxWidth: .infinity, alignment: .leading).background(.quaternary, in: RoundedRectangle(cornerRadius: 16)) }
+                NavigationLink { CarPreviewView() } label: { VStack(alignment: .leading) { Image("ultrawide-sunset").resizable().scaledToFit().clipShape(RoundedRectangle(cornerRadius: 18)); Label(state.text("معاينة شاشة السيارة", "Preview car display"), systemImage: "car.side") } }
+            }.padding(22)
+        }.navigationBarTitleDisplayMode(.inline).refreshable { await state.refresh() }.task { await meter.loadStatus() }
     }
 }
 struct CarPreviewView: View {
@@ -104,6 +111,7 @@ struct CarPreviewView: View {
             Picker(state.text("الوقت", "Time"), selection: $period) { Text(state.text("الفجر", "Dawn")).tag("dawn"); Text(state.text("الصباح", "Morning")).tag("morning"); Text(state.text("المغرب", "Sunset")).tag("sunset"); Text(state.text("الليل", "Night")).tag("night") }.pickerStyle(.segmented)
             ThemeCanvas(theme: state.theme, forcedPeriod: period,editable:editing).aspectRatio(3, contentMode: .fit)
             ThemeCanvas(theme: state.theme, forcedPeriod: period,editable:editing).aspectRatio(1.25, contentMode: .fit)
+            NavigationLink { MediaView() } label: { Label(state.text("الترفيه", "Entertainment"), systemImage: "play.rectangle.fill") }.buttonStyle(.borderedProminent)
             Text(state.text("يتغير توزيع المعاينة تلقائيًا حسب نسبة العرض إلى الارتفاع.", "Preview layout adapts to the viewport aspect ratio.")).font(.caption)
         }.padding().modifier(MeteredPreview()) }.navigationTitle(state.text("معاينة الثيم", "Theme preview"))
     }
@@ -112,7 +120,8 @@ struct ThemesView: View {
     @EnvironmentObject var state: AppState
     var body: some View {
         ScrollView { LazyVStack(spacing: 20) { ForEach(state.themes) { theme in VStack(alignment: .leading) {
-            ThemeCanvas(theme: theme).frame(height: 210)
+            Group { if let path = theme.thumbnail_url, let url = WudDomain.validURL(path) { AsyncImage(url: url) { image in image.resizable().scaledToFill() } placeholder: { Image("ultrawide-sunset").resizable().scaledToFill() } } else { Image("ultrawide-sunset").resizable().scaledToFill() } }.frame(height: 180).clipped().clipShape(RoundedRectangle(cornerRadius: 18))
+            Text(state.text(theme.description_ar ?? "", theme.description_en ?? "")).font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 10)
             HStack { Text(theme.name(state.preferences.language)).font(.headline); Spacer(); Button(state.preferences.themeID == theme.id ? state.text("محدد", "Selected") : state.text("اختيار", "Select")) { state.preferences.themeID = theme.id; Task { await state.sync() } }.buttonStyle(.bordered) }
         } }.padding() } }.navigationTitle(state.text("الثيمات", "Themes"))
     }

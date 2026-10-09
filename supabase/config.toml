@@ -7,3 +7,9 @@ verify_jwt = false
 verify_jwt = false
 [functions.admin-ops]
 verify_jwt = false
+[functions.location-info]
+verify_jwt = false
+[functions.push-register]
+verify_jwt = false
+[functions.push-admin]
+verify_jwt = false

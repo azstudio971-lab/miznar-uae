@@ -6,6 +6,8 @@ import Combine
     @Published var preferences: Preferences { didSet { try? LocalFiles.save(preferences, name: "preferences.json") } }
     @Published var sources: [MediaSource] { didSet { try? LocalFiles.save(sources, name: "sources.json") } }
     @Published var themes = [Theme.builtin]
+    @Published var library: [LibraryItem] = []
+    @Published var updates: [AppUpdate] = []
     @Published var tracks: [Track] = []
     @Published var messages: [InboxMessage] = []
     @Published var religious: [ReligiousContent] = []
@@ -15,7 +17,7 @@ import Combine
     init() { preferences = LocalFiles.load(Preferences.self, name: "preferences.json") ?? Preferences(); sources = LocalFiles.load([MediaSource].self, name: "sources.json") ?? []
         if let cached=LocalFiles.load(Catalog.self,name:"catalog.json") { apply(cached) }
     }
-    private func apply(_ catalog:Catalog) { themes=catalog.themes.isEmpty ? [.builtin] : catalog.themes;tracks=catalog.music;religious=catalog.religious ?? [];catalogSettings=catalog.settings;legal=catalog.legal ?? [] }
+    private func apply(_ catalog:Catalog) { themes=catalog.themes.isEmpty ? [.builtin] : catalog.themes;tracks=catalog.music;religious=catalog.religious ?? [];catalogSettings=catalog.settings;legal=catalog.legal ?? [];library=catalog.library ?? [];updates=catalog.updates ?? [] }
 
     var theme: Theme {
         let available=themes.filter{$0.isAvailable(at:Date())}.sorted{($0.priority ?? 0)>($1.priority ?? 0)}
@@ -29,7 +31,7 @@ import Combine
             if CloudClient.shared.session != nil { messages = try await CloudClient.shared.inbox() }
         } catch { notice = error.localizedDescription }
     }
-    func sync() async { do { try await CloudClient.shared.saveProfile(preferences) } catch { notice = error.localizedDescription } }
+    func sync() async { await PushService.shared.sync(); do { try await CloudClient.shared.saveProfile(preferences) } catch { notice = error.localizedDescription } }
     func clearPersonalData() {
         PlayerService.shared.stop(); try? FileManager.default.removeItem(at: LocalFiles.root.appendingPathComponent("Media")); preferences = Preferences(); sources = []; messages = []
     }
