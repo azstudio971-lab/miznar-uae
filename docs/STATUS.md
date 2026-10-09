@@ -4,12 +4,12 @@ The binding scope is [MASTER-SPEC.md](MASTER-SPEC.md). WudCar is the only curren
 
 ## Implemented source and verification
 
-- Native iPhone source: onboarding and preferred name, bilingual RTL/LTR, themes, media library, account/auth/deletion, legal pages, city settings and system/light/dark appearance.
+- Native iPhone source: device/session management, onboarding and preferred name, bilingual RTL/LTR, themes, media library, account/auth/deletion, legal pages, city settings and system/light/dark appearance.
 - Expanded native source: catalog cache, theme scheduling/priority, bounded image cache, rotating media, silent video backgrounds inside the phone preview, digital/analog clocks, Hijri date, per-theme widget positions and saved customization, optional music controls, WeatherKit and AlAdhan information pages, sourced religious content.
 - Admin source: capability-filtered navigation, advanced bilingual theme editor, draft/scheduled/published states, two layouts and four time slots, media sequences, widget permissions, version restoration, staff roles, users/status/export, server entitlements/trial records, religious content, legal documents, audit records and password change with current-password reauthentication.
 - Supabase migrations/functions: role-based row access, ownership isolation, last-super-admin guard, protected entitlement records, server-clock 30-minute trial accounting, duplicate-heartbeat protection, devices, authenticated staff operations, signed curated catalog, account deletion.
 - Local check: eight domain, DOM and PostgreSQL/PGlite tests passed; Vite production build passed. Tests include role escalation, own-data isolation, trial replay and resetting prevention. PGlite uses Auth/Storage fixtures; it is not a hosted Supabase test.
-- Branch checkpoint 18febf1361cb296b0aeee28eef303ea6afaf79cb: real Chromium checks passed in GitHub Actions 37953120784. The following checkpoint a597f1f1d54972ff954762562c0ec0a0db33fd01 corrected ThemeEngine syntax. Real Chromium and unsigned simulator Xcode compilation both passed in run 37953727879. Subsequent changes require their own CI run.
+- Branch checkpoint 18febf1361cb296b0aeee28eef303ea6afaf79cb: real Chromium checks passed in GitHub Actions 37953120784. The following checkpoint a597f1f1d54972ff954762562c0ec0a0db33fd01 corrected ThemeEngine syntax. Real Chromium and unsigned simulator Xcode compilation both passed in run 37953727879. Expanded checkpoint babdfbb2396c785caca2b49042c537676b2c7416 also passed real Chromium and unsigned simulator Xcode compilation in run 37954932678.
 
 ## External deployment blockers
 
@@ -31,3 +31,5 @@ The requested initial password is not committed. scripts/bootstrap-admin.mjs acc
 - Update legal/privacy declarations against the final active services, retention and billing behavior. Review current Apple guidelines, content rights, App Review notes and required capabilities before submission.
 
 This is an implementation checkpoint, not a finished or published application.
+
+Additional local database checks verify independent storage permissions, suspended staff access and restoration of a saved widget layout into a new version snapshot.

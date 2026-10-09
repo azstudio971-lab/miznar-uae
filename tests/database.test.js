@@ -36,6 +36,17 @@ test('migration enforces owner/admin isolation, publication validation and delet
  const caps=(await db.query('select public.my_permissions() as p')).rows[0].p;
  assert.ok(caps.includes('themes.write'));assert.ok(!caps.includes('staff.write'));
  await assert.rejects(db.exec(`insert into public.staff_accounts(user_id,role_key) values('${a}','super_admin')`));
+ await db.exec(`insert into public.themes(id,name_ar,name_en,slots) select 'editor-theme','أ','Editor',slots from public.themes where id='spirit-of-the-uae';`);
+ await db.exec(`insert into storage.objects(id,bucket_id,name) values('55555555-5555-4555-8555-555555555555','theme-media','themes/editor-theme/a.png');reset role;insert into storage.objects(id,bucket_id,name) values('66666666-6666-4666-8666-666666666666','theme-media','music/song/a.mp3');set role authenticated;`);
+ assert.equal((await db.query(`delete from storage.objects where name like 'music/%' returning id`)).rows.length,0);
+ assert.equal((await db.query(`select public.my_permissions() as p`)).rows[0].p.includes('music.write'),false);
+ await db.exec(`select set_config('request.jwt.claim.sub','${admin}',false);`);
+ await db.exec(`insert into public.theme_widget_settings(theme_id,widget_id,x,y) values('editor-theme','clock',.2,.3);update public.themes set version=1 where id='editor-theme';update public.themes set name_en='Changed',version=2 where id='editor-theme';update public.theme_widget_settings set x=.8 where theme_id='editor-theme';select public.restore_theme('editor-theme',1);`);
+ assert.equal((await db.query(`select name_en,version,status from public.themes where id='editor-theme'`)).rows[0].name_en,'Editor');
+ assert.equal((await db.query(`select x::float8 as x from public.theme_widget_settings where theme_id='editor-theme'`)).rows[0].x,0.2);
+ assert.equal((await db.query(`select snapshot->'widgets'->0->>'x' as x from public.theme_versions where theme_id='editor-theme' and version=3`)).rows[0].x,'0.2');
+ await db.exec(`reset role;update public.profiles set account_status='suspended' where user_id='${b}';set role authenticated;select set_config('request.jwt.claim.sub','${b}',false);`);
+ assert.deepEqual((await db.query('select public.my_permissions() as p')).rows[0].p,[]);
  await db.exec(`select set_config('request.jwt.claim.sub','${admin}',false);`);
 
  await assert.rejects(db.exec(`update public.themes set slots='[]' where id='spirit-of-the-uae'`));

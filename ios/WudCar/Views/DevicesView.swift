@@ -20,7 +20,7 @@ struct DevicesView:View {
                 } }
                 Button(state.text("تسجيل خروج الجلسات الأخرى", "Sign out other sessions"),role:.destructive) { signOutOthers=true }.disabled(busy)
             }
-            Section { Text(state.text("إلغاء جهاز يمنع جلسات استخدامه المعتمدة على تسجيل الجهاز. تسجيل خروج الجلسات الأخرى يلغي صلاحية تحديث الدخول؛ قد تظل رموز الدخول الحالية صالحة حتى انتهاء مدتها.", "Device revocation blocks usage sessions that require device registration. Signing out other sessions revokes refresh access; existing access tokens may remain valid until expiry.")).font(.caption) }
+            Section { Text(state.text("إلغاء الجهاز يمنع بدء جلسات استخدام جديدة منه. قد يستغرق تسجيل خروج الجلسات الأخرى بعض الوقت حتى يتوقف الوصول تمامًا.", "Revoking a device blocks new usage sessions from it. Signing out other sessions may take some time to fully stop existing access.")).font(.caption) }
         }.navigationTitle(state.text("الأجهزة والجلسات", "Devices and sessions")).task { await load() }.refreshable { await load() }
         .confirmationDialog(state.text("إلغاء وصول هذا الجهاز؟", "Revoke this device’s access?"),isPresented:Binding(get:{revoke != nil},set:{if !$0 {revoke=nil}})) { Button(state.text("إلغاء الوصول", "Revoke access"),role:.destructive) { guard let device=revoke else{return};run("revoke",id:device.id);revoke=nil } }
         .confirmationDialog(state.text("تسجيل خروج الجلسات الأخرى؟", "Sign out all other sessions?"),isPresented:$signOutOthers) { Button(state.text("تسجيل الخروج", "Sign out"),role:.destructive) { run("signout_others") } }
