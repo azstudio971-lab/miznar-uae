@@ -8,8 +8,8 @@ This is an initial integrated development build. Source implementation, local ve
 | Domain tests | Five passed: schedule boundaries, invalid schedules, greeting, aspect ratio, M3U |
 | Database security | PGlite PostgreSQL test passed with stub Auth/Storage schemas: migration executes, own-profile isolation, admin access, role escalation blocked, invalid publication blocked, deleted-user rows/messages inaccessible |
 | Web interaction | Happy DOM test passed: RTL/LTR, period/layout selection, greeting, policies and unavailable-admin state |
-| Real browser tests | Three Playwright tests passed in real Chromium on GitHub Actions run 37943418560; local browser download was unavailable |
-| iPhone | GitHub macOS Xcode build found a missing SwiftUI import in PlayerService; fixed locally, awaiting repeat build. Device validation remains pending |
+| Real browser tests | Three Playwright tests passed in real Chromium on GitHub Actions run 37945507933; local browser download was unavailable |
+| iPhone | Unsigned iOS simulator build passed on GitHub macOS Xcode in run 37945507933 after fixing the SwiftUI import. This confirms compilation, not interactive simulator launch or real-device/CarPlay validation. |
 | Artwork | Original local PNGs decode successfully. Replaced unreadable repository copies with matching original designs; generated separate 1024px app icon |
 | Cloud | Supabase schema/functions written; no project provisioned or live E2E verification |
 | Hosting | Netlify configuration ready; local CLI not signed in and connected plugin did not expose deploy operation. No live URL claimed |
@@ -20,6 +20,10 @@ This is an initial integrated development build. Source implementation, local ve
 | Weather / prayer / adhkar | Not yet implemented. No fabricated live data or prayer times are shown |
 | Advanced themes | Static bundled/remote image scenes and four time slots implemented. Video backgrounds, drag placement, widget extensions, complete offline remote caching not implemented |
 | Legal text | Bilingual privacy/terms/support/deletion drafts included. Review against final deployed providers/features before store submission |
+
+Verified commit: `5d7e16bf9af706895b5b50613e7859855431dfe4`.
+
+Build evidence: https://github.com/azstudio971-lab/miznar-uae/actions/runs/37945507933
 
 ## Verification flow
 
