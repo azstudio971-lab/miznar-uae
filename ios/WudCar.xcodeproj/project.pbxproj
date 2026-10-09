@@ -1,0 +1,48 @@
+// !$*UTF8*$!
+{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {
+9CFD14AD27C6E59A20941699 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WudCar/App/AppState.swift"; sourceTree = SOURCE_ROOT; };
+9754D2C1FEE900D9B4A5BB12 = { isa = PBXBuildFile; fileRef = 9CFD14AD27C6E59A20941699; };
+4A576A68A97A3F09FF7F95D3 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WudCar/App/Configuration.swift"; sourceTree = SOURCE_ROOT; };
+287BA49AAD11E3A10EAAC740 = { isa = PBXBuildFile; fileRef = 4A576A68A97A3F09FF7F95D3; };
+D71B65852149A94F62E50861 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WudCar/App/WudCarApp.swift"; sourceTree = SOURCE_ROOT; };
+9000715567073A9E8398A88D = { isa = PBXBuildFile; fileRef = D71B65852149A94F62E50861; };
+008929386A0E58A546D9BED0 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WudCar/Models/Models.swift"; sourceTree = SOURCE_ROOT; };
+B5108EECEC07C7374AC4D2D6 = { isa = PBXBuildFile; fileRef = 008929386A0E58A546D9BED0; };
+CA9541BDA0DB53855E63F7E0 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WudCar/Services/CarPlaySceneDelegate.swift"; sourceTree = SOURCE_ROOT; };
+7F950ED59E8BECD9442B76E7 = { isa = PBXBuildFile; fileRef = CA9541BDA0DB53855E63F7E0; };
+281F8359F5E630F4ACECFD43 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WudCar/Services/CloudClient.swift"; sourceTree = SOURCE_ROOT; };
+D25212E57B069200991A4052 = { isa = PBXBuildFile; fileRef = 281F8359F5E630F4ACECFD43; };
+126ADEFA8DDB2B3C6B908C2B = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WudCar/Services/PlayerService.swift"; sourceTree = SOURCE_ROOT; };
+9CB2810333663DAB700F75C6 = { isa = PBXBuildFile; fileRef = 126ADEFA8DDB2B3C6B908C2B; };
+6BF5A4267D8D5ECB6114C9C2 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WudCar/Services/SecureStore.swift"; sourceTree = SOURCE_ROOT; };
+62BCF3A3AF0F116BD04A61EE = { isa = PBXBuildFile; fileRef = 6BF5A4267D8D5ECB6114C9C2; };
+969EEE67CB6B9923A5821B27 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WudCar/Services/SubscriptionStore.swift"; sourceTree = SOURCE_ROOT; };
+39CD555E38B3A71054030DA0 = { isa = PBXBuildFile; fileRef = 969EEE67CB6B9923A5821B27; };
+9A23E062CA445A1981A5D67D = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WudCar/Views/MediaView.swift"; sourceTree = SOURCE_ROOT; };
+7729A3CBAE496A79ED9479AB = { isa = PBXBuildFile; fileRef = 9A23E062CA445A1981A5D67D; };
+7DDDF459995DF8B5A3B15720 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WudCar/Views/RootView.swift"; sourceTree = SOURCE_ROOT; };
+AF4121CA24D0AB478D605248 = { isa = PBXBuildFile; fileRef = 7DDDF459995DF8B5A3B15720; };
+933372D08D108843F6C7C96C = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WudCar/Views/SettingsView.swift"; sourceTree = SOURCE_ROOT; };
+536623C32D164334406B20F4 = { isa = PBXBuildFile; fileRef = 933372D08D108843F6C7C96C; };
+67F35EAEDF28D3303D2A0C39 = { isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "WudCar/Resources/Assets.xcassets"; sourceTree = SOURCE_ROOT; };
+922DDB8C89869985FEB41D29 = { isa = PBXBuildFile; fileRef = 67F35EAEDF28D3303D2A0C39; };
+824935AF6E882941FD324E7D = { isa = PBXFileReference; lastKnownFileType = text.json; path = "WudCar/Resources/policies.json"; sourceTree = SOURCE_ROOT; };
+31FB551DD651D4CA1D502039 = { isa = PBXBuildFile; fileRef = 824935AF6E882941FD324E7D; };
+35F97A8564A547F2BFB165E4 = { isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "WudCar/Resources/PrivacyInfo.xcprivacy"; sourceTree = SOURCE_ROOT; };
+67C00CB308898F193D83EE21 = { isa = PBXBuildFile; fileRef = 35F97A8564A547F2BFB165E4; };
+A8792157CB4F27FB949C035F = { isa = PBXFileReference; explicitFileType = wrapper.application; path = WudCar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+0A3E27B8CA818264D75C8D81 = { isa = PBXGroup; children = (A8792157CB4F27FB949C035F,); name = Products; sourceTree = "<group>"; };
+0D6E4079E36703EBD37C0072 = { isa = PBXGroup; children = (9CFD14AD27C6E59A20941699,4A576A68A97A3F09FF7F95D3,D71B65852149A94F62E50861,008929386A0E58A546D9BED0,CA9541BDA0DB53855E63F7E0,281F8359F5E630F4ACECFD43,126ADEFA8DDB2B3C6B908C2B,6BF5A4267D8D5ECB6114C9C2,969EEE67CB6B9923A5821B27,9A23E062CA445A1981A5D67D,7DDDF459995DF8B5A3B15720,933372D08D108843F6C7C96C,67F35EAEDF28D3303D2A0C39,824935AF6E882941FD324E7D,35F97A8564A547F2BFB165E4,0A3E27B8CA818264D75C8D81,); sourceTree = "<group>"; };
+878A52FC5FF6A57D50B7B870 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (9754D2C1FEE900D9B4A5BB12,287BA49AAD11E3A10EAAC740,9000715567073A9E8398A88D,B5108EECEC07C7374AC4D2D6,7F950ED59E8BECD9442B76E7,D25212E57B069200991A4052,9CB2810333663DAB700F75C6,62BCF3A3AF0F116BD04A61EE,39CD555E38B3A71054030DA0,7729A3CBAE496A79ED9479AB,AF4121CA24D0AB478D605248,536623C32D164334406B20F4,); runOnlyForDeploymentPostprocessing = 0; };
+41D311A605520FC7B8B9A980 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (922DDB8C89869985FEB41D29,31FB551DD651D4CA1D502039,67C00CB308898F193D83EE21,); runOnlyForDeploymentPostprocessing = 0; };
+E2AA269EB967A8853A258BFA = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+05AF922EB1EBDC72BFF84AFF = { isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = SOURCE_ROOT; };
+73EBF6644258C120893E685D = { isa = XCBuildConfiguration; baseConfigurationReference = 05AF922EB1EBDC72BFF84AFF; buildSettings = { SDKROOT = "iphoneos"; IPHONEOS_DEPLOYMENT_TARGET = "17.0"; SWIFT_VERSION = "5.0"; CLANG_ENABLE_MODULES = "YES"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+0B0C687DF8B6B8DC790B519C = { isa = XCBuildConfiguration; baseConfigurationReference = 05AF922EB1EBDC72BFF84AFF; buildSettings = { SDKROOT = "iphoneos"; IPHONEOS_DEPLOYMENT_TARGET = "17.0"; SWIFT_VERSION = "5.0"; CLANG_ENABLE_MODULES = "YES"; SWIFT_OPTIMIZATION_LEVEL = "-O"; }; name = Release; };
+76F8DEC3DFE0BDB465198890 = { isa = XCConfigurationList; buildConfigurations = (73EBF6644258C120893E685D,0B0C687DF8B6B8DC790B519C,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+6C7EFF6369083C8E1F2B1994 = { isa = XCBuildConfiguration; baseConfigurationReference = 05AF922EB1EBDC72BFF84AFF; buildSettings = { SDKROOT = "iphoneos"; IPHONEOS_DEPLOYMENT_TARGET = "17.0"; SWIFT_VERSION = "5.0"; CLANG_ENABLE_MODULES = "YES"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; PRODUCT_NAME = "WudCar"; PRODUCT_BUNDLE_IDENTIFIER = "com.azpixel.wudcar"; DEVELOPMENT_TEAM = "QS29RVJPUT"; CODE_SIGN_STYLE = "Automatic"; INFOPLIST_FILE = "WudCar/Info.plist"; TARGETED_DEVICE_FAMILY = "1,2"; ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon"; MARKETING_VERSION = "0.1.0"; CURRENT_PROJECT_VERSION = "1"; GENERATE_INFOPLIST_FILE = "NO"; SWIFT_EMIT_LOC_STRINGS = "YES"; ENABLE_USER_SCRIPT_SANDBOXING = "YES"; }; name = Debug; };
+DD75E2CB1C510A828AC72D96 = { isa = XCBuildConfiguration; baseConfigurationReference = 05AF922EB1EBDC72BFF84AFF; buildSettings = { SDKROOT = "iphoneos"; IPHONEOS_DEPLOYMENT_TARGET = "17.0"; SWIFT_VERSION = "5.0"; CLANG_ENABLE_MODULES = "YES"; SWIFT_OPTIMIZATION_LEVEL = "-O"; PRODUCT_NAME = "WudCar"; PRODUCT_BUNDLE_IDENTIFIER = "com.azpixel.wudcar"; DEVELOPMENT_TEAM = "QS29RVJPUT"; CODE_SIGN_STYLE = "Automatic"; INFOPLIST_FILE = "WudCar/Info.plist"; TARGETED_DEVICE_FAMILY = "1,2"; ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon"; MARKETING_VERSION = "0.1.0"; CURRENT_PROJECT_VERSION = "1"; GENERATE_INFOPLIST_FILE = "NO"; SWIFT_EMIT_LOC_STRINGS = "YES"; ENABLE_USER_SCRIPT_SANDBOXING = "YES"; }; name = Release; };
+1B672BF3DA427763BF644BE3 = { isa = XCConfigurationList; buildConfigurations = (6C7EFF6369083C8E1F2B1994,DD75E2CB1C510A828AC72D96,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+34A04005BCAF206EEC990BD9 = { isa = PBXNativeTarget; buildConfigurationList = 1B672BF3DA427763BF644BE3; buildPhases = (878A52FC5FF6A57D50B7B870,E2AA269EB967A8853A258BFA,41D311A605520FC7B8B9A980,); buildRules = (); dependencies = (); name = WudCar; productName = WudCar; productReference = A8792157CB4F27FB949C035F; productType = "com.apple.product-type.application"; };
+244210E48437B6556980A702 = { isa = PBXProject; attributes = { LastUpgradeCheck = 1600; }; buildConfigurationList = 76F8DEC3DFE0BDB465198890; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en,ar,Base); mainGroup = 0D6E4079E36703EBD37C0072; productRefGroup = 0A3E27B8CA818264D75C8D81; projectDirPath = ""; projectRoot = ""; targets = (34A04005BCAF206EEC990BD9,); };
+}; rootObject = 244210E48437B6556980A702; }

@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.netlify/
+.env
+.env.*
+!.env.example
+.DS_Store
+DerivedData/
+*.xcuserstate
+xcuserdata/
+ios/Config/Local.xcconfig
+test-results/
+playwright-report/
+*.p8
+*.p12
+*.mobileprovision
+supabase/.temp/

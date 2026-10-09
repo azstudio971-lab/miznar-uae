@@ -1,0 +1,72 @@
+[
+  {
+    "path": "assets/wudcar/WudCar-Brand-Identity.png",
+    "bytes": 1178389,
+    "sha256": "360f0203f40d47d43ada5d693c3459a5c26bceb4528873ad2dd6d60e6a93a141",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "path": "assets/wudcar/WudCar-App-Icon.png",
+    "bytes": 1211176,
+    "sha256": "9e9a37b42c3688864773c3fdf90239687be9543d0af26a62e7e84bab06b397fc",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "path": "assets/themes/spirit-of-the-uae/ultrawide/dawn.png",
+    "bytes": 2208076,
+    "sha256": "92ec74298541e462a2a3a7ff7f6d92ffaaa1d6053b6b9094f39bb471c3a72531",
+    "width": 2172,
+    "height": 724
+  },
+  {
+    "path": "assets/themes/spirit-of-the-uae/ultrawide/sunset.png",
+    "bytes": 2069436,
+    "sha256": "44fec5095220538712c7294880c23b67e5dd6f7a6d852449177099a21233962e",
+    "width": 2172,
+    "height": 724
+  },
+  {
+    "path": "assets/themes/spirit-of-the-uae/ultrawide/morning.png",
+    "bytes": 2228580,
+    "sha256": "f664f22a6dcfc308785e440ee54d3d29d035f71b3ac46a3f55511d6029fa9162",
+    "width": 2172,
+    "height": 724
+  },
+  {
+    "path": "assets/themes/spirit-of-the-uae/ultrawide/night.png",
+    "bytes": 2009965,
+    "sha256": "4a01bdf572bd3facce3da6055cbc5b7992b36d20f34e51ae38ebb9acf9198657",
+    "width": 2172,
+    "height": 724
+  },
+  {
+    "path": "assets/themes/spirit-of-the-uae/compact/dawn.png",
+    "bytes": 2387817,
+    "sha256": "07bd3d61c28671f7af3ea0f0adba3eb9bfbb671f7493ed49c0bc9136ecdb491b",
+    "width": 1402,
+    "height": 1122
+  },
+  {
+    "path": "assets/themes/spirit-of-the-uae/compact/sunset.png",
+    "bytes": 2270940,
+    "sha256": "84d449fdca9cf294d771e20a02f7b6e9fa75f1aec53d51520c35ea1a76f18fc9",
+    "width": 1402,
+    "height": 1122
+  },
+  {
+    "path": "assets/themes/spirit-of-the-uae/compact/morning.png",
+    "bytes": 2342248,
+    "sha256": "734ffdfd7a828ad9fcfcd8f99bb18f445df666487aa9ab623bfe23ada5c664b5",
+    "width": 1402,
+    "height": 1122
+  },
+  {
+    "path": "assets/themes/spirit-of-the-uae/compact/night.png",
+    "bytes": 2156584,
+    "sha256": "1a15663a18e2b55c38b65bfea3d26f15365686fec21c626cfd9d8e0d34d44647",
+    "width": 1402,
+    "height": 1122
+  }
+]

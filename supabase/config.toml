@@ -1,0 +1,5 @@
+project_id = "wudcar"
+[functions.catalog]
+verify_jwt = false
+[functions.delete-account]
+verify_jwt = false

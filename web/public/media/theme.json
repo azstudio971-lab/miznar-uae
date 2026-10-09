@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "spirit-of-the-uae",
+  "name": "Spirit of the UAE",
+  "nameArabic": "روح الإمارات",
+  "version": "1.0.0",
+  "defaultTheme": true,
+  "status": "design-assets-ready",
+  "runtimeImplemented": false,
+  "timezone": "Asia/Dubai",
+  "states": [
+    "dawn",
+    "morning",
+    "sunset",
+    "night"
+  ],
+  "layouts": {
+    "ultrawide": {
+      "width": 2172,
+      "height": 724,
+      "aspectRatio": 3
+    },
+    "compact": {
+      "width": 1402,
+      "height": 1122,
+      "aspectRatio": 1.249554367201426
+    }
+  },
+  "assets": [
+    {
+      "layout": "ultrawide",
+      "time": "dawn",
+      "path": "ultrawide/dawn.png"
+    },
+    {
+      "layout": "ultrawide",
+      "time": "morning",
+      "path": "ultrawide/morning.png"
+    },
+    {
+      "layout": "ultrawide",
+      "time": "sunset",
+      "path": "ultrawide/sunset.png"
+    },
+    {
+      "layout": "ultrawide",
+      "time": "night",
+      "path": "ultrawide/night.png"
+    },
+    {
+      "layout": "compact",
+      "time": "dawn",
+      "path": "compact/dawn.png"
+    },
+    {
+      "layout": "compact",
+      "time": "morning",
+      "path": "compact/morning.png"
+    },
+    {
+      "layout": "compact",
+      "time": "sunset",
+      "path": "compact/sunset.png"
+    },
+    {
+      "layout": "compact",
+      "time": "night",
+      "path": "compact/night.png"
+    }
+  ],
+  "clockQuietZone": {
+    "x": 0.6,
+    "y": 0.04,
+    "width": 0.36,
+    "height": 0.4,
+    "coordinateSystem": "normalized-source-image"
+  },
+  "selectionProposal": {
+    "implemented": false,
+    "measure": "actual app content area after safe insets",
+    "ultrawideThreshold": 1.9,
+    "resize": "aspectFill without stretching",
+    "cropAnchor": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "note": "Recalculate overlay bounds after cropping. Test compact, wide, ultra-wide and portrait viewports. Not certified for all vehicles."
+  },
+  "timeSelection": {
+    "implemented": false,
+    "policy": "configure dawn/morning/sunset/night in admin; no hardcoded prayer/sunset times"
+  },
+  "carPlay": {
+    "customWallpaperDashboardVerified": false,
+    "note": "Artwork and manifest do not prove Apple CarPlay entitlement or custom background UI support."
+  }
+}

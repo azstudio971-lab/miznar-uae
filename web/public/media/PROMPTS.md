@@ -1,0 +1,6 @@
+# Design prompts
+
+Use case: stylized-concept. Production wallpaper for WudCar theme named Spirit of the UAE. A refined cinematic realistic UAE desert panorama expressing desert heritage and modern development: elegant amber rolling dunes below, a dark clean gently curving asphalt road starting lower center and leading toward a tasteful Dubai inspired modern skyline clustered LEFT of center with recognizable slender Burj Khalifa silhouette. No people, no cars. Calm sophisticated teal and sand palette, detailed yet restrained. LOCKED CAMERA for four time-of-day versions. Horizon at 55% height. TOP RIGHT quarter must be very quiet dim smooth teal sky gradient, no sun, moon, buildings, clouds or detail there, to support future white clock/widgets. Scene beauty concentrated lower half and left-middle. Extra scenery on BOTH lateral edges for ultrawide car screens; essential skyline/road within central 55%, crop tolerant. No text, logos, clock, widgets, frames, car interior or device mockup.
+
+Master: dawn, 3:1 panorama. Compact: reframe same scene to 5:4 with extra sky and foreground.
+Variants: reference each layout master; change only illumination to morning, maghrib sunset, deep night. Preserve camera, building/dune/road geometry; keep upper right dim and empty, no UI or text.

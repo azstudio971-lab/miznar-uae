@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{defaultSlots,validateSlots,periodAt,greeting,layoutFor,parseM3U,validateMediaURL}from'../shared/domain.js';
+test('daily periods cover midnight and exact boundaries',()=>{assert.equal(validateSlots(defaultSlots),true);assert.equal(periodAt(0),'night');assert.equal(periodAt(300),'dawn');assert.equal(periodAt(420),'morning');assert.equal(periodAt(1140),'night');});
+test('reject overlaps, gaps and duplicate states',()=>{for(const edit of [s=>s[0].end=421,s=>s[0].end=419,s=>s[1].period='dawn']){const s=structuredClone(defaultSlots);edit(s);assert.throws(()=>validateSlots(s));}});
+test('greeting handles empty names and Arabic',()=>{assert.equal(greeting('راشد',8),'صباح الخير، راشد');assert.equal(greeting('',17,'en'),'Good evening');});
+test('layout uses real viewport',()=>{assert.equal(layoutFor(2172,724),'ultrawide');assert.equal(layoutFor(1402,1122),'compact');assert.throws(()=>layoutFor(0,0));});
+test('M3U metadata, relative streams and unsafe schemes',()=>{const r=parseM3U('#EXTM3U\n#EXTINF:-1 group-title="News",News One\n/live.m3u8\n#EXTINF:-1,Unsafe\njavascript:alert(1)','https://example.com/list.m3u');assert.equal(r.length,1);assert.equal(r[0].group,'News');assert.equal(r[0].url,'https://example.com/live.m3u8');assert.equal(validateMediaURL('http://example.com'),false);});

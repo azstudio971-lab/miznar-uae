@@ -1,0 +1,3 @@
+// Copy as Local.xcconfig (ignored by Git). Escape // in xcconfig URLs:
+WUD_SUPABASE_URL = https:/$()/YOUR_PROJECT.supabase.co
+WUD_SUPABASE_KEY = YOUR_PUBLISHABLE_KEY
