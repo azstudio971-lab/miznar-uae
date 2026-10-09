@@ -24,7 +24,7 @@ Bilingual SwiftUI iPhone/iPad app, web administration, and Supabase backend sour
 - Native information pages with WeatherKit/AlAdhan, cached city data, digital/analog clock, Hijri date, widget customization and optional music. WeatherKit needs its signing capability before live service works.
 - Device/session administration, foreground catalog refresh and bounded image caching.
 - Bilingual privacy, terms, EULA, subscription, refund, retention, support and deletion drafts.
-- Two RLS migrations, protected staff/entitlement data, server-clock trial accounting, private storage, signed catalog and authenticated account/device/admin functions. Cloud setup and actual-use trial integration remain pending.
+- Three RLS migrations, protected staff/entitlement data, server-clock trial accounting, private storage, signed catalog and authenticated account/device/admin functions. Native actual-use trial wiring is prepared; hosted verification and activation remain pending.
 - StoreKit 2 service implementation **disabled pending product setup and purchase validation**.
 - CarPlay audio template delegate **not activated pending Apple entitlement approval and device validation**.
 
@@ -42,3 +42,5 @@ Bilingual SwiftUI iPhone/iPad app, web administration, and Supabase backend sour
 Custom theme screenshots are phone previews. They do **not** replace the CarPlay system wallpaper. Video browsing in supported vehicles needs the appropriate Apple entitlement and supported SDK/vehicle. The current target deliberately uses no unapproved entitlement.
 
 This repository is a development build, not an App Store submission or a claim of App Review approval. No subscription charges are active.
+
+Latest requirements audit: [docs/REQUIREMENTS-AUDIT-2026-10-09.md](docs/REQUIREMENTS-AUDIT-2026-10-09.md).

@@ -38,6 +38,24 @@ struct TrialStatus: Decodable {
             status = try JSONDecoder().decode(TrialStatus.self, from: data)
         } catch { message = error.localizedDescription }
     }
+    /// A status check grants only startup permission; time starts on actual playback.
+    func authorizePlayback() async -> Bool {
+        guard enabled else { return true }
+        let cloud = CloudClient.shared
+        guard let user = cloud.session?.user.id else { return false }
+        if owner != user { reset(); owner = user }
+        do {
+            try await cloud.registerDevice()
+            let data = try await cloud.request("/rest/v1/rpc/trial_status", method: "POST", body: Data("{}".utf8), authenticated: true, timeout: 4)
+            guard cloud.session?.user.id == user, owner == user else { return false }
+            let result = try JSONDecoder().decode(TrialStatus.self, from: data)
+            status = result
+            guard result.entitled || result.remaining_seconds > 0 else { return false }
+            allowed = true; leaseDeadline = Date().addingTimeInterval(2)
+            nextHeartbeat = .distantPast
+            return true
+        } catch { message = error.localizedDescription; return false }
+    }
     func run() async {
         while !Task.isCancelled {
             await tick()
@@ -54,7 +72,7 @@ struct TrialStatus: Decodable {
             PlayerService.shared.player.pause(); return
         }
         let active = (foreground && !previews.isEmpty) || PlayerService.shared.player.timeControlStatus == .playing
-        if Date() >= leaseDeadline { allowed = false; if active { PlayerService.shared.player.pause() } }
+        if Date() >= leaseDeadline { allowed = false; if wasActive && active { PlayerService.shared.player.pause() } }
         guard active || wasActive || pendingActive != nil else { return }
         guard active != wasActive || Date() >= nextHeartbeat else { return }
         // Renew within the 15-second lease with a bounded request timeout.

@@ -35,3 +35,9 @@ This is an implementation checkpoint, not a finished or published application.
 Additional local database checks verify independent storage permissions, suspended staff access and restoration of a saved widget layout into a new version snapshot.
 
 Final source verification: checkpoint 9d278f9483f5598333248e3dd90e4c468929e42a passed both real Chromium checks and unsigned simulator Xcode compilation in GitHub Actions run 37955201106. Subsequent documentation changes do not alter executable code.
+
+## Continuation: native usage lifecycle and remaining gaps
+
+The new trial lifecycle migration closes concurrent resumption through old paused sessions, requires sequential heartbeats, returns non-renewable replay leases and provides a read-only balance lookup. Native UsageMeter wires visible home/car preview and actual media playback to server usage, gates access by short leases and leaves billing disabled. The browser now has explicit free/exhausted/paid subscription simulations. Read the dated requirements audit for all remaining work; this is not a complete release.
+
+Checkpoint 78deb4d42d78ac79af34b91cfd50b563246d416c passed the local eight-test suite and production build, plus real Chromium and unsigned Xcode simulator compilation in Actions 37973420072. Direct playback startup and the additional subscription browser test are being verified in the next checkpoint.
