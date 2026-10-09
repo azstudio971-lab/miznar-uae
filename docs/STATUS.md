@@ -9,7 +9,7 @@ The binding scope is [MASTER-SPEC.md](MASTER-SPEC.md). WudCar is the only curren
 - Admin source: capability-filtered navigation, advanced bilingual theme editor, draft/scheduled/published states, two layouts and four time slots, media sequences, widget permissions, version restoration, staff roles, users/status/export, server entitlements/trial records, religious content, legal documents, audit records and password change with current-password reauthentication.
 - Supabase migrations/functions: role-based row access, ownership isolation, last-super-admin guard, protected entitlement records, server-clock 30-minute trial accounting, duplicate-heartbeat protection, devices, authenticated staff operations, signed curated catalog, account deletion.
 - Local check: eight domain, DOM and PostgreSQL/PGlite tests passed; Vite production build passed. Tests include role escalation, own-data isolation, trial replay and resetting prevention. PGlite uses Auth/Storage fixtures; it is not a hosted Supabase test.
-- Branch checkpoint 18febf1361cb296b0aeee28eef303ea6afaf79cb: real Chromium checks passed in GitHub Actions 37953120784. Its Xcode compilation exposed syntax errors in ThemeEngine; the following checkpoint corrects them. Do not treat the earlier successful baseline Xcode run as proof that new code compiles.
+- Branch checkpoint 18febf1361cb296b0aeee28eef303ea6afaf79cb: real Chromium checks passed in GitHub Actions 37953120784. The following checkpoint a597f1f1d54972ff954762562c0ec0a0db33fd01 corrected ThemeEngine syntax. Real Chromium and unsigned simulator Xcode compilation both passed in run 37953727879. Subsequent changes require their own CI run.
 
 ## External deployment blockers
 
@@ -22,8 +22,8 @@ The requested initial password is not committed. scripts/bootstrap-admin.mjs acc
 ## Remaining work before release
 
 - Verify the expanded native source on Xcode CI, then launch the simulator and test real devices, accessibility and background audio.
-- Complete subscription purchase UI, server-side Apple signed-transaction/notification verification, StoreKit sandbox purchase/renewal/refund/restoration testing, and connect the trial heartbeat to actual native active use. Payments stay disabled.
-- Finish playlist administration, complete theme cloning and comprehensive version snapshot coverage, automatic refresh scheduling and rollout edge cases.
+- Verify the prepared StoreKit purchase UI and complete server-side Apple signed-transaction/notification verification, StoreKit sandbox purchase/renewal/refund/restoration testing, and connect the trial heartbeat to actual native active use. Payments stay disabled.
+- Verify playlist administration, independent theme/file cloning, version restoration and foreground refresh scheduling against real hosted storage; finish rollout edge-case coverage.
 - Add supported Apple WidgetKit/CarPlay presentation only through current official APIs. Custom phone dashboard artwork is not a replacement for the CarPlay system wallpaper. Supported parked video integration needs entitlement approval and vehicle tests.
 - Enable WeatherKit in Apple developer signing before expecting live weather; test source attribution, unavailable/cache states and prayer calculation against selected method. Religious content is not fabricated; only manually verified published records are displayed.
 - Provision Supabase, apply both migrations, deploy functions, configure Auth recovery/SMTP and secure origins, bootstrap the owner, and run real two-user/admin/device/storage tests.

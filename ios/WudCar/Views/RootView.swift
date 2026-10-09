@@ -46,11 +46,11 @@ struct ThemeCanvas: View {
                     ForEach(identifiers.sorted{theme.widget($0).sort_order<theme.widget($1).sort_order},id:\.self) { id in
                         let setting=theme.widget(id)
                         let custom=state.preferences.widgetOverrides[theme.id+":"+id]
-                        if setting.visible && (state.preferences.widgets[id] ?? true) && !(setting.allow_hide && custom?.hidden==true) {
+                        if setting.visible && (setting.allow_hide ? (state.preferences.widgets[id] ?? true) && custom?.hidden != true : true) {
                             ThemeWidget(id:id,date:context.date,theme:theme)
                                 .scaleEffect((setting.allow_resize ? custom?.scale ?? setting.scale : setting.scale)*state.preferences.widgetScale)
                                 .opacity((custom?.opacity ?? setting.opacity)*state.preferences.widgetOpacity)
-                                .position(x:geometry.size.width*(custom?.x ?? setting.x),y:geometry.size.height*(custom?.y ?? setting.y))
+                                .position(x:geometry.size.width*(setting.allow_move ? (custom?.x ?? setting.x) : setting.x),y:geometry.size.height*(setting.allow_move ? (custom?.y ?? setting.y) : setting.y))
                                 .gesture(DragGesture().onEnded { value in
                                     guard editable && setting.allow_move else{return}
                                     let x=min(0.95,max(0.05,(custom?.x ?? setting.x)+value.translation.width/geometry.size.width))

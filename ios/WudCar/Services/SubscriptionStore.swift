@@ -24,7 +24,8 @@ import Combine
     func buy(_ product: Product) async {
         guard AppConfiguration.subscriptionsEnabled else { return }
         do {
-            switch try await product.purchase() {
+            guard let id=CloudClient.shared.session?.user.id,let token=UUID(uuidString:id)else {throw WudError.message("Please sign in / يرجى تسجيل الدخول")}
+            switch try await product.purchase(options:[.appAccountToken(token)]) {
             case .success(let result):
                 guard case .verified(let transaction) = result else { throw WudError.message("Purchase could not be verified / تعذر التحقق من الشراء") }
                 await refreshEntitlements(); await transaction.finish()

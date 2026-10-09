@@ -19,7 +19,7 @@ enum WudError:LocalizedError {case message(String);var errorDescription:String?{
         let(d,response)=try await URLSession.shared.data(for:r);guard let h=response as? HTTPURLResponse,(200..<300).contains(h.statusCode)else{let obj=(try? JSONSerialization.jsonObject(with:d)) as? [String:Any];throw WudError.message(obj?["msg"] as? String ?? obj?["message"] as? String ?? obj?["error_description"] as? String ?? "Request failed / تعذر إتمام الطلب")};return d
     }
     private func keep(_ s:AuthSession)throws{try SecureStore.save(JSONEncoder().encode(s),key:"auth-session");session=s}
-    func signIn(email:String,password:String)async throws {let body=try JSONSerialization.data(withJSONObject:["email":email,"password":password]);let d=try await request("/auth/v1/token?grant_type=password",method:"POST",body:body);try keep(JSONDecoder().decode(AuthSession.self,from:d))}
+    func signIn(email:String,password:String)async throws {let body=try JSONSerialization.data(withJSONObject:["email":email,"password":password]);let d=try await request("/auth/v1/token?grant_type=password",method:"POST",body:body);try keep(JSONDecoder().decode(AuthSession.self,from:d));SecureStore.remove("device-session-id");try? await registerDevice()}
     func signUp(email:String,password:String)async throws {let b=try JSONSerialization.data(withJSONObject:["email":email,"password":password]);_=try await request("/auth/v1/signup",method:"POST",body:b)}
     func recover(email:String)async throws {let b=try JSONSerialization.data(withJSONObject:["email":email]);_=try await request("/auth/v1/recover",method:"POST",body:b)}
     func refreshIfNeeded()async throws {
@@ -29,8 +29,22 @@ enum WudError:LocalizedError {case message(String);var errorDescription:String?{
         let task=Task {let b=try JSONSerialization.data(withJSONObject:["refresh_token":s.refresh_token]);let d=try await self.request("/auth/v1/token?grant_type=refresh_token",method:"POST",body:b);try self.keep(JSONDecoder().decode(AuthSession.self,from:d))};refreshTask=task
         defer{refreshTask=nil};try await task.value
     }
-    func signOut()async {if session != nil{_=try? await request("/auth/v1/logout",method:"POST",authenticated:true)};SecureStore.remove("auth-session");session=nil}
-    func deleteAccount()async throws {let b=try JSONSerialization.data(withJSONObject:["confirmation":"DELETE"]);_=try await request("/functions/v1/delete-account",method:"POST",body:b,authenticated:true);SecureStore.remove("auth-session");session=nil}
+    func signOut()async {if session != nil{_=try? await request("/auth/v1/logout",method:"POST",authenticated:true)};SecureStore.remove("auth-session");SecureStore.remove("device-session-id");session=nil}
+    func deleteAccount()async throws {let b=try JSONSerialization.data(withJSONObject:["confirmation":"DELETE"]);_=try await request("/functions/v1/delete-account",method:"POST",body:b,authenticated:true);SecureStore.remove("auth-session");SecureStore.remove("device-session-id");session=nil}
+    var deviceID:String {
+        if let data=SecureStore.load("device-session-id"),let value=String(data:data,encoding:.utf8),UUID(uuidString:value) != nil {return value}
+        let value=UUID().uuidString;try? SecureStore.save(Data(value.utf8),key:"device-session-id");return value
+    }
+    func deviceAction(_ action:String,id:String?=nil)async throws->Data {
+        let body=try JSONSerialization.data(withJSONObject:["action":action,"id":id ?? deviceID,"name":"iPhone"])
+        return try await request("/functions/v1/device-session",method:"POST",body:body,authenticated:true)
+    }
+    func registerDevice()async throws {_=try await deviceAction("register")}
+    func devices()async throws->[RegisteredDevice] {
+        try await registerDevice()
+        struct List:Decodable {let devices:[RegisteredDevice]}
+        return try JSONDecoder().decode(List.self,from:await deviceAction("list")).devices
+    }
     func saveProfile(_ p:Preferences)async throws {
         guard let s=session else{return}
         let value=CloudProfile(user_id:s.user.id,display_name:p.name,language:p.language,city:p.city,preferences:p)

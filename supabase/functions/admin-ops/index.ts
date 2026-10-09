@@ -14,6 +14,23 @@ Deno.serve(async request=>{
    const {error:roleError}=await db.from('staff_accounts').insert({user_id:created.user.id,role_key:body.role_key});if(roleError){await db.auth.admin.deleteUser(created.user.id);throw roleError;}
    return json(request,200,{user_id:created.user.id});
   }
+  if(body.action==='copy_theme'){
+   if(!can('themes.write'))return json(request,403,{error:'Permission denied'});
+   const {data:source,error}=await db.from('themes').select('*,theme_assets(*),theme_media(*),theme_widget_settings(*),theme_playlists(*)').eq('id',body.id).single();if(error||!source)throw error;
+   const id=crypto.randomUUID();const {theme_assets:assets,theme_media:media,theme_widget_settings:widgets,theme_playlists:links,created_at,updated_at,...metadata}=source;
+   const inserted=await db.from('themes').insert({...metadata,id,status:'draft',version:1,forced:false,name_ar:source.name_ar+' — نسخة',name_en:source.name_en+' — Copy',thumbnail_path:null,fallback_path:null});if(inserted.error)throw inserted.error;
+   const copied=new Map<string,string>();
+   const copy=async(path:string|null)=>{if(!path)return null;if(copied.has(path))return copied.get(path)!;const target=`themes/${id}/${crypto.randomUUID()}.${path.split('.').pop()}`;const result=await db.storage.from('theme-media').copy(path,target);if(result.error)throw result.error;copied.set(path,target);return target;};
+   try{
+    for(const asset of assets??[]){const result=await db.from('theme_assets').insert({theme_id:id,layout:asset.layout,period:asset.period,kind:asset.kind,path:await copy(asset.path)});if(result.error)throw result.error;}
+    for(const item of media??[]){const {id:oldID,theme_id:oldTheme,...fields}=item;const result=await db.from('theme_media').insert({...fields,id:crypto.randomUUID(),theme_id:id,path:await copy(item.path)});if(result.error)throw result.error;}
+    for(const item of widgets??[]){const result=await db.from('theme_widget_settings').insert({...item,theme_id:id});if(result.error)throw result.error;}
+    for(const item of links??[]){const result=await db.from('theme_playlists').insert({...item,theme_id:id});if(result.error)throw result.error;}
+    const completed=await db.from('themes').update({thumbnail_path:await copy(source.thumbnail_path),fallback_path:await copy(source.fallback_path)}).eq('id',id);if(completed.error)throw completed.error;
+   }catch(error){await db.from('themes').delete().eq('id',id);if(copied.size)await db.storage.from('theme-media').remove([...copied.values()]);throw error;}
+   await db.from('audit_logs').insert({actor_id:user.id,operation:'COPY',table_name:'themes',subject_id:id,metadata:{source_id:source.id}});
+   return json(request,200,{id});
+  }
   if(body.action==='user_status'){
    if(!can('users.write')||!['active','suspended'].includes(body.status))return json(request,403,{error:'Permission denied'});
    if(body.user_id===user.id)return json(request,409,{error:'You cannot suspend your own account'});

@@ -9,11 +9,12 @@ insert into public.role_permissions values
 ('theme_editor','themes.read'),('theme_editor','themes.write'),('theme_editor','music.read'),('theme_editor','settings.read'),
 ('viewer','themes.read'),('viewer','music.read'),('viewer','content.read'),('viewer','settings.read');
 insert into public.staff_accounts(user_id,role_key) select user_id,'super_admin' from public.admin_roles;
+alter table public.profiles add column last_active_at timestamptz,add column account_status text not null default 'active' check(account_status in ('active','suspended'));
 create function private.can(cap text) returns boolean language sql stable security definer set search_path='' as $$
- select (select private.account_exists()) and exists(select 1 from public.staff_accounts s join public.role_permissions p on p.role_key=s.role_key where s.user_id=(select auth.uid()) and s.enabled and (p.permission=cap or p.permission='*')) $$;
+ select (select private.account_exists()) and not exists(select 1 from public.profiles where user_id=(select auth.uid()) and account_status<>'active') and exists(select 1 from public.staff_accounts s join public.role_permissions p on p.role_key=s.role_key where s.user_id=(select auth.uid()) and s.enabled and (p.permission=cap or p.permission='*')) $$;
 revoke all on function private.can(text) from public; grant execute on function private.can(text) to authenticated;
 create or replace function private.is_admin() returns boolean language sql stable security definer set search_path='' as $$ select (select private.can('staff.write')) $$;
-create function public.my_permissions() returns text[] language sql stable security definer set search_path='' as $$ select coalesce(array_agg(p.permission),'{}') from public.staff_accounts s join public.role_permissions p on p.role_key=s.role_key where s.user_id=(select auth.uid()) and s.enabled and (select private.account_exists()) $$;
+create function public.my_permissions() returns text[] language sql stable security definer set search_path='' as $$ select coalesce(array_agg(p.permission),'{}') from public.staff_accounts s join public.role_permissions p on p.role_key=s.role_key where s.user_id=(select auth.uid()) and s.enabled and (select private.can(p.permission)) $$;
 revoke all on function public.my_permissions() from public;grant execute on function public.my_permissions() to authenticated;
 -- Users never assign themselves staff status. First owner is bootstrapped by a server credential.
 alter table public.roles enable row level security;alter table public.role_permissions enable row level security;alter table public.staff_accounts enable row level security;
@@ -32,7 +33,6 @@ end $$;
 create trigger keep_owner before update or delete on public.staff_accounts for each row execute function private.keep_owner();
 create table public.devices (id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,name text not null check(length(name)<=100),platform text not null default 'ios',last_seen_at timestamptz not null default now(),revoked_at timestamptz);
 create index devices_owner on public.devices(user_id,last_seen_at desc);
-alter table public.profiles add column last_active_at timestamptz,add column account_status text not null default 'active' check(account_status in ('active','suspended'));
 -- Status and activity are maintained by server functions, not owner upserts.
 revoke update on public.profiles from authenticated;
 grant update(display_name,language,city,preferences) on public.profiles to authenticated;
@@ -81,7 +81,7 @@ create index theme_media_lookup on public.theme_media(theme_id,layout,period,sor
 create table public.theme_versions (id uuid primary key default gen_random_uuid(),theme_id text not null references public.themes(id) on delete cascade,version integer not null,snapshot jsonb not null,created_by uuid references auth.users(id) on delete set null,created_at timestamptz not null default now(),unique(theme_id,version));
 create function private.snapshot_theme() returns trigger language plpgsql security definer set search_path='' as $$
 begin
- insert into public.theme_versions(theme_id,version,snapshot,created_by) values(new.id,new.version,jsonb_build_object('theme',to_jsonb(new),'assets',(select coalesce(jsonb_agg(a),'[]') from public.theme_assets a where theme_id=new.id),'media',(select coalesce(jsonb_agg(m),'[]') from public.theme_media m where theme_id=new.id),'widgets',(select coalesce(jsonb_agg(w),'[]') from public.theme_widget_settings w where theme_id=new.id)),(select auth.uid())) on conflict(theme_id,version) do update set snapshot=excluded.snapshot,created_by=excluded.created_by where public.theme_versions.snapshot->'theme'->>'status' not in ('published','scheduled');return new;
+ insert into public.theme_versions(theme_id,version,snapshot,created_by) values(new.id,new.version,jsonb_build_object('theme',to_jsonb(new),'assets',(select coalesce(jsonb_agg(a),'[]') from public.theme_assets a where theme_id=new.id),'media',(select coalesce(jsonb_agg(m),'[]') from public.theme_media m where theme_id=new.id),'widgets',(select coalesce(jsonb_agg(w),'[]') from public.theme_widget_settings w where theme_id=new.id),'playlists',(select coalesce(jsonb_agg(p),'[]') from public.theme_playlists p where theme_id=new.id)),(select auth.uid())) on conflict(theme_id,version) do update set snapshot=excluded.snapshot,created_by=excluded.created_by where public.theme_versions.snapshot->'theme'->>'status' not in ('published','scheduled');return new;
 end $$;
 create trigger snapshot_theme after insert or update on public.themes for each row execute function private.snapshot_theme();
 create function public.restore_theme(p_id text,p_version integer) returns void language plpgsql security definer set search_path='' as $$
@@ -96,6 +96,7 @@ begin
  delete from public.theme_assets where theme_id=p_id;insert into public.theme_assets select * from jsonb_populate_recordset(null::public.theme_assets,snap->'assets');
  delete from public.theme_media where theme_id=p_id;insert into public.theme_media select * from jsonb_populate_recordset(null::public.theme_media,snap->'media');
  delete from public.theme_widget_settings where theme_id=p_id;insert into public.theme_widget_settings select * from jsonb_populate_recordset(null::public.theme_widget_settings,snap->'widgets');
+ delete from public.theme_playlists where theme_id=p_id;insert into public.theme_playlists select * from jsonb_populate_recordset(null::public.theme_playlists,coalesce(snap->'playlists','[]'::jsonb));
  update public.themes set version=next_version where id=p_id;
 end $$;
 revoke all on function public.restore_theme(text,integer) from public;grant execute on function public.restore_theme(text,integer) to authenticated;
@@ -165,7 +166,6 @@ revoke all on all functions in schema private from public;
 grant execute on function private.is_admin(),private.account_exists(),private.can(text) to authenticated;
 -- Keep public settings free of secrets. Sensitive provider credentials live only in server environment variables.
 update public.app_settings set value=value||'{"maintenance":false,"minimum_version":"0.1.0","subscriptions_enabled":false,"trial_enabled":false,"refresh_seconds":600,"splash_enabled":true,"splash_duration":1.2}';
-commit;
 
 create or replace function private.validate_theme() returns trigger language plpgsql set search_path = '' as $$
 declare slot jsonb; seen text[] := '{}'; counts integer[] := array_fill(0,array[1440]); m integer; finish integer; i integer;
@@ -186,3 +186,5 @@ begin
  ) then raise exception 'Media required for each layout and daily period before publishing';end if;
  return new;
 end $$;
+
+commit;

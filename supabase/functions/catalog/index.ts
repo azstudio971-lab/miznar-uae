@@ -16,10 +16,9 @@ Deno.serve(async request=>{
   })));
   const results=await Promise.all([db.from('music').select('*').eq('enabled',true).order('sort_order'),db.from('playlists').select('*,playlist_tracks(*)').eq('enabled',true).order('sort_order'),db.from('religious_content').select('*').eq('status','published').eq('verified',true).order('sort_order'),db.from('app_settings').select('value').eq('id','public').maybeSingle(),db.from('legal_documents').select('*').eq('published',true)]);for(const result of results)if(result.error)throw result.error;
   const [songs,lists,religious,setting,legal]=results;
-  const selectedPlaylistIDs=new Set(active.flatMap(t=>t.theme_playlists.map((p:{playlist_id:string})=>p.playlist_id)));
-  const selectedTracks=new Set((lists.data??[]).filter(p=>selectedPlaylistIDs.has(p.id)).flatMap(p=>p.playlist_tracks.map((a:{track_id:string})=>a.track_id)));
-  const permitted=(songs.data??[]).filter(m=>active.some(t=>t.music_mode==='all'||(t.music_mode==='selected'&&(t.music_ids.includes(m.id)||selectedTracks.has(m.id)))));
+  for(const theme of themes){const source=active.find(t=>t.id===theme.id);const ids=new Set(source?.theme_playlists.map((p:{playlist_id:string})=>p.playlist_id)??[]);theme.music_ids=[...new Set([...theme.music_ids,...(lists.data??[]).filter(p=>ids.has(p.id)).flatMap(p=>p.playlist_tracks.map((a:{track_id:string})=>a.track_id))])];}
+  const permitted=(songs.data??[]).filter(m=>active.some(t=>t.music_mode==='all'||(t.music_mode==='selected'&&(t.music_ids.includes(m.id)||themes.find(theme=>theme.id===t.id)?.music_ids.includes(m.id)))));
   const music=await Promise.all(permitted.map(async m=>({id:m.id,name_ar:m.name_ar,name_en:m.name_en,url:await sign(m.path),sort_order:m.sort_order})));
-  return json(request,200,{themes,music,playlists:lists.data??[],religious:religious.data??[],legal:legal.data??[],settings:setting.data?.value??{},default_theme:setting.data?.value?.default_theme??'spirit-of-the-uae',generated_at:new Date().toISOString()});
+  return json(request,200,{themes,music,playlists:lists.data??[],religious:(religious.data??[]).filter(item=>(!item.starts_at||Date.parse(item.starts_at)<=now)&&(!item.ends_at||Date.parse(item.ends_at)>now)),legal:legal.data??[],settings:setting.data?.value??{},default_theme:setting.data?.value?.default_theme??'spirit-of-the-uae',generated_at:new Date().toISOString()});
  }catch{return json(request,503,{error:'Catalog temporarily unavailable'});}
 });

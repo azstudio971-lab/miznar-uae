@@ -29,15 +29,15 @@ struct SettingsView: View {
             }
             Section(state.text("الحساب", "Account")) {
                 if let session = cloud.session {
-                    Text(session.user.email ?? ""); Button(state.text("مزامنة إعداداتي", "Sync my preferences")) { Task { await state.sync() } }
+                    Text(session.user.email ?? ""); NavigationLink(state.text("الأجهزة والجلسات", "Devices and sessions")) { DevicesView() }; Button(state.text("مزامنة إعداداتي", "Sync my preferences")) { Task { await state.sync() } }
                     Button(state.text("تسجيل الخروج", "Sign out")) { Task { await cloud.signOut(); state.messages = [] } }
                     Button(state.text("حذف الحساب نهائيًا", "Permanently delete account"), role: .destructive) { deleting = true }.disabled(busy)
                 } else { Text(state.text("تستخدم التطبيق كضيف", "You are using guest mode")); Button(state.text("تسجيل الدخول أو إنشاء حساب", "Sign in or create an account")) { auth = true }.disabled(!AppConfiguration.configured)
                     if !AppConfiguration.configured { Text(state.text("الخدمة السحابية لم تُفعّل لهذه النسخة بعد.", "Cloud service is not configured in this build.")).font(.caption) }
                 }
             }
-            Section(state.text("الاشتراك", "Subscription")) { Text(state.text("الاشتراكات غير مفعّلة في هذه النسخة. ستظهر الأسعار وشروط التجربة من Apple عند إتاحة الشراء.", "Subscriptions are not enabled in this build. Apple pricing and trial terms will be shown when purchases become available.")); Link(state.text("إدارة اشتراكات Apple", "Manage Apple subscriptions"), destination: URL(string: "https://apps.apple.com/account/subscriptions")!) }
-            Section { NavigationLink(state.text("الخصوصية", "Privacy")) { PolicyView(kind: "privacy") }; NavigationLink(state.text("الشروط والأحكام", "Terms")) { PolicyView(kind: "terms") }; NavigationLink(state.text("حذف الحساب", "Account deletion")) { PolicyView(kind: "delete") }; Link(state.text("تواصل معنا", "Contact support"), destination: URL(string: "mailto:az.studio971@gmail.com")!) }
+            Section(state.text("الاشتراك", "Subscription")) { NavigationLink(state.text("الخطة والمشتريات", "Plans and purchases")) { SubscriptionView() }; Text(state.text("الاشتراكات غير مفعّلة في هذه النسخة. ستظهر الأسعار وشروط التجربة من Apple عند إتاحة الشراء.", "Subscriptions are not enabled in this build. Apple pricing and trial terms will be shown when purchases become available.")); Link(state.text("إدارة اشتراكات Apple", "Manage Apple subscriptions"), destination: URL(string: "https://apps.apple.com/account/subscriptions")!) }
+            Section { NavigationLink(state.text("الخصوصية", "Privacy")) { PolicyView(kind: "privacy") }; NavigationLink(state.text("الشروط والأحكام", "Terms")) { PolicyView(kind: "terms") }; NavigationLink(state.text("حذف الحساب", "Account deletion")) { PolicyView(kind: "delete") }; ForEach(["eula","subscription","refund","retention"],id:\.self) { kind in NavigationLink(PolicyView.load(kind,language:state.preferences.language).title) { PolicyView(kind:kind) } }; Link(state.text("تواصل معنا", "Contact support"), destination: URL(string: "mailto:az.studio971@gmail.com")!) }
             Section { Button(state.text("مسح البيانات المحلية", "Clear local data"), role: .destructive) { clearLocal = true } }
             Section { Text("WudCar 0.1 · Rashed Saeed").font(.caption); Text(state.text("CarPlay: طلبا Audio وVideo بانتظار الموافقة. تشغيل الفيديو في السيارة مرتبط بدعم السيارة وقيود Apple.", "CarPlay: Audio and Video entitlement requests are pending. In-car video depends on vehicle support and Apple restrictions.")).font(.caption) }
         }.navigationTitle(state.text("الإعدادات", "Settings"))
@@ -75,7 +75,8 @@ struct PolicyView: View {
     @EnvironmentObject var state: AppState
     let kind: String
     var body: some View {
-        let policy = Self.load(kind, language: state.preferences.language)
+        let remote=state.legal.first{$0.id==kind}
+        let policy=remote.map{ Policy(title:state.text($0.title_ar,$0.title_en),sections:(state.preferences.language=="ar" ? $0.sections_ar : $0.sections_en).filter{$0.count==2}) } ?? Self.load(kind, language: state.preferences.language)
         ScrollView { VStack(alignment: .leading, spacing: 18) { Text(policy.title).font(.largeTitle.bold()); ForEach(Array(policy.sections.enumerated()), id: \.offset) { _, section in VStack(alignment: .leading, spacing: 8) { Text(section[0]).font(.headline); Text(section[1]) } } }.padding() }.navigationTitle(policy.title)
     }
     struct Policy: Decodable { let title: String; let sections: [[String]] }
