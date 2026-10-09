@@ -6,7 +6,7 @@ import {policies} from '../web/src/policies.js';
 import {defaultSlots,validateSlots,greeting} from '../shared/domain.js';
 test('web DOM: bilingual navigation, theme choice, greeting and cloud-unavailable state',()=>{
  const window=new Window({url:'https://wudcar.test/preview'});window.document.body.innerHTML='<div id="app"></div>';
- const source=readFileSync('web/src/main.js','utf8').replace(/^import[^\n]+\n/,'');
+ const source=readFileSync('web/src/main.js','utf8').replace(/^import[^\n]+\n/gm,'');
  const execute=new Function('window','document','location','history','localStorage','db','policies','defaultSlots','validateSlots','greeting','rows','save','remove',source);
  execute(window,window.document,window.location,window.history,window.localStorage,null,policies,defaultSlots,validateSlots,greeting,()=>{},()=>{throw Error('Unexpected write');},()=>{});
  const d=window.document;assert.equal(d.documentElement.dir,'rtl');
@@ -17,5 +17,19 @@ test('web DOM: bilingual navigation, theme choice, greeting and cloud-unavailabl
  d.querySelector('a[href="/admin"]').click();assert.equal(d.querySelector('#login button').disabled,true);
  assert.match(d.body.textContent,/Cloud connection is not configured/);
  for(const route of ['privacy','terms','support','delete']){d.querySelector(`a[href="/${route}"]`).click();assert.ok(d.querySelector('h1').textContent.length>0);}
+ window.happyDOM.abort();
+});
+test('phone preview saves a name, renders it on Home and blocks invalid media URLs',()=>{
+ const window=new Window({url:'https://wudcar.test/app'});window.document.body.innerHTML='<div id="app"></div>';
+ let source=readFileSync('web/src/phone-preview.js','utf8').replace(/^import[^\n]+\n/gm,'').replaceAll('export function','function');
+ const build=new Function('document','localStorage','FormData','URL','validateMediaURL',source+';return {phonePreview,bindPhonePreview};');
+ const {phonePreview,bindPhonePreview}=build(window.document,window.localStorage,window.FormData,URL,value=>{try{return new URL(value).protocol==='https:';}catch{return false;}});
+ const render=()=>{window.document.querySelector('#app').innerHTML=phonePreview('ar');bindPhonePreview(render,()=>{});};render();
+ const d=window.document;d.querySelector('[data-p-tab="settings"]').click();
+ d.querySelector('#p-settings input[name="name"]').value='راشد';d.querySelector('#p-settings').dispatchEvent(new window.Event('submit',{cancelable:true}));
+ d.querySelector('[data-p-tab="home"]').click();assert.match(d.querySelector('.p-hello').textContent,/راشد/);
+ d.querySelector('[data-p-moment="night"]').click();assert.match(d.querySelector('.p-scene>img').src,/night.png$/);
+ d.querySelector('[data-p-tab="library"]').click();d.querySelector('input[name="name"]').value='Test';d.querySelector('input[name="url"]').value='javascript:alert(1)';d.querySelector('#p-source-form').dispatchEvent(new window.Event('submit',{cancelable:true}));assert.match(d.querySelector('#p-source-error').textContent,/HTTPS/);
+ d.querySelector('input[name="url"]').value='https://example.com/music.mp3';d.querySelector('#p-source-form').dispatchEvent(new window.Event('submit',{cancelable:true}));assert.equal(d.querySelectorAll('.p-source').length,1);
  window.happyDOM.abort();
 });
