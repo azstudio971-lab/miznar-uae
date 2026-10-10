@@ -27,8 +27,8 @@ struct ThemeWidget: View {
             case "adhkar":
                 if let item=state.religious.first { Text(state.text(item.text_ar,item.text_en)).lineLimit(2).frame(maxWidth:240) }
             case "music":
-                if state.preferences.musicEnabled,theme.music_mode != "none",let track=state.tracks.first(where:{theme.music_mode=="all" || theme.music_ids.contains($0.id)}) {
-                    Button { if player.title==track.name_en || player.title==track.name_ar { player.stop() } else if let url=WudDomain.validURL(track.url) { player.play(url:url,name:state.text(track.name_ar,track.name_en)) } } label: { Label(player.title.isEmpty ? state.text(track.name_ar,track.name_en) : player.title,systemImage:player.title.isEmpty ? "play.circle" : "stop.circle").lineLimit(1) }.buttonStyle(.plain)
+                if state.preferences.musicEnabled,theme.music_mode != "none",let track=state.themeTracks.first {
+                    Button { if player.title==track.name_en || player.title==track.name_ar { player.stop() } else { player.playPlaylist(state.themeTracks) } } label: { Label(player.title.isEmpty ? state.text(track.name_ar,track.name_en) : player.title,systemImage:player.title.isEmpty ? "play.circle" : "stop.circle").lineLimit(1) }.buttonStyle(.plain)
                 }
             default: EmptyView()
             }

@@ -23,6 +23,11 @@ import Combine
         let available=themes.filter{$0.isAvailable(at:Date())}.sorted{($0.priority ?? 0)>($1.priority ?? 0)}
         return available.first{$0.forced==true} ?? available.first{$0.id==preferences.themeID} ?? .builtin
     }
+    var themeTracks: [Track] {
+        if theme.music_mode == "all" { return tracks }
+        if theme.music_mode == "selected" { return theme.music_ids.compactMap { id in tracks.first { $0.id == id } } }
+        return []
+    }
     func text(_ ar: String, _ en: String) -> String { preferences.language == "ar" ? ar : en }
     func refresh() async {
         await InformationService.shared.refresh(city:preferences.city,method:preferences.prayerMethod)

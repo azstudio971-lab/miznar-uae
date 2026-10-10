@@ -58,3 +58,10 @@ Migration order is the timestamp order in `supabase/migrations`. Initial owner p
 `npm run check` يغطي البناء واختبارات النطاق وعزل بيانات المستخدمين وصلاحيات المدير وتغطية أوقات الثيم والتجربة وقيد قائمة واحدة والمكتبة الشخصية. GitHub Actions يشغّل أيضاً اختبارات المتصفح وبناء iOS Simulator.
 
 Live API checks verify catalog, MET weather/prayer response, administrator login and permissions, draft push persistence and unauthorized rejection. Actual APNs delivery and physical CarPlay tests wait for the Apple credentials/vehicle step above.
+
+## سجل التسليم والتحقق
+
+- GitHub Actions run 37986747143: نجاح بناء iOS Simulator واختبارات المتصفح وnpm run check.
+- نشر Netlify: `6ac94d851511413783772fd0`، مع مراجعة الواجهة المنشورة فعلياً.
+- الاختبار المباشر: تحميل ثيم واحد وستة مواقع وتحديث؛ مصادقة المدير وصلاحية super_admin؛ إضافة/تعديل/حذف اختصار وقائمة تجريبية؛ حفظ مسودة إشعار دون إرسال.
+- مرجع المعاينة: [صورة مكتبتي والترفيه](preview-1.1.1.jpg).

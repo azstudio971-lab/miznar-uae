@@ -27,8 +27,8 @@ struct MediaView: View {
                 if section == "live" && entries.isEmpty { ContentUnavailableView(state.text("أضف أول بث مباشر", "Add your first live stream"), systemImage: "dot.radiowaves.left.and.right") }
                 if !state.tracks.isEmpty && state.theme.music_mode != "none" {
                     Text(state.text("قائمة الثيم", "Theme playlist")).font(.title3.bold())
-                    ForEach(state.tracks.filter { state.theme.music_mode == "all" || state.theme.music_ids.contains($0.id) }) { track in
-                        Button(state.text(track.name_ar, track.name_en)) { if let url = WudDomain.validURL(track.url) { player.play(url: url, name: state.text(track.name_ar, track.name_en)); showingPlayer = true } }
+                    ForEach(state.themeTracks) { track in
+                        Button(state.text(track.name_ar, track.name_en)) { player.playPlaylist(state.themeTracks, startingAt: track.id); showingPlayer = true }
                     }
                 }
             }.padding()

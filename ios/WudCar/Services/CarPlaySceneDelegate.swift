@@ -18,8 +18,12 @@ import CarPlay
     }
     private func showAudio() {
         let state = AppState.shared
-        let tracks = state.tracks.filter { state.theme.music_mode == "all" || (state.theme.music_mode == "selected" && state.theme.music_ids.contains($0.id)) }
-        var items = tracks.map { track in audioItem(name: state.text(track.name_ar, track.name_en), url: WudDomain.validURL(track.url)) }
+        let tracks = state.themeTracks
+        var items = tracks.map { track -> CPListItem in
+            let item = CPListItem(text: state.text(track.name_ar, track.name_en), detailText: nil)
+            item.handler = { [weak self] _, completion in PlayerService.shared.playPlaylist(tracks, startingAt: track.id); self?.controller?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil); completion() }
+            return item
+        }
         items += state.sources.filter { $0.mediaKind == "audio" && $0.type != "website" && $0.type != "playlist" }.map { source in audioItem(name: source.name, url: source.type == "local" ? LocalFiles.root.appendingPathComponent("Media").appendingPathComponent(source.url) : WudDomain.validURL(source.url)) }
         let list = CPListTemplate(title: state.text("الترفيه", "Entertainment"), sections: [CPListSection(items: items)])
         list.emptyViewTitleVariants = [state.text("لا توجد مقاطع في القائمة", "No tracks in this playlist")]
