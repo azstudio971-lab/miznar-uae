@@ -186,7 +186,7 @@ struct EntertainmentBrowser: View {
             VStack(spacing: 0) {
                 HStack {
                     TextField(state.text("رابط أو بحث", "URL or search"), text: $input)
-                        .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .keyboardType(.webSearch).textInputAutocapitalization(.never).autocorrectionDisabled()
                         .textFieldStyle(.roundedBorder).submitLabel(.go).focused($addressFocused)
                         .onSubmit { navigate(input) }
                     Button { navigate(input) } label: { Image(systemName: "arrow.right.circle.fill") }
