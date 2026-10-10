@@ -120,7 +120,10 @@ struct ThemesView: View {
     @EnvironmentObject var state: AppState
     var body: some View {
         ScrollView { LazyVStack(spacing: 20) { ForEach(state.themes) { theme in VStack(alignment: .leading) {
-            Group { if let path = theme.thumbnail_url, let url = WudDomain.validURL(path) { AsyncImage(url: url) { image in image.resizable().scaledToFill() } placeholder: { Image("ultrawide-sunset").resizable().scaledToFill() } } else { Image("ultrawide-sunset").resizable().scaledToFill() } }.frame(height: 180).clipped().clipShape(RoundedRectangle(cornerRadius: 18))
+            GeometryReader { geometry in
+                Group { if let path = theme.thumbnail_url, let url = WudDomain.validURL(path) { AsyncImage(url: url) { image in image.resizable().scaledToFill() } placeholder: { Image("ultrawide-sunset").resizable().scaledToFill() } } else { Image("ultrawide-sunset").resizable().scaledToFill() } }
+                    .frame(width: geometry.size.width, height: 180).clipped()
+            }.frame(height: 180).clipShape(RoundedRectangle(cornerRadius: 18))
             Text(state.text(theme.description_ar ?? "", theme.description_en ?? "")).font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 10)
             HStack { Text(theme.name(state.preferences.language)).font(.headline); Spacer(); Button(state.preferences.themeID == theme.id ? state.text("محدد", "Selected") : state.text("اختيار", "Select")) { state.preferences.themeID = theme.id; Task { await state.sync() } }.buttonStyle(.bordered) }
         } }.padding() } }.navigationTitle(state.text("الثيمات", "Themes"))
