@@ -6,7 +6,13 @@ import CarPlay
     private var controller: CPInterfaceController?
     func templateApplicationScene(_ scene: CPTemplateApplicationScene, didConnect interfaceController: CPInterfaceController) {
         controller = interfaceController
-        Task { await AppState.shared.refresh(); showHome() }
+        showHome()
+        Task { [weak self] in
+            await AppState.shared.refresh()
+            guard let self, self.controller === interfaceController else { return }
+            // Keep a user's selected screen while background data refreshes.
+            if self.controller?.templates.count == 1 { self.showHome() }
+        }
     }
     private func showHome() {
         let state = AppState.shared
