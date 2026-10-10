@@ -9,13 +9,14 @@ struct MediaView: View {
     @State private var browserSource: MediaSource?
     @State private var editingID: String?
     @State private var section = "website"
+    @State private var sourceMediaKind = "video"
     @State private var adding = false
     @State private var showingPlayer = false
     @State private var name = ""
     @State private var address = ""
     @State private var query = ""
     private var entries: [MediaSource] {
-        let official = state.library.map { MediaSource(id: $0.id, name: $0.name(state.preferences.language), url: $0.url, type: $0.kind == "website" ? "website" : "stream", mediaKind: "video", favorite: state.preferences.favoriteIDs.contains($0.id)) }
+        let official = state.library.map { MediaSource(id: $0.id, name: $0.name(state.preferences.language), url: $0.url, type: $0.kind == "website" ? "website" : "stream", mediaKind: $0.kind == "audio" ? "audio" : "video", favorite: state.preferences.favoriteIDs.contains($0.id)) }
         return (official + state.sources).filter { (section == "website" ? $0.type == "website" : $0.type != "website") && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query)) }
     }
     var body: some View {
@@ -26,7 +27,7 @@ struct MediaView: View {
                 grid(entries)
                 Text(state.text("المفضلة", "Favorites")).font(.title3.bold())
                 if entries.contains(where: \.favorite) { grid(entries.filter(\.favorite)) } else { Text(state.text("اضغط النجمة لحفظ رابطك المفضل.", "Tap a star to save a favorite.")).font(.caption).foregroundStyle(.secondary) }
-                Button { editingID = nil; name = ""; address = ""; adding = true } label: { Label(state.text("إضافة رابط", "Add a link"), systemImage: "plus").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent)
+                Button { editingID = nil; name = ""; address = ""; sourceMediaKind = "video"; adding = true } label: { Label(state.text("إضافة رابط", "Add a link"), systemImage: "plus").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent)
                 if section == "live" && entries.isEmpty { ContentUnavailableView(state.text("أضف أول بث مباشر", "Add your first live stream"), systemImage: "dot.radiowaves.left.and.right") }
                 if !state.tracks.isEmpty && state.theme.music_mode != "none" {
                     Text(state.text("قائمة الثيم", "Theme playlist")).font(.title3.bold())
@@ -42,8 +43,15 @@ struct MediaView: View {
         .sheet(isPresented: $adding) { NavigationStack { Form {
             TextField(state.text("الاسم", "Name"), text: $name)
             TextField("https://", text: $address).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+            if section == "live" {
+                Picker(state.text("نوع المصدر", "Source type"), selection: $sourceMediaKind) {
+                    Text(state.text("صوت", "Audio")).tag("audio")
+                    Text(state.text("فيديو", "Video")).tag("video")
+                }
+                Text(state.text("المصادر الصوتية المباشرة تظهر في مكتبتي والمفضلة على CarPlay.", "Direct audio sources appear in My Library and Favorites on CarPlay.")).font(.caption)
+            }
             Text(state.text("المواقع تفتح داخل التطبيق. البث يحتاج رابط فيديو مباشر مثل HLS.", "Websites open inside the app. Live streams need a direct video URL, such as HLS.")).font(.caption)
-            Button(state.text("حفظ في المفضلة", "Save to favorites")) { guard let url = WudDomain.validURL(address) else { return }; if let editingID, let index = state.sources.firstIndex(where: { $0.id == editingID }) { state.sources[index].name = String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(80)); state.sources[index].url = url.absoluteString } else { state.sources.append(MediaSource(name: String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(80)), url: url.absoluteString, type: section == "website" ? "website" : "stream", mediaKind: "video", favorite: true)) }; editingID = nil; adding = false; name = ""; address = "" }.disabled(WudDomain.validURL(address) == nil || name.trimmingCharacters(in: .whitespaces).isEmpty)
+            Button(state.text("حفظ في المفضلة", "Save to favorites")) { guard let url = WudDomain.validURL(address) else { return }; if let editingID, let index = state.sources.firstIndex(where: { $0.id == editingID }) { state.sources[index].name = String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(80)); state.sources[index].url = url.absoluteString; state.sources[index].mediaKind = section == "website" ? "video" : sourceMediaKind } else { state.sources.append(MediaSource(name: String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(80)), url: url.absoluteString, type: section == "website" ? "website" : "stream", mediaKind: section == "website" ? "video" : sourceMediaKind, favorite: true)) }; editingID = nil; adding = false; name = ""; address = "" }.disabled(WudDomain.validURL(address) == nil || name.trimmingCharacters(in: .whitespaces).isEmpty)
         }.navigationTitle(state.text("إضافة رابط", "Add a link")).toolbar { Button(state.text("إلغاء", "Cancel")) { adding = false } } } }
     }
     private func grid(_ sources: [MediaSource]) -> some View {
@@ -54,7 +62,7 @@ struct MediaView: View {
                     Text(source.name).font(.caption).lineLimit(1)
                 } }.buttonStyle(.plain)
                 Button { favorite(source) } label: { Image(systemName: source.favorite ? "star.fill" : "star").foregroundStyle(source.favorite ? Color.orange : Color.secondary) }.accessibilityLabel(state.text("المفضلة", "Favorite") + " " + source.name)
-            }.contextMenu { if state.sources.contains(where: { $0.id == source.id }) { Button(state.text("تعديل الرابط", "Edit link")) { editingID = source.id; name = source.name; address = source.url; adding = true }; Button(state.text("حذف", "Delete"), role: .destructive) { state.sources.removeAll { $0.id == source.id } } } } }
+            }.contextMenu { if state.sources.contains(where: { $0.id == source.id }) { Button(state.text("تعديل الرابط", "Edit link")) { editingID = source.id; name = source.name; address = source.url; sourceMediaKind = source.mediaKind; adding = true }; Button(state.text("حذف", "Delete"), role: .destructive) { state.sources.removeAll { $0.id == source.id } } } } }
         }
     }
     private func favorite(_ source: MediaSource) {
