@@ -1,5 +1,4 @@
 import UIKit
-import CarPlay
 import UserNotifications
 import Combine
 
@@ -31,13 +30,6 @@ import Combine
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions { [.banner, .sound, .list] }
 }
 @MainActor final class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
-        guard connectingSceneSession.role == .carTemplateApplication else { return connectingSceneSession.configuration }
-        let configuration = UISceneConfiguration(name: "CarPlay", sessionRole: connectingSceneSession.role)
-        configuration.sceneClass = CPTemplateApplicationScene.self
-        configuration.delegateClass = CarPlaySceneDelegate.self
-        return configuration
-    }
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) { PushService.shared.registered(deviceToken) }
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) { PushService.shared.status = error.localizedDescription }
 }
