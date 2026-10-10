@@ -27,7 +27,7 @@ Updated: 2026-10-10.
 - Clean checkout at Documents/WudCar-Distribution built and ran on the simulator; the merged theme thumbnail fix was visually verified in Arabic.
 - Manual App Store signing produced an iOS archive for 1.1.1 (111), bundle com.azpixel.wudcar, team Rashed Saeed. No physical device registration or USB connection was needed.
 - Encrypted certificate/private-key export WudCar-Distribution-2026-10-10.p12 was saved in the cloud user's Documents folder. The owner entered the export password. An off-machine copy has not yet been verified.
-- Xcode downloaded and selected the created profile; Release displayed Apple Distribution with no signing error. Manual Release signing configuration was saved in main at 6951ba7d9e937bbf0aa540a373e08666de4b5739. The clean checkout successfully archived. App Store Connect record 6821315431 is visible with Arabic as its primary locale. Xcode upload is in progress; final upload and processing are not yet verified.
+- Xcode downloaded and selected the created profile; Release displayed Apple Distribution with no signing error. Manual Release signing configuration was saved in main at 6951ba7d9e937bbf0aa540a373e08666de4b5739. The clean checkout successfully archived. App Store Connect record 6821315431 is visible with Arabic as its primary locale. Xcode confirmed WudCar 1.1.1 (111) uploaded successfully to Apple at 18:52 on 2026-10-10 (cloud display time). App Store processing and tester availability are not yet verified.
 - TestFlight invitation is not yet issued; external testing may require Apple beta review.
 - APNs credentials, physical notification delivery, CarPlay approval and StoreKit production setup remain unverified. See RELEASE-1.1.1.md.
 
