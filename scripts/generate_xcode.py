@@ -27,10 +27,12 @@ for shape in ['compact','ultrawide']:
     for period in ['dawn','morning','sunset','night']:
         catalog(f'{shape}-{period}',root/f'assets/themes/spirit-of-the-uae/{shape}/{period}.png')
 info = {'CFBundleDevelopmentRegion':'en','CFBundleDisplayName':'WudCar','CFBundleExecutable':'$(EXECUTABLE_NAME)','CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)','CFBundleInfoDictionaryVersion':'6.0','CFBundleName':'$(PRODUCT_NAME)','CFBundlePackageType':'APPL','CFBundleShortVersionString':'$(MARKETING_VERSION)','CFBundleVersion':'$(CURRENT_PROJECT_VERSION)','LSRequiresIPhoneOS':True,'UILaunchScreen':{},'UIBackgroundModes':['audio','remote-notification'],'NSLocationWhenInUseUsageDescription':'يستخدم موقعك لعرض الطقس والتوقيت ومواقيت الصلاة واستهداف إشعارات منطقتك. Your location sets weather, time, prayer times and regional notifications.','WUD_APNS_ENVIRONMENT':'$(WUD_APNS_ENVIRONMENT)','UISupportedInterfaceOrientations':['UIInterfaceOrientationPortrait','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'],'UISupportedInterfaceOrientations~ipad':['UIInterfaceOrientationPortrait','UIInterfaceOrientationPortraitUpsideDown','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'],'CFBundleLocalizations':['ar','en'],'WUD_SUPABASE_URL':'$(WUD_SUPABASE_URL)','WUD_SUPABASE_KEY':'$(WUD_SUPABASE_KEY)'}
+# CarPlay Audio was assigned to this team and enabled for this App ID on 2026-10-10.
+info['UIApplicationSceneManifest']={'UIApplicationSupportsMultipleScenes':True,'UISceneConfigurations':{'CPTemplateApplicationSceneSessionRoleApplication':[{'UISceneConfigurationName':'CarPlay','UISceneClassName':'CPTemplateApplicationScene','UISceneDelegateClassName':'$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate'}]}}
 (app/'Info.plist').write_bytes(plistlib.dumps(info))
-# A separate reviewed opt-in plist is provided. Base app does not claim unapproved CarPlay access.
+# Keep the alternate plist and example for existing recovery documentation.
 car = dict(info)
-car['UIApplicationSceneManifest']={'UIApplicationSupportsMultipleScenes':True,'UISceneConfigurations':{'CPTemplateApplicationSceneSessionRoleApplication':[{'UISceneConfigurationName':'CarPlay','UISceneDelegateClassName':'$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate'}]}}
+car['UIApplicationSceneManifest']={'UIApplicationSupportsMultipleScenes':True,'UISceneConfigurations':{'CPTemplateApplicationSceneSessionRoleApplication':[{'UISceneConfigurationName':'CarPlay','UISceneClassName':'CPTemplateApplicationScene','UISceneDelegateClassName':'$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate'}]}}
 (app/'Info-CarPlay.plist').write_bytes(plistlib.dumps(car))
 (app/'CarPlay.entitlements.example').write_bytes(plistlib.dumps({'com.apple.developer.carplay-audio':True}))
 
@@ -58,7 +60,7 @@ for level in ['project','target']:
     configs=[]
     for mode in ['Debug','Release']:
         settings={'SDKROOT':'iphoneos','IPHONEOS_DEPLOYMENT_TARGET':'17.0','SWIFT_VERSION':'5.0','CLANG_ENABLE_MODULES':'YES','SWIFT_OPTIMIZATION_LEVEL':'-Onone' if mode=='Debug' else '-O'}
-        if level=='target': settings.update({'PRODUCT_NAME':'WudCar','PRODUCT_BUNDLE_IDENTIFIER':'com.azpixel.wudcar','DEVELOPMENT_TEAM':'QS29RVJPUT','CODE_SIGN_STYLE':'Automatic','INFOPLIST_FILE':'WudCar/Info.plist','TARGETED_DEVICE_FAMILY':'1,2','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon','MARKETING_VERSION':'1.1.1','CURRENT_PROJECT_VERSION':'111','GENERATE_INFOPLIST_FILE':'NO','SWIFT_EMIT_LOC_STRINGS':'YES','ENABLE_USER_SCRIPT_SANDBOXING':'YES'})
+        if level=='target': settings.update({'PRODUCT_NAME':'WudCar','PRODUCT_BUNDLE_IDENTIFIER':'com.azpixel.wudcar','DEVELOPMENT_TEAM':'QS29RVJPUT','CODE_SIGN_STYLE':'Automatic','INFOPLIST_FILE':'WudCar/Info.plist','CODE_SIGN_ENTITLEMENTS':'WudCar/CarPlay.entitlements','TARGETED_DEVICE_FAMILY':'1,2','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon','MARKETING_VERSION':'1.1.1','CURRENT_PROJECT_VERSION':'112','GENERATE_INFOPLIST_FILE':'NO','SWIFT_EMIT_LOC_STRINGS':'YES','ENABLE_USER_SCRIPT_SANDBOXING':'YES'})
         body=' '.join(f'{k} = {q(v)};' for k,v in settings.items())
         configs.append(obj(level+mode,f'isa = XCBuildConfiguration; baseConfigurationReference = {configref}; buildSettings = {{ {body} }}; name = {mode};'))
     obj(level+'configs',f'isa = XCConfigurationList; buildConfigurations = ({",".join(configs)},); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;')
