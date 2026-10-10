@@ -24,10 +24,10 @@ Updated: 2026-10-10.
 
 ## Outstanding work
 
-- Local cloud checkout still needs verification against the merged theme fix; Xcode reported local changes during pull and a stash workflow was used. Preserve local changes and inspect them before resolving anything.
-- Archive attempt failed because automatic development signing could not generate a provisioning profile with zero registered devices. The chosen next path is manual App Store distribution signing for TestFlight, without a USB connection to the cloud machine.
+- Clean checkout at Documents/WudCar-Distribution built and ran on the simulator; the merged theme thumbnail fix was visually verified in Arabic.
+- Manual App Store signing produced an iOS archive for 1.1.1 (111), bundle com.azpixel.wudcar, team Rashed Saeed. No physical device registration or USB connection was needed.
 - Encrypted certificate/private-key export WudCar-Distribution-2026-10-10.p12 was saved in the cloud user's Documents folder. The owner entered the export password. An off-machine copy has not yet been verified.
-- Xcode downloaded and selected the created profile; Release displayed Apple Distribution with no signing error. Manual Release signing configuration was saved in main at 6951ba7d9e937bbf0aa540a373e08666de4b5739. A clean checkout is being created at Documents/WudCar-Distribution to avoid stale local files. Archive, validation and upload remain pending.
+- Xcode downloaded and selected the created profile; Release displayed Apple Distribution with no signing error. Manual Release signing configuration was saved in main at 6951ba7d9e937bbf0aa540a373e08666de4b5739. The clean checkout successfully archived. App Store Connect record 6821315431 is visible with Arabic as its primary locale. Xcode upload is in progress; final upload and processing are not yet verified.
 - TestFlight invitation is not yet issued; external testing may require Apple beta review.
 - APNs credentials, physical notification delivery, CarPlay approval and StoreKit production setup remain unverified. See RELEASE-1.1.1.md.
 
