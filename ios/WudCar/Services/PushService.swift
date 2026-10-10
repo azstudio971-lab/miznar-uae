@@ -32,7 +32,7 @@ import Combine
 }
 @MainActor final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
-        guard connectingSceneSession.role == CPTemplateApplicationSceneSessionRoleApplication else { return connectingSceneSession.configuration }
+        guard connectingSceneSession.role == .carTemplateApplication else { return connectingSceneSession.configuration }
         let configuration = UISceneConfiguration(name: "CarPlay", sessionRole: connectingSceneSession.role)
         configuration.sceneClass = CPTemplateApplicationScene.self
         configuration.delegateClass = CarPlaySceneDelegate.self
