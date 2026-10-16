@@ -1,0 +1,27 @@
+{
+  "app_name": "WudCar",
+  "planned_revision": 2,
+  "platform": "iPhone",
+  "trigger": "app_launch",
+  "loop": false,
+  "assets": [
+    {
+      "file": "WudCar-Intro-Light.mp4",
+      "appearance": "light",
+      "duration_seconds": 6,
+      "width": 512,
+      "height": 910,
+      "sha256": "37b5258fa6a2867c6e49ca08cdb92dbb3918760b781e8cd95e69f2599eaf6f34",
+      "size_bytes": 1621058
+    },
+    {
+      "file": "WudCar-Intro-Dark.mp4",
+      "appearance": "dark",
+      "duration_seconds": 6,
+      "width": 512,
+      "height": 910,
+      "sha256": "3ea233d79657cb39ce27c1b189372eef9e36bef75158fadb6260bb7715ec6bd9",
+      "size_bytes": 1737261
+    }
+  ]
+}

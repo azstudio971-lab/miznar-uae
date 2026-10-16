@@ -1,6 +1,13 @@
 import Foundation
 
 enum AppConfiguration {
+    static var browserUITesting: Bool {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("--browser-ui-tests")
+        #else
+        return false
+        #endif
+    }
     static var supabaseURL:String {Bundle.main.object(forInfoDictionaryKey:"WUD_SUPABASE_URL") as? String ?? ""}
     static var publishableKey:String {Bundle.main.object(forInfoDictionaryKey:"WUD_SUPABASE_KEY") as? String ?? ""}
     static var configured:Bool {supabaseURL.hasPrefix("https://") && !publishableKey.isEmpty && !publishableKey.contains("$(")}

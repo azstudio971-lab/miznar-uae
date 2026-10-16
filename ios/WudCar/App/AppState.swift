@@ -38,6 +38,8 @@ import Combine
     }
     func sync() async { await PushService.shared.sync(); do { try await CloudClient.shared.saveProfile(preferences) } catch { notice = error.localizedDescription } }
     func clearPersonalData() {
+        EntertainmentBrowserStore.shared.reset()
+        Task { await EntertainmentBrowserStore.shared.clearWebsiteData() }
         PlayerService.shared.stop(); try? FileManager.default.removeItem(at: LocalFiles.root.appendingPathComponent("Media")); preferences = Preferences(); sources = []; messages = []
     }
 }
