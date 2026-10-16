@@ -17,24 +17,30 @@ jobs:
       - run: npm run test:ui
   ios:
     runs-on: macos-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - run: python3 scripts/generate_xcode.py
-      - name: Browser URL policy tests
-        run: |
-          swiftc ios/WudCar/Models/BrowserPolicy.swift tests/ios/main.swift -o /tmp/wudcar-browser-tests
-          /tmp/wudcar-browser-tests
+      - name: Verify Video source entitlement
+        run: python3 scripts/ci/verify_video_signing.py --source
       - name: Build and test the native browser
-        run: |
-          device_id=$(xcrun simctl list devices available -j | python3 -c 'import sys,json; d=json.load(sys.stdin); print(next(v["udid"] for devices in d["devices"].values() for v in devices if "iPhone" in v["name"]))')
-          xcodebuild -project ios/WudCar.xcodeproj -scheme WudCar -destination "platform=iOS Simulator,id=$device_id" -configuration Debug CODE_SIGNING_ALLOWED=NO -parallel-testing-enabled NO -resultBundlePath /tmp/WudCarBrowser.xcresult test
+        run: bash scripts/ci/test_ios.sh
+      - name: Package native simulator preview
+        run: bash scripts/ci/build_simulator.sh
       - name: Export browser screenshots
         if: always()
-        run: xcrun xcresulttool export attachments --path /tmp/WudCarBrowser.xcresult --output-path /tmp/wudcar-browser-attachments
+        run: xcrun xcresulttool export attachments --path build/artifacts/WudCarBrowser.xcresult --output-path build/artifacts/screenshots
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: wudcar-browser-ios-results
           path: |
-            /tmp/WudCarBrowser.xcresult
-            /tmp/wudcar-browser-attachments
+            build/artifacts/WudCarBrowser.xcresult
+            build/artifacts/screenshots
+            build/artifacts/*.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WudCar-iOS-Simulator
+          path: |
+            build/artifacts/WudCar-iOS-Simulator.zip
+            build/artifacts/preview-manifest.json

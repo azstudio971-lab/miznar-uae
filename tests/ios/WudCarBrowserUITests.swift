@@ -1,6 +1,18 @@
 import XCTest
 
 final class WudCarBrowserUITests: XCTestCase {
+    override func setUpWithError() throws { continueAfterFailure = false }
+
+    private func tapWebLink(_ title: String, in app: XCUIApplication) {
+        let link = app.webViews.links[title]
+        XCTAssertTrue(link.waitForExistence(timeout: 15))
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: link)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 10), .completed)
+        // WebKit's synthesized activation point can lag the first layout. Use
+        // the link's current frame, not that stale activation point (CI tapped
+        // x:24,y:186 while the link was at x:52,y:272).
+        link.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+    }
     private func launch(_ extra: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--browser-ui-tests"] + extra
@@ -59,14 +71,15 @@ final class WudCarBrowserUITests: XCTestCase {
     func testWebNavigationPopupAndHome() {
         let app = launch(["--browser-fixture"])
         XCTAssertTrue(app.webViews.staticTexts["First page"].waitForExistence(timeout: 10))
-        app.webViews.links["Next page"].tap()
-        XCTAssertTrue(app.webViews.staticTexts["Second page"].waitForExistence(timeout: 5))
+        tapWebLink("Next page", in: app)
+        XCTAssertTrue(app.webViews.staticTexts["Second page"].waitForExistence(timeout: 15))
         XCTAssertTrue(app.buttons["browser.back"].isEnabled)
         app.buttons["browser.back"].tap()
         XCTAssertTrue(app.webViews.staticTexts["First page"].waitForExistence(timeout: 5))
-        app.webViews.links["Open new tab"].tap()
+        tapWebLink("Open new tab", in: app)
+        XCTAssertTrue(app.webViews.staticTexts["Second page"].waitForExistence(timeout: 15))
         XCTAssertEqual(app.buttons["browser.tabs"].value as? String, "2")
-        XCTAssertTrue(app.webViews.staticTexts["Second page"].waitForExistence(timeout: 5))
+        screenshot("browser-webkit-navigation")
         app.buttons["browser.home"].tap()
         XCTAssertTrue(app.buttons["browser.site.wudcar-youtube"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["browser.reload"].isEnabled)

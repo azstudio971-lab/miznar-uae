@@ -119,6 +119,7 @@ struct EntertainmentWebSurface: UIViewRepresentable {
 struct EntertainmentBrowser: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var store = EntertainmentBrowserStore.shared
     @State private var showingTabs = false
 
@@ -127,6 +128,7 @@ struct EntertainmentBrowser: View {
             store.suspendAll()
             dismiss()
         }
+        .tint(colorScheme == .dark ? Color(red: 0.29, green: 0.85, blue: 0.73) : Color(red: 0.07, green: 0.43, blue: 0.39))
         .sheet(isPresented: $showingTabs) { BrowserTabsView(store: store) }
         .onChange(of: showingTabs) { _, visible in
             if visible { store.suspendAll() } else { store.selected.activate() }
