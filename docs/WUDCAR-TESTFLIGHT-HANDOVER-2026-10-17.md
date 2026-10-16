@@ -23,3 +23,10 @@ Imported latest source alongside existing repository files. Added unsigned Codem
 
 ## Completion criteria
 Successful simulator compilation; successful signed IPA build with matching entitlements; processed App Store Connect build; TestFlight access for owner; physical vehicle results recorded separately. Do not call delivery successful until evidence exists.
+
+## First cloud build
+- Source import committed remotely as 323907cc2bb2a72f34395ef1954d4eb5f9f452e8; AirPlay guidance fix e31ff4a7df3bd490865b562b7f5872180a66586c.
+- Codemagic validation build started: https://codemagic.io/app/6ad1db1b951fcdf1e4f45860/build/6ad295a77550aed8108f6964
+- Observed Xcode 26.6 / iOS Simulator SDK 26.5. Project generation succeeded and simulator compilation started. Final result not yet verified.
+- Codemagic Developer Portal integration was not connected when inspected.
+- Apple Developer opened at identifiers list but sign-in is required; owner asked to sign in directly in browser. No certificate, App ID, signing profile, or TestFlight upload created during this pass.
