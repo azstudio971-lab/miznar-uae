@@ -27,14 +27,15 @@ for shape in ['compact','ultrawide']:
     for period in ['dawn','morning','sunset','night']:
         catalog(f'{shape}-{period}',root/f'assets/themes/spirit-of-the-uae/{shape}/{period}.png')
 info = {'CFBundleDevelopmentRegion':'en','CFBundleDisplayName':'WudCar','CFBundleExecutable':'$(EXECUTABLE_NAME)','CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)','CFBundleInfoDictionaryVersion':'6.0','CFBundleName':'$(PRODUCT_NAME)','CFBundlePackageType':'APPL','CFBundleShortVersionString':'$(MARKETING_VERSION)','CFBundleVersion':'$(CURRENT_PROJECT_VERSION)','LSRequiresIPhoneOS':True,'UILaunchScreen':{},'UIBackgroundModes':['audio','remote-notification'],'NSLocationWhenInUseUsageDescription':'يستخدم موقعك لعرض الطقس والتوقيت ومواقيت الصلاة واستهداف إشعارات منطقتك. Your location sets weather, time, prayer times and regional notifications.','WUD_APNS_ENVIRONMENT':'$(WUD_APNS_ENVIRONMENT)','UISupportedInterfaceOrientations':['UIInterfaceOrientationPortrait','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'],'UISupportedInterfaceOrientations~ipad':['UIInterfaceOrientationPortrait','UIInterfaceOrientationPortraitUpsideDown','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'],'CFBundleLocalizations':['ar','en'],'WUD_SUPABASE_URL':'$(WUD_SUPABASE_URL)','WUD_SUPABASE_KEY':'$(WUD_SUPABASE_KEY)'}
-# CarPlay Audio was assigned to this team and enabled for this App ID on 2026-10-10.
+# V3 requests Video only. Device signing requires a Video-capable provisioning profile.
 info['UIApplicationSceneManifest']={'UIApplicationSupportsMultipleScenes':True,'UISceneConfigurations':{'CPTemplateApplicationSceneSessionRoleApplication':[{'UISceneConfigurationName':'CarPlay','UISceneClassName':'CPTemplateApplicationScene','UISceneDelegateClassName':'$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate'}]}}
 (app/'Info.plist').write_bytes(plistlib.dumps(info))
 # Keep the alternate plist and example for existing recovery documentation.
 car = dict(info)
 car['UIApplicationSceneManifest']={'UIApplicationSupportsMultipleScenes':True,'UISceneConfigurations':{'CPTemplateApplicationSceneSessionRoleApplication':[{'UISceneConfigurationName':'CarPlay','UISceneClassName':'CPTemplateApplicationScene','UISceneDelegateClassName':'$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate'}]}}
 (app/'Info-CarPlay.plist').write_bytes(plistlib.dumps(car))
-(app/'CarPlay.entitlements.example').write_bytes(plistlib.dumps({'com.apple.developer.carplay-audio':True}))
+for name in ['CarPlay.entitlements', 'CarPlay.entitlements.example']:
+    (app/name).write_bytes(plistlib.dumps({'com.apple.developer.carplay-video':True}))
 
 def uid(s): return hashlib.sha256(s.encode()).hexdigest()[:24].upper()
 def q(s): return json.dumps(str(s))
@@ -49,9 +50,13 @@ for path in sources+resources:
     file_ids.append(f)
     b=obj('build:'+path,f'isa = PBXBuildFile; fileRef = {f};')
     (source_build if path in sources else resource_build).append(b)
+test_file = obj('testfile', 'isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../tests/ios/WudCarBrowserUITests.swift"; sourceTree = SOURCE_ROOT;')
+test_build = obj('testbuild', f'isa = PBXBuildFile; fileRef = {test_file};')
+test_sources = obj('testsources', f'isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = ({test_build},); runOnlyForDeploymentPostprocessing = 0;')
+test_product = obj('testproduct', 'isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = WudCarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR;')
 product=obj('product','isa = PBXFileReference; explicitFileType = wrapper.application; path = WudCar.app; sourceTree = BUILT_PRODUCTS_DIR;')
-products=obj('products',f'isa = PBXGroup; children = ({product},); name = Products; sourceTree = "<group>";')
-main=obj('main',f'isa = PBXGroup; children = ({",".join(file_ids+[products])},); sourceTree = "<group>";')
+products=obj('products',f'isa = PBXGroup; children = ({product},{test_product},); name = Products; sourceTree = "<group>";')
+main=obj('main',f'isa = PBXGroup; children = ({",".join(file_ids+[test_file,products])},); sourceTree = "<group>";')
 sp=obj('sources',f'isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = ({",".join(source_build)},); runOnlyForDeploymentPostprocessing = 0;')
 rp=obj('resources',f'isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = ({",".join(resource_build)},); runOnlyForDeploymentPostprocessing = 0;')
 fp=obj('frameworks','isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;')
@@ -59,16 +64,26 @@ configref=obj('configref','isa = PBXFileReference; lastKnownFileType = text.xcco
 for level in ['project','target']:
     configs=[]
     for mode in ['Debug','Release']:
-        settings={'SDKROOT':'iphoneos','IPHONEOS_DEPLOYMENT_TARGET':'17.0','SWIFT_VERSION':'5.0','CLANG_ENABLE_MODULES':'YES','SWIFT_OPTIMIZATION_LEVEL':'-Onone' if mode=='Debug' else '-O'}
-        if level=='target': settings.update({'PRODUCT_NAME':'WudCar','PRODUCT_BUNDLE_IDENTIFIER':'com.azpixel.wudcar','DEVELOPMENT_TEAM':'QS29RVJPUT','CODE_SIGN_STYLE':'Automatic','INFOPLIST_FILE':'WudCar/Info.plist','CODE_SIGN_ENTITLEMENTS':'WudCar/CarPlay.entitlements','TARGETED_DEVICE_FAMILY':'1,2','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon','MARKETING_VERSION':'1.1.1','CURRENT_PROJECT_VERSION':'112','GENERATE_INFOPLIST_FILE':'NO','SWIFT_EMIT_LOC_STRINGS':'YES','ENABLE_USER_SCRIPT_SANDBOXING':'YES'})
+        settings={'SDKROOT':'iphoneos','IPHONEOS_DEPLOYMENT_TARGET':'17.0','SWIFT_VERSION':'5.0','SWIFT_ACTIVE_COMPILATION_CONDITIONS':'DEBUG' if mode=='Debug' else '', 'CLANG_ENABLE_MODULES':'YES','SWIFT_OPTIMIZATION_LEVEL':'-Onone' if mode=='Debug' else '-O'}
+        if level=='target': settings.update({'PRODUCT_NAME':'WudCar','PRODUCT_BUNDLE_IDENTIFIER':'com.azpixel.wudcar','DEVELOPMENT_TEAM':'QS29RVJPUT','CODE_SIGN_STYLE':'Automatic','INFOPLIST_FILE':'WudCar/Info.plist','CODE_SIGN_ENTITLEMENTS':'WudCar/CarPlay.entitlements','TARGETED_DEVICE_FAMILY':'1,2','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon','MARKETING_VERSION':'1.1.1','CURRENT_PROJECT_VERSION':'113','GENERATE_INFOPLIST_FILE':'NO','SWIFT_EMIT_LOC_STRINGS':'YES','ENABLE_USER_SCRIPT_SANDBOXING':'YES'})
         body=' '.join(f'{k} = {q(v)};' for k,v in settings.items())
         configs.append(obj(level+mode,f'isa = XCBuildConfiguration; baseConfigurationReference = {configref}; buildSettings = {{ {body} }}; name = {mode};'))
     obj(level+'configs',f'isa = XCConfigurationList; buildConfigurations = ({",".join(configs)},); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;')
 target=obj('target',f'isa = PBXNativeTarget; buildConfigurationList = {uid("targetconfigs")}; buildPhases = ({sp},{fp},{rp},); buildRules = (); dependencies = (); name = WudCar; productName = WudCar; productReference = {product}; productType = "com.apple.product-type.application";')
-project=obj('project',f'isa = PBXProject; attributes = {{ LastUpgradeCheck = 1600; }}; buildConfigurationList = {uid("projectconfigs")}; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en,ar,Base); mainGroup = {main}; productRefGroup = {products}; projectDirPath = ""; projectRoot = ""; targets = ({target},);')
+test_configs=[]
+for mode in ['Debug','Release']:
+    settings={'PRODUCT_NAME':'WudCarUITests','PRODUCT_BUNDLE_IDENTIFIER':'com.azpixel.wudcar.uitests','TEST_TARGET_NAME':'WudCar','GENERATE_INFOPLIST_FILE':'YES','TARGETED_DEVICE_FAMILY':'1,2','CODE_SIGN_STYLE':'Automatic','DEVELOPMENT_TEAM':'QS29RVJPUT','SWIFT_VERSION':'5.0','IPHONEOS_DEPLOYMENT_TARGET':'17.0','SDKROOT':'iphoneos'}
+    body=' '.join(f'{k} = {q(v)};' for k,v in settings.items())
+    test_configs.append(obj('uitest'+mode,f'isa = XCBuildConfiguration; buildSettings = {{ {body} }}; name = {mode};'))
+test_config_list=obj('uitestconfigs',f'isa = XCConfigurationList; buildConfigurations = ({",".join(test_configs)},); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug;')
+proxy=obj('testproxy',f'isa = PBXContainerItemProxy; containerPortal = {uid("project")}; proxyType = 1; remoteGlobalIDString = {target}; remoteInfo = WudCar;')
+dependency=obj('testdependency',f'isa = PBXTargetDependency; target = {target}; targetProxy = {proxy};')
+test_target=obj('uitesttarget',f'isa = PBXNativeTarget; buildConfigurationList = {test_config_list}; buildPhases = ({test_sources},); buildRules = (); dependencies = ({dependency},); name = WudCarUITests; productName = WudCarUITests; productReference = {test_product}; productType = "com.apple.product-type.bundle.ui-testing";')
+project=obj('project',f'isa = PBXProject; attributes = {{ LastUpgradeCheck = 1600; }}; buildConfigurationList = {uid("projectconfigs")}; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en,ar,Base); mainGroup = {main}; productRefGroup = {products}; projectDirPath = ""; projectRoot = ""; targets = ({target},{test_target},);')
 folder=ios/'WudCar.xcodeproj';folder.mkdir(exist_ok=True)
 (folder/'project.pbxproj').write_text('// !$*UTF8*$!\n{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {\n'+'\n'.join(objects)+f'\n}}; rootObject = {project}; }}\n')
 scheme=folder/'xcshareddata/xcschemes';scheme.mkdir(parents=True,exist_ok=True)
 ref=f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{target}" BuildableName="WudCar.app" BlueprintName="WudCar" ReferencedContainer="container:WudCar.xcodeproj"/>'
-(scheme/'WudCar.xcscheme').write_text(f'''<?xml version="1.0" encoding="UTF-8"?><Scheme LastUpgradeVersion="1600" version="1.3"><BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries><BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">{ref}</BuildActionEntry></BuildActionEntries></BuildAction><LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES"><BuildableProductRunnable runnableDebuggingMode="0">{ref}</BuildableProductRunnable></LaunchAction><ProfileAction buildConfiguration="Release" shouldUseLaunchSchemeArgsEnv="YES" savedToolIdentifier="" useCustomWorkingDirectory="NO" debugDocumentVersioning="YES"><BuildableProductRunnable runnableDebuggingMode="0">{ref}</BuildableProductRunnable></ProfileAction><AnalyzeAction buildConfiguration="Debug"/><ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/></Scheme>''')
+test_ref=f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{test_target}" BuildableName="WudCarUITests.xctest" BlueprintName="WudCarUITests" ReferencedContainer="container:WudCar.xcodeproj"/>'
+(scheme/'WudCar.xcscheme').write_text(f'''<?xml version="1.0" encoding="UTF-8"?><Scheme LastUpgradeVersion="1600" version="1.3"><BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries><BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">{ref}</BuildActionEntry></BuildActionEntries></BuildAction><TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES"><Testables><TestableReference skipped="NO">{test_ref}</TestableReference></Testables></TestAction><LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES"><BuildableProductRunnable runnableDebuggingMode="0">{ref}</BuildableProductRunnable></LaunchAction><ProfileAction buildConfiguration="Release" shouldUseLaunchSchemeArgsEnv="YES" savedToolIdentifier="" useCustomWorkingDirectory="NO" debugDocumentVersioning="YES"><BuildableProductRunnable runnableDebuggingMode="0">{ref}</BuildableProductRunnable></ProfileAction><AnalyzeAction buildConfiguration="Debug"/><ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/></Scheme>''')
 print('Generated ios/WudCar.xcodeproj')

@@ -4,6 +4,18 @@ import SwiftUI
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var state = AppState.shared
     @Environment(\.scenePhase) private var phase
+    init() {
+        #if DEBUG
+        if AppConfiguration.browserUITesting {
+            AppState.shared.preferences = Preferences()
+            AppState.shared.preferences.language = ProcessInfo.processInfo.arguments.contains("--arabic") ? "ar" : "en"
+            AppState.shared.preferences.appearance = ProcessInfo.processInfo.arguments.contains("--light") ? "light" : "dark"
+            AppState.shared.preferences.onboarded = true
+            AppState.shared.sources = []
+            UserDefaults.standard.removeObject(forKey: "wudcar.v3.browser.starters.v1")
+        }
+        #endif
+    }
     var body: some Scene {
         WindowGroup {
             RootView().environmentObject(state)
@@ -14,7 +26,7 @@ import SwiftUI
                 .task { await UsageMeter.shared.run() }
                 .onChange(of: phase) { _, value in UsageMeter.shared.foreground = value == .active }
                 .task(id:phase) {
-                    guard phase == .active else{return}
+                    guard phase == .active, !AppConfiguration.browserUITesting else{return}
                     while !Task.isCancelled {
                         await state.refresh()
                         await PushService.shared.sync()

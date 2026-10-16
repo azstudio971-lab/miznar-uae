@@ -1,0 +1,49 @@
+# No App Store Connect publishing, TestFlight submission, or email recipients.
+# User approval is still required before any future TestFlight upload.
+workflows:
+  wudcar-browser-preview:
+    name: WudCar — native browser preview
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      xcode: 27.0
+    scripts:
+      - name: Generate native project
+        script: python3 scripts/generate_xcode.py
+      - name: Verify Video entitlement source configuration
+        script: python3 scripts/ci/verify_video_signing.py --source
+      - name: Test native browser on iPhone simulator
+        script: bash scripts/ci/test_ios.sh
+      - name: Build Appetize-compatible native app
+        script: bash scripts/ci/build_simulator.sh
+    artifacts:
+      - build/artifacts/WudCar-iOS-Simulator.zip
+      - build/artifacts/preview-manifest.json
+      - build/artifacts/*.log
+      - build/artifacts/*.xcresult
+
+  wudcar-video-signed-build:
+    name: WudCar — signed Video build (no publishing)
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      xcode: 27.0
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.azpixel.wudcar
+    scripts:
+      - name: Generate native project
+        script: python3 scripts/generate_xcode.py
+      - name: Verify Video entitlement source configuration
+        script: python3 scripts/ci/verify_video_signing.py --source
+      - name: Apply the renewed profile from Codemagic identities
+        script: xcode-project use-profiles --project ios/WudCar.xcodeproj
+      - name: Build signed archive and IPA without uploading
+        script: xcode-project build-ipa --project ios/WudCar.xcodeproj --scheme WudCar
+      - name: Verify the signed app and embedded Video profile
+        script: |
+          python3 scripts/ci/verify_video_signing.py --ipa build/ios/ipa/*.ipa
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/xcarchive/*.xcarchive
+      - /tmp/xcodebuild_logs/*.log

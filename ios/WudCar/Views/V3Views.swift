@@ -25,6 +25,8 @@ struct V3SettingsView: View {
     @ObservedObject private var cloud = CloudClient.shared
     @State private var deletingAccount = false
     @State private var deleting = false
+    @State private var clearingBrowser = false
+    @State private var confirmClearBrowser = false
     var body: some View {
         Form {
             Section {
@@ -58,10 +60,22 @@ struct V3SettingsView: View {
                         .disabled(!AppConfiguration.configured)
                 }
             }
+            Section(state.text("المتصفح", "Browser")) {
+                Button(state.text("مسح بيانات المواقع والتبويبات", "Clear website data and tabs"), role: .destructive) { confirmClearBrowser = true }
+                    .disabled(clearingBrowser)
+                Text(state.text("يسجّل خروجك من المواقع. تبقى اختصاراتك محفوظة.", "Signs you out of websites. Your shortcuts are kept."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section { Text("WudCar · AZ PIXEL Digital Solutions").font(.caption) }
         }
         .navigationTitle(state.text("الإعدادات", "Settings"))
         .sheet(isPresented: $showingAccount) { AuthView() }
+        .confirmationDialog(state.text("مسح بيانات المواقع؟", "Clear website data?"), isPresented: $confirmClearBrowser, titleVisibility: .visible) {
+            Button(state.text("مسح", "Clear"), role: .destructive) {
+                clearingBrowser = true
+                Task { await EntertainmentBrowserStore.shared.clearWebsiteData(); clearingBrowser = false }
+            }
+        }
         .confirmationDialog(state.text("حذف حساب ود كار وبياناته السحابية؟ اشتراكات Apple لا تُلغى تلقائيًا.",
                                         "Delete your WudCar account and cloud data? Apple subscriptions are not canceled automatically."),
                             isPresented: $deletingAccount, titleVisibility: .visible) {
