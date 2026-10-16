@@ -6,7 +6,7 @@
 # 2) Codemagic → المشروع → Environment variables، مجموعة باسم wudcar:
 #      TEAM_ID       = معرّف فريقك في Apple (10 أحرف)
 #      APP_STORE_ID  = رقم Apple ID للتطبيق من App Store Connect (بعد إنشاء سجل التطبيق)
-# 3) تأكد أن App ID للمعرّف أدناه مفعّل عليه CarPlay (Video) في Apple Developer.
+# 3) تأكد أن App ID للمعرّف أدناه مفعّل عليه CarPlay Audio (audio + video) في Apple Developer.
 
 workflows:
   wudcar-validate:
@@ -78,6 +78,33 @@ workflows:
         script: |
           set -euo pipefail
           xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+      - name: Verify signed CarPlay entitlement and scene
+        script: |
+          set -euo pipefail
+          AUDIT_DIR=$(mktemp -d)
+          unzip -q build/ios/ipa/*.ipa -d "$AUDIT_DIR"
+          APP_PATH=$(find "$AUDIT_DIR/Payload" -maxdepth 1 -name '*.app' -print -quit)
+          codesign -d --entitlements :- "$APP_PATH" > "$AUDIT_DIR/signed.plist" 2>/dev/null
+          security cms -D -i "$APP_PATH/embedded.mobileprovision" > "$AUDIT_DIR/profile.plist"
+          python3 - "$APP_PATH/Info.plist" "$AUDIT_DIR/signed.plist" "$AUDIT_DIR/profile.plist" <<'PY'
+          import plistlib, sys
+          info, signed, profile = [plistlib.load(open(p, "rb")) for p in sys.argv[1:]]
+          audio = "com.apple.developer.carplay-audio"
+          video = "com.apple.developer.carplay-video"
+          assert signed.get(audio) is True, "Signed app is missing CarPlay Audio"
+          assert not signed.get(video), "Do not combine CarPlay Audio and Video"
+          assert profile["Entitlements"].get(audio) is True, "Profile is missing CarPlay Audio"
+          assert not profile["Entitlements"].get(video), "Profile includes incompatible Video entitlement"
+          assert info["CFBundleIdentifier"] == "com.azstudio.wudcar"
+          scenes = info["UIApplicationSceneManifest"]["UISceneConfigurations"]
+          scene = scenes["CPTemplateApplicationSceneSessionRoleApplication"][0]
+          assert scene["UISceneClassName"] == "CPTemplateApplicationScene"
+          assert scene["UISceneDelegateClassName"].endswith(".CarSceneDelegate")
+          print("PASS: exported IPA has CarPlay Audio, matching profile, and CarPlay scene")
+          print("Build:", info["CFBundleShortVersionString"], info["CFBundleVersion"])
+          print("Profile:", profile["Name"])
+          PY
+          rm -rf "$AUDIT_DIR"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
@@ -86,5 +113,3 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        beta_groups:
-          - WudCar Internal
