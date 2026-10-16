@@ -1,12 +1,26 @@
 # WudCar: browser-first V3 slice
 
-Updated 2026-10-16 (Asia/Dubai). Internal V3, build 113. Public name remains WudCar / وُد كار.
+Updated 2026-10-17 (Asia/Dubai). Internal V3, build 113. Public name remains WudCar / وُد كار.
 
 ## الحالة بالعربي
 
 نُفذت أول نسخة لمتصفح الآيفون داخل «الترفيه ← المتصفح»، باستخدام WebKit / WKWebView وواجهة SwiftUI خاصة بود كار. البداية يوتيوب وتيك توك فقط. يتضمن المتصفح شريط عنوان/بحث، رجوع وتقدم وتحديث، حتى 8 تبويبات، حفظ وتعديل وحذف اختصارات، تغيير حجم الصفحة، عرض الجوال/سطح المكتب، ومظهر عربي/إنجليزي نهاري/ليلي.
 
-**متصفح CarPlay الكامل المطلوب لم يُنفذ.** لا يصح اعتبار متصفح الهاتف أو قالب قائمة روابط أو AirPlay بديلًا مكتملًا له. واجهة CarPlay في هذا الفرع تُظهر الحالة غير المتاحة بصدق. لم يتم رفع TestFlight أو تعديل حساب Apple أو ملفات التوقيع في البوابة.
+**متصفح CarPlay الكامل المطلوب لم يُنفذ.** لا يصح اعتبار متصفح الهاتف أو قالب قائمة روابط أو AirPlay بديلًا مكتملًا له. واجهة CarPlay في هذا الفرع تُظهر الحالة غير المتاحة بصدق. لم يتم رفع TestFlight. فُعّلت Video وحدها في App ID وأُنشئ ملف توقيع جديد كما هو موضح أدناه.
+
+## Verified execution checkpoint — 17 October 2026 (Dubai)
+
+- Native code commit: `88f676007a2b18ac0c41cd808c0661a1a8d8981c`.
+- GitHub Actions run `38918876054`: both iOS and web jobs passed. Native UI tests and the Release simulator package passed after correcting XCTest's stale WebKit tap point.
+- Codemagic build `6ad23fed7550aed8108f5108`: finished successfully in 7m 35s, Xcode 27.0 / Mac mini M2. Preview workflow only; no store publishing.
+- Codemagic artifact: `WudCar-iOS-Simulator.zip` (16.61 MB).
+- Appetize: WudCar uploaded and launched on iPhone 14 Pro / iOS 17.2. Upload used the successful GitHub Actions simulator artifact from the same native commit after browser download filename handling prevented direct Codemagic artifact transfer. These are separate builds; do not claim byte identity.
+- Preview URL (account session may be required): https://appetize.io/app/ios/com.azpixel.wudcar?device=iphone14pro&osVersion=17.2&toolbar=true
+- Original Apple email read directly: 14 October 2026, 23:01:30 Dubai; Case 22772031. Video assigned, Audio+Video combination unsupported, Video apps hidden on unsupported vehicles; activate App ID and create profile.
+- Existing App ID `com.azpixel.wudcar`, existing team: Video enabled, Audio disabled, portal Save and Confirm completed.
+- New profile: `WudCar Video App Store 2026-10-17`, App Store type, expires 10 October 2027; existing distribution certificate selected. The prior Audio profile is now invalid for future signing and must not be reused.
+- Codemagic has no signing certificates or profiles, and Apple Developer Portal integration is disabled. Profile upload was attempted but not confirmed saved. A distribution certificate plus its private key (P12), or an authorized Apple integration, is still required before the signed workflow can succeed. No new certificate/private key was generated.
+- A running iPhone preview is verified. Real YouTube/TikTok playback, real vehicle operation and the requested full CarPlay web browser remain unverified/unimplemented. The disabled car-browser status remains in source; do not distribute as a completed vehicle browser.
 
 ## Reference analysis: what the supplied images establish
 
@@ -56,7 +70,7 @@ Read the Apple CarPlay Developer Guide dated **2026-10-13**, particularly printe
 - Unsupported templates cause runtime exceptions. We do not abuse a map/navigation entitlement, install WKWebView into a CarPlay window, invoke private selectors, or bypass vehicle restrictions.
 - The newer guide/account instruction and general WWDC/entitlement web page differ on combining Audio/Video. This branch follows the account's recorded direction: **Video only**.
 
-The generator, entitlement file and example now agree on `com.apple.developer.carplay-video`. This is a source configuration only: it does not enable the capability on the App ID, renew a profile, establish car support, or make websites available in CarPlay. The car scene is an explicit unavailable-state shell with the approved two labels, Entertainment and TV. No enabled YouTube/TikTok car buttons falsely claim to open the websites.
+The generator, entitlement file and example now agree on `com.apple.developer.carplay-video`. The source configuration now matches the portal: Video was enabled and Audio disabled on the existing App ID, and a new App Store profile was generated. This does not establish vehicle browser support or make websites available in CarPlay. The car scene is an explicit unavailable-state shell with the approved two labels, Entertainment and TV. No enabled YouTube/TikTok car buttons falsely claim to open the websites.
 
 **Release blocker:** identify and validate a supported vehicle-display web browsing path with the actual SDK, a suitable video-capable car/simulator and signing profile. CarTV's App Store presence and screenshots do not identify that path. Do not merge/deploy this as a completed CarPlay release. Do not silently replace the requested browser with mirroring or phone-only actions.
 
