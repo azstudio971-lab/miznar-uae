@@ -1,0 +1,94 @@
+# Codemagic — بناء WudCar ورفعه إلى TestFlight
+#
+# قبل أول تشغيل (مرة واحدة، من حسابك):
+# 1) Codemagic → Teams → Integrations → Developer Portal: أضف مفتاح App Store Connect API
+#    (صلاحية App Manager) وسمّه بالاسم في الأسفل: WudCar ASC Key
+# 2) Codemagic → المشروع → Environment variables، مجموعة باسم wudcar:
+#      TEAM_ID       = معرّف فريقك في Apple (10 أحرف)
+#      APP_STORE_ID  = رقم Apple ID للتطبيق من App Store Connect (بعد إنشاء سجل التطبيق)
+# 3) تأكد أن App ID للمعرّف أدناه مفعّل عليه CarPlay (Video) في Apple Developer.
+
+workflows:
+  wudcar-validate:
+    name: WudCar — unsigned simulator validation
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+    scripts:
+      - name: Generate Xcode project
+        script: |
+          set -euo pipefail
+          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+          xcodegen generate
+      - name: Compile simulator app
+        script: |
+          set -euo pipefail
+          xcodebuild -version
+          xcodebuild -project WdCar.xcodeproj -scheme WdCar \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug -derivedDataPath build/validation \
+            CODE_SIGNING_ALLOWED=NO build
+    artifacts:
+      - build/validation/Build/Products/Debug-iphonesimulator/*.app
+  wudcar-testflight:
+    name: WudCar → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: WudCar ASC Key
+    environment:
+      xcode: latest
+      groups:
+        - wudcar
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.azstudio.wudcar
+      vars:
+        XCODE_PROJECT: WdCar.xcodeproj
+        XCODE_SCHEME: WdCar
+        BUNDLE_ID: com.azstudio.wudcar
+    scripts:
+      - name: تثبيت XcodeGen
+        script: |
+          set -euo pipefail
+          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+      - name: إنشاء مشروع Xcode
+        script: |
+          set -euo pipefail
+          xcodegen generate
+      - name: ضبط Team ID
+        script: |
+          set -euo pipefail
+          sed -i '' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $TEAM_ID;/g" "$XCODE_PROJECT/project.pbxproj" || true
+      - name: التحقق من المشروع (بناء Debug للمحاكي)
+        script: |
+          set -euo pipefail
+          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug CODE_SIGNING_ALLOWED=NO build
+      - name: تجهيز التوقيع
+        script: |
+          set -euo pipefail
+          xcode-project use-profiles
+      - name: رقم البناء
+        script: |
+          set -euo pipefail
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_ID" || echo 0)
+          NEXT=$((LATEST + 1))
+          echo "Build number: $NEXT"
+          agvtool new-version -all $NEXT
+      - name: بناء IPA (Release)
+        script: |
+          set -euo pipefail
+          xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - WudCar Internal

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- صلاحية CarPlay Video الموجودة في حسابك -->
+	<key>com.apple.developer.carplay-video</key>
+	<true/>
+	<!--
+	إذا حصلت لاحقاً على صلاحية الصوت، أزل التعليق ليظهر التطبيق في كل السيارات
+	حتى التي لا تدعم ميزة الفيديو:
+	<key>com.apple.developer.carplay-audio</key>
+	<true/>
+	-->
+</dict>
+</plist>
