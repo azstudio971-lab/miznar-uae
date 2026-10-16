@@ -39,3 +39,6 @@ Successful simulator compilation; successful signed IPA build with matching enti
 - Created separate App Store Connect record WudCar وُد كار, Apple ID 6823772404, Arabic primary language, SKU WUDCAR-CLOUD-20261017.
 - Owner completed App Store Connect API request; Apple displays request approved. No active API keys existed.
 - Prepared API key modal: WudCar Codemagic, App Manager. Key generation and transfer to Codemagic await explicit security-access approval.
+
+## Corrected CarPlay entitlement decision
+Owner recalled Apple's email dated 14 October 2026, Case-ID 22772031. Read original email directly: Apple explicitly says including both CarPlay Audio and CarPlay Video entitlements in the same app is not supported. Despite contradictory general Apple documentation, follow this case-specific guidance: use VIDEO ONLY. Remove Audio from new App ID and signing entitlements before creating any provisioning profile. Video-only apps are hidden on vehicles without video playback support. Owner approved API key generation and Codemagic storage on 17 October 2026.
