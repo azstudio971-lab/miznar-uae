@@ -208,15 +208,8 @@ struct PhoneBrowserScreen: View {
     }
 
     private func sendToCar(_ url: URL) {
-        let wasFull = TabStore.car.isFull
-        TabStore.car.newTab(url: url)
-        if !app.isCarConnected {
-            app.showToast(tr("سيظهر في السيارة عند الاتصال", "Will appear in the car when connected"))
-        } else if wasFull {
-            app.showToast(tr("تبويبات السيارة ممتلئة (8) — فُتح في التبويب الحالي", "Car tabs are full (8) — opened in current tab"))
-        } else {
-            app.showToast(tr("تم الإرسال إلى السيارة 🚗", "Sent to the car 🚗"))
-        }
+        app.showToast(tr("شغّل الفيديو ثم اختر شاشة السيارة من زر AirPlay. يتطلب شاشة سيارة تدعم الفيديو.",
+                         "Play the video, then select the car display from AirPlay. Requires a car display that supports video."))
     }
 
     private func goHome() {
