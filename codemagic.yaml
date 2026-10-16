@@ -39,8 +39,6 @@ workflows:
       app_store_connect: WudCar ASC Key
     environment:
       xcode: latest
-      groups:
-        - wudcar
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.azstudio.wudcar
@@ -48,6 +46,8 @@ workflows:
         XCODE_PROJECT: WdCar.xcodeproj
         XCODE_SCHEME: WdCar
         BUNDLE_ID: com.azstudio.wudcar
+        TEAM_ID: QS29RVJPUT
+        APP_STORE_ID: "6823772404"
     scripts:
       - name: تثبيت XcodeGen
         script: |
@@ -57,10 +57,6 @@ workflows:
         script: |
           set -euo pipefail
           xcodegen generate
-      - name: ضبط Team ID
-        script: |
-          set -euo pipefail
-          sed -i '' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $TEAM_ID;/g" "$XCODE_PROJECT/project.pbxproj" || true
       - name: التحقق من المشروع (بناء Debug للمحاكي)
         script: |
           set -euo pipefail

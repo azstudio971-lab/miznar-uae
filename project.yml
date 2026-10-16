@@ -25,7 +25,7 @@ targets:
       base:
         PRODUCT_NAME: WdCar
         PRODUCT_BUNDLE_IDENTIFIER: com.azstudio.wudcar   # المعرّف المقترح — ينتظر موافقتك
-        DEVELOPMENT_TEAM: ""                             # يضبطه Codemagic من متغير TEAM_ID
+        DEVELOPMENT_TEAM: "QS29RVJPUT"                             # يضبطه Codemagic من متغير TEAM_ID
         CODE_SIGN_STYLE: Automatic
         INFOPLIST_FILE: Config/Info.plist
         GENERATE_INFOPLIST_FILE: NO

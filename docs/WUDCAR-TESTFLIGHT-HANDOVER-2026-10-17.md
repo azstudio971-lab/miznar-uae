@@ -30,3 +30,12 @@ Successful simulator compilation; successful signed IPA build with matching enti
 - Observed Xcode 26.6 / iOS Simulator SDK 26.5. Project generation succeeded and simulator compilation started. Final result not yet verified.
 - Codemagic Developer Portal integration was not connected when inspected.
 - Apple Developer opened at identifiers list but sign-in is required; owner asked to sign in directly in browser. No certificate, App ID, signing profile, or TestFlight upload created during this pass.
+
+## Apple verification and registration
+- First validation build finished successfully: BUILD SUCCEEDED, compilation 29 seconds.
+- Owner signed in to Apple Developer. Team QS29RVJPUT verified.
+- Existing com.azpixel.wudcar had CarPlay Video enabled when inspected.
+- Registered new explicit App ID com.azstudio.wudcar (WudCar Cloud) with CarPlay Audio and CarPlay Video selected. Existing App ID unchanged.
+- Created separate App Store Connect record WudCar وُد كار, Apple ID 6823772404, Arabic primary language, SKU WUDCAR-CLOUD-20261017.
+- Owner completed App Store Connect API request; Apple displays request approved. No active API keys existed.
+- Prepared API key modal: WudCar Codemagic, App Manager. Key generation and transfer to Codemagic await explicit security-access approval.
