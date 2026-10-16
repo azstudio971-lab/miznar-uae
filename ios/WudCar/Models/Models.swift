@@ -53,6 +53,7 @@ struct MediaSource: Codable, Identifiable, Equatable {
     var type: String // playlist, stream, local, website
     var mediaKind: String // audio or video
     var favorite = false
+    var iconURL: String? = nil
 }
 struct MediaItem: Identifiable, Hashable {var id: String {url.absoluteString};let name:String;let url:URL;let group:String}
 struct City: Identifiable {var id:String{name};let name:String;let arabic:String;let lat:Double;let lon:Double

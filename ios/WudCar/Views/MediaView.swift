@@ -3,81 +3,119 @@ import AVKit
 import WebKit
 
 struct MediaView: View {
-    @EnvironmentObject var state: AppState
-    @Environment(\.openURL) private var openURL
-    @ObservedObject private var player = PlayerService.shared
+    @EnvironmentObject private var state: AppState
     @State private var browserSource: MediaSource?
-    @State private var editingID: String?
-    @State private var section = "website"
-    @State private var sourceMediaKind = "video"
-    @State private var adding = false
-    @State private var showingPlayer = false
-    @State private var name = ""
-    @State private var address = ""
-    @State private var query = ""
-    private var entries: [MediaSource] {
-        let official = state.library.map { MediaSource(id: $0.id, name: $0.name(state.preferences.language), url: $0.url, type: $0.kind == "website" ? "website" : "stream", mediaKind: $0.kind == "audio" ? "audio" : "video", favorite: state.preferences.favoriteIDs.contains($0.id)) }
-        return (official + state.sources).filter { (section == "website" ? $0.type == "website" : $0.type != "website") && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query)) }
-    }
+    @State private var editing: MediaSource?
+    @State private var input = ""
+    @AppStorage("wudcar.v3.shortcuts.seeded") private var seeded = false
+    private var shortcuts: [MediaSource] { state.sources.filter { $0.type == "website" } }
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                Picker(state.text("المكتبة", "Library"), selection: $section) { Text(state.text("المواقع", "Websites")).tag("website"); Text(state.text("البث المباشر", "Live streams")).tag("live") }.pickerStyle(.segmented)
-                TextField(state.text("ابحث في مكتبتك", "Search your library"), text: $query).textFieldStyle(.roundedBorder)
-                grid(entries)
-                Text(state.text("المفضلة", "Favorites")).font(.title3.bold())
-                if entries.contains(where: \.favorite) { grid(entries.filter(\.favorite)) } else { Text(state.text("اضغط النجمة لحفظ رابطك المفضل.", "Tap a star to save a favorite.")).font(.caption).foregroundStyle(.secondary) }
-                Button { editingID = nil; name = ""; address = ""; sourceMediaKind = "video"; adding = true } label: { Label(state.text("إضافة رابط", "Add a link"), systemImage: "plus").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent)
-                if section == "live" && entries.isEmpty { ContentUnavailableView(state.text("أضف أول بث مباشر", "Add your first live stream"), systemImage: "dot.radiowaves.left.and.right") }
-                if !state.tracks.isEmpty && state.theme.music_mode != "none" {
-                    Text(state.text("قائمة الثيم", "Theme playlist")).font(.title3.bold())
-                    ForEach(state.themeTracks) { track in
-                        Button(state.text(track.name_ar, track.name_en)) { player.playPlaylist(state.themeTracks, startingAt: track.id); showingPlayer = true }
+            VStack(spacing: 20) {
+                HStack {
+                    TextField(state.text("رابط أو بحث", "URL or search"), text: $input)
+                        .keyboardType(.webSearch).textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .textFieldStyle(.roundedBorder).submitLabel(.go).onSubmit { browse() }
+                    Button { browse() } label: { Image(systemName: "arrow.right.circle.fill") }
+                        .accessibilityLabel(state.text("فتح", "Go"))
+                }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 110))], spacing: 20) {
+                    ForEach(shortcuts) { source in
+                        Button { browserSource = source } label: {
+                            VStack(spacing: 10) {
+                                WebsiteShortcutIcon(source: source).frame(width: 64, height: 64)
+                                Text(source.name).lineLimit(2).foregroundStyle(.primary)
+                            }.frame(maxWidth: .infinity, minHeight: 100)
+                        }.buttonStyle(.plain)
+                        .contextMenu {
+                            Button(state.text("تعديل", "Edit")) { editing = source }
+                            Button(state.text("حذف", "Delete"), role: .destructive) {
+                                state.sources.removeAll { $0.id == source.id }
+                            }
+                        }
                     }
                 }
+                Button {
+                    editing = MediaSource(name: "", url: "", type: "website", mediaKind: "video")
+                } label: { Label(state.text("إضافة موقع", "Add website"), systemImage: "plus") }
+                    .buttonStyle(.borderedProminent)
             }.padding()
-        }.navigationTitle(state.text("الترفيه", "Entertainment"))
+        }
+        .navigationTitle(state.text("الترفيه", "Entertainment"))
         .fullScreenCover(item: $browserSource) { source in EntertainmentBrowser(initialURL: source.url) }
-        .onChange(of: state.sources) { _, _ in Task { do { try await CloudClient.shared.saveLibrary() } catch { state.notice = error.localizedDescription } } }
-        .sheet(isPresented: $showingPlayer) { VStack { Text(player.title).font(.headline); VideoPlayer(player: player.player); AirPlayButton().frame(width: 44, height: 44); if let error = player.error { Text(error).foregroundStyle(.red) }; Button(state.text("إغلاق", "Close")) { player.stop(); showingPlayer = false } }.padding() }
-        .sheet(isPresented: $adding) { NavigationStack { Form {
-            TextField(state.text("الاسم", "Name"), text: $name)
-            TextField("https://", text: $address).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
-            if section == "live" {
-                Picker(state.text("نوع المصدر", "Source type"), selection: $sourceMediaKind) {
-                    Text(state.text("صوت", "Audio")).tag("audio")
-                    Text(state.text("فيديو", "Video")).tag("video")
-                }
-                Text(state.text("المصادر الصوتية المباشرة تظهر في مكتبتي والمفضلة على CarPlay.", "Direct audio sources appear in My Library and Favorites on CarPlay.")).font(.caption)
+        .sheet(item: $editing) { source in WebsiteShortcutEditor(source: source) }
+        .onAppear {
+            guard !seeded else { return }
+            for source in [
+                MediaSource(id: "wudcar-youtube", name: "YouTube", url: "https://www.youtube.com", type: "website", mediaKind: "video"),
+                MediaSource(id: "wudcar-shahid", name: "Shahid", url: "https://shahid.mbc.net", type: "website", mediaKind: "video")
+            ] where !shortcuts.contains(where: { URL(string: $0.url)?.host == URL(string: source.url)?.host }) {
+                state.sources.append(source)
             }
-            Text(state.text("المواقع تفتح داخل التطبيق. البث يحتاج رابط فيديو مباشر مثل HLS.", "Websites open inside the app. Live streams need a direct video URL, such as HLS.")).font(.caption)
-            Button(state.text("حفظ في المفضلة", "Save to favorites")) { guard let url = WudDomain.validURL(address) else { return }; if let editingID, let index = state.sources.firstIndex(where: { $0.id == editingID }) { state.sources[index].name = String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(80)); state.sources[index].url = url.absoluteString; state.sources[index].mediaKind = section == "website" ? "video" : sourceMediaKind } else { state.sources.append(MediaSource(name: String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(80)), url: url.absoluteString, type: section == "website" ? "website" : "stream", mediaKind: section == "website" ? "video" : sourceMediaKind, favorite: true)) }; editingID = nil; adding = false; name = ""; address = "" }.disabled(WudDomain.validURL(address) == nil || name.trimmingCharacters(in: .whitespaces).isEmpty)
-        }.navigationTitle(state.text("إضافة رابط", "Add a link")).toolbar { Button(state.text("إلغاء", "Cancel")) { adding = false } } } }
-    }
-    private func grid(_ sources: [MediaSource]) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: 3), spacing: 22) {
-            ForEach(sources) { source in VStack(spacing: 9) {
-                Button { open(source) } label: { VStack(spacing: 10) {
-                    ZStack { RoundedRectangle(cornerRadius: 18).fill(Color(red: 0.04, green: 0.32, blue: 0.38)); Text(String(source.name.prefix(2))).font(.title2.bold()).foregroundStyle(.white) }.frame(width: 66, height: 66)
-                    Text(source.name).font(.caption).lineLimit(1)
-                } }.buttonStyle(.plain)
-                Button { favorite(source) } label: { Image(systemName: source.favorite ? "star.fill" : "star").foregroundStyle(source.favorite ? Color.orange : Color.secondary) }.accessibilityLabel(state.text("المفضلة", "Favorite") + " " + source.name)
-            }.contextMenu { if state.sources.contains(where: { $0.id == source.id }) { Button(state.text("تعديل الرابط", "Edit link")) { editingID = source.id; name = source.name; address = source.url; sourceMediaKind = source.mediaKind; adding = true }; Button(state.text("حذف", "Delete"), role: .destructive) { state.sources.removeAll { $0.id == source.id } } } } }
+            seeded = true
         }
     }
-    private func favorite(_ source: MediaSource) {
-        if let i = state.sources.firstIndex(where: { $0.id == source.id }) { state.sources[i].favorite.toggle() }
-        else if state.preferences.favoriteIDs.contains(source.id) { state.preferences.favoriteIDs.removeAll { $0 == source.id } }
-        else { state.preferences.favoriteIDs.append(source.id) }
-        Task { await state.sync(); do { try await CloudClient.shared.saveLibrary() } catch { state.notice = error.localizedDescription } }
-    }
-    private func open(_ source: MediaSource) {
-        guard let url = WudDomain.validURL(source.url) else { return }
-        if source.type == "website" { browserSource = source }
-        else { player.play(url: url, name: source.name); showingPlayer = true }
+    private func browse() {
+        let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return }
+        browserSource = MediaSource(name: "", url: value, type: "website", mediaKind: "video")
     }
 }
 
+struct WebsiteShortcutIcon: View {
+    let source: MediaSource
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16).fill(Color(red: 0.04, green: 0.30, blue: 0.36))
+            if let value = source.iconURL, let url = WudDomain.validURL(value) {
+                AsyncImage(url: url) { image in image.resizable().scaledToFit() }
+                    placeholder: { Image(systemName: "globe").font(.title).foregroundStyle(.white) }
+                    .padding(8)
+            } else {
+                Text(String(source.name.prefix(2))).font(.title2.bold()).foregroundStyle(.white)
+            }
+        }.clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+struct WebsiteShortcutEditor: View {
+    @EnvironmentObject private var state: AppState
+    @Environment(\.dismiss) private var dismiss
+    @State var source: MediaSource
+    @State private var icon = ""
+    var body: some View {
+        NavigationStack {
+            Form {
+                TextField(state.text("الاسم", "Name"), text: $source.name)
+                TextField("https://", text: $source.url)
+                    .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+                TextField(state.text("رابط صورة الأيقونة — اختياري", "Icon image URL — optional"), text: $icon)
+                    .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+                Text(state.text("استخدم رابط HTTPS مباشرًا لصورة الأيقونة.",
+                                "Use a direct HTTPS image URL for your icon."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            .navigationTitle(state.text("اختصار موقع", "Website shortcut"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button(state.text("إلغاء", "Cancel")) { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(state.text("حفظ", "Save")) {
+                        guard let url = WudDomain.validURL(source.url) else { return }
+                        source.name = String(source.name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(80))
+                        source.url = url.absoluteString
+                        source.iconURL = icon.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : WudDomain.validURL(icon)?.absoluteString
+                        if let index = state.sources.firstIndex(where: { $0.id == source.id }) { state.sources[index] = source }
+                        else { state.sources.append(source) }
+                        dismiss()
+                    }.disabled(source.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                               WudDomain.validURL(source.url) == nil ||
+                               (!icon.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && WudDomain.validURL(icon) == nil))
+                }
+            }
+            .onAppear { icon = source.iconURL ?? "" }
+        }
+    }
+}
 
 // This browser is an iPhone/iPad view. It does not grant a CarPlay browser entitlement.
 @MainActor final class EntertainmentWebSession: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate {
@@ -176,19 +214,7 @@ struct EntertainmentBrowser: View {
     @FocusState private var addressFocused: Bool
     let initialURL: String
 
-    private var favorites: [MediaSource] {
-        let catalog = state.library.filter { $0.kind == "website" && state.preferences.favoriteIDs.contains($0.id) }
-            .map { MediaSource(id: $0.id, name: $0.name(state.preferences.language), url: $0.url, type: "website", mediaKind: "video", favorite: true) }
-        return catalog + state.sources.filter { $0.type == "website" && $0.favorite }
-    }
-    private var shortcuts: [MediaSource] {
-        var items = state.library.filter { $0.kind == "website" }
-            .map { MediaSource(id: $0.id, name: $0.name(state.preferences.language), url: $0.url, type: "website", mediaKind: "video") }
-        if !items.contains(where: { URL(string: $0.url)?.host?.contains("youtube.com") == true }) {
-            items.insert(MediaSource(id: "youtube-shortcut", name: "YouTube", url: "https://www.youtube.com", type: "website", mediaKind: "video"), at: 0)
-        }
-        return items + state.sources.filter { $0.type == "website" && !$0.favorite }
-    }
+    private var shortcuts: [MediaSource] { state.sources.filter { $0.type == "website" } }
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -214,11 +240,6 @@ struct EntertainmentBrowser: View {
                     if session.showingHome {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 20) {
-                                Text(state.text("المفضلة", "Favorites")).font(.title2.bold())
-                                if favorites.isEmpty {
-                                    Text(state.text("افتح موقعًا ثم اضغط النجمة لإضافته هنا.", "Open a website and tap the star to save it here.")).foregroundStyle(.secondary)
-                                }
-                                links(favorites)
                                 Text(state.text("اختصارات المواقع", "Website shortcuts")).font(.title2.bold())
                                 links(shortcuts)
                             }.padding()
@@ -231,7 +252,7 @@ struct EntertainmentBrowser: View {
                     Button { session.webView.goForward() } label: { Image(systemName: "chevron.forward") }.disabled(!session.canGoForward)
                         .accessibilityLabel(state.text("تقدم", "Forward"))
                     Button { session.webView.stopLoading(); session.showingHome = true; addressFocused = false } label: { Image(systemName: "house") }
-                        .accessibilityLabel(state.text("المفضلة والاختصارات", "Favorites and shortcuts"))
+                        .accessibilityLabel(state.text("اختصارات المواقع", "Website shortcuts"))
                     Button { session.webView.reload() } label: { Image(systemName: "arrow.clockwise") }.disabled(session.showingHome)
                         .accessibilityLabel(state.text("تحديث", "Reload"))
                     Button {
@@ -240,7 +261,7 @@ struct EntertainmentBrowser: View {
                         bookmarkURL = url.absoluteString
                         saving = true
                     } label: { Image(systemName: "star") }.disabled(session.showingHome || session.webView.url == nil)
-                        .accessibilityLabel(state.text("حفظ في المفضلة", "Save to favorites"))
+                        .accessibilityLabel(state.text("حفظ الاختصار", "Save shortcut"))
                 }.padding()
             }
             .navigationTitle(state.text("متصفح الترفيه", "Entertainment browser"))
@@ -253,7 +274,7 @@ struct EntertainmentBrowser: View {
                         TextField("https://", text: $bookmarkURL).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
                         Button(state.text("حفظ", "Save")) { saveBookmark() }
                             .disabled(bookmarkName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || WudDomain.validURL(bookmarkURL) == nil)
-                    }.navigationTitle(state.text("إضافة للمفضلة", "Add favorite"))
+                    }.navigationTitle(state.text("إضافة اختصار", "Add shortcut"))
                         .toolbar { Button(state.text("إلغاء", "Cancel")) { saving = false } }
                 }
             }
@@ -268,7 +289,7 @@ struct EntertainmentBrowser: View {
             ForEach(items) { source in
                 Button { navigate(source.url) } label: {
                     VStack(spacing: 8) {
-                        Image(systemName: "globe").font(.title)
+                        WebsiteShortcutIcon(source: source).frame(width: 56, height: 56)
                         Text(source.name).lineLimit(2)
                     }.frame(maxWidth: .infinity, minHeight: 80).padding(8)
                 }.buttonStyle(.bordered)
@@ -284,6 +305,5 @@ struct EntertainmentBrowser: View {
             state.sources.append(MediaSource(name: String(bookmarkName.trimmingCharacters(in: .whitespacesAndNewlines).prefix(80)), url: url.absoluteString, type: "website", mediaKind: "video", favorite: true))
         }
         saving = false
-        Task { do { try await CloudClient.shared.saveLibrary() } catch { state.notice = error.localizedDescription } }
     }
 }

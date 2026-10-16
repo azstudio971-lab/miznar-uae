@@ -5,10 +5,10 @@ struct RootView: View {
     @EnvironmentObject var state: AppState
     var body: some View {
         TabView {
-            NavigationStack { HomeView() }.tabItem { Label(state.text("الرئيسية", "Home"), systemImage: "house") }
-            NavigationStack { ThemesView() }.tabItem { Label(state.text("الثيمات", "Themes"), systemImage: "sparkles") }
-            NavigationStack { MediaView() }.tabItem { Label(state.text("مكتبتي", "Library"), systemImage: "play.rectangle") }
-            NavigationStack { SettingsView() }.tabItem { Label(state.text("الإعدادات", "Settings"), systemImage: "slider.horizontal.3") }
+            NavigationStack { V3HomeView() }.tabItem { Label(state.text("الرئيسية", "Home"), systemImage: "house") }
+            NavigationStack { MediaView() }.tabItem { Label(state.text("الترفيه", "Entertainment"), systemImage: "play.rectangle") }
+            NavigationStack { XtreamAccountsView() }.tabItem { Label(state.text("اكستريم كود", "Xtream Codes"), systemImage: "tv") }
+            NavigationStack { V3SettingsView() }.tabItem { Label(state.text("الإعدادات", "Settings"), systemImage: "slider.horizontal.3") }
         }
         .sheet(isPresented: Binding(get: { !state.preferences.onboarded }, set: { if !$0 { state.preferences.onboarded = true } })) { WelcomeView().interactiveDismissDisabled() }
         .alert(state.text("تنبيه", "Notice"), isPresented: Binding(get: { state.notice != nil }, set: { if !$0 { state.notice = nil } })) { Button(state.text("حسنًا", "OK")) { state.notice = nil } } message: { Text(state.notice ?? "") }
