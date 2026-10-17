@@ -6,6 +6,8 @@ enum WDKeys {
     static let phoneDesktopMode = "wd.phoneDesktopMode"
     static let carZoom = "wd.carZoom"
     static let carInputLanguage = "wd.carInputLanguage"
+    static let carDesktopMode = "wd.carDesktopMode"
+    static let carLanguage = "wd.carLanguage"
     static let language = "wd.language"
     static let appearance = "wd.appearance"
 }
@@ -27,8 +29,23 @@ enum WDSettings {
 
     /// حجم النص في متصفح السيارة
     static var carZoom: Double {
-        get { defaults.object(forKey: WDKeys.carZoom) as? Double ?? 1.0 }
-        set { defaults.set(newValue, forKey: WDKeys.carZoom) }
+        get {
+            let stored = defaults.object(forKey: WDKeys.carZoom) as? Double ?? 1.0
+            return min(1.5, max(0.5, stored))
+        }
+        set { defaults.set(min(1.5, max(0.5, newValue)), forKey: WDKeys.carZoom) }
+    }
+
+    /// لغة واجهة CarPlay: "ar" أو "en"
+    static var carLanguage: String {
+        get { defaults.string(forKey: WDKeys.carLanguage) ?? "ar" }
+        set { defaults.set(newValue == "en" ? "en" : "ar", forKey: WDKeys.carLanguage) }
+    }
+
+    /// فتح صفحات السيارة بوضع سطح المكتب افتراضياً
+    static var carDesktopMode: Bool {
+        get { defaults.object(forKey: WDKeys.carDesktopMode) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: WDKeys.carDesktopMode) }
     }
 
     /// لغة الكتابة في شاشة السيارة: "ar" أو "en"
@@ -36,4 +53,9 @@ enum WDSettings {
         get { (defaults.string(forKey: WDKeys.carInputLanguage) ?? "ar") == "ar" }
         set { defaults.set(newValue ? "ar" : "en", forKey: WDKeys.carInputLanguage) }
     }
+}
+
+/// نصوص واجهة CarPlay حسب اللغة المختارة من إعدادات السيارة.
+func carTr(_ arabic: String, _ english: String) -> String {
+    WDSettings.carLanguage == "en" ? english : arabic
 }

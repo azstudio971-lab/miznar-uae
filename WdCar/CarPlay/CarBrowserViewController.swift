@@ -32,7 +32,7 @@ final class CarBrowserViewController: UIViewController {
 
     private let zoomButton = CarUI.textButton("ع ع", size: 17)
     private let collapseButton = CarUI.iconButton("chevron.up")
-    private let fullscreenButton = CarUI.iconButton("arrow.up.left.and.arrow.down.right")
+    private let fullscreenButton = CarUI.iconButton("arrow.up.left.and.arrow.down.right", background: CarUI.accent)
     private let starButton = CarUI.iconButton("star")
     private let tabsButton = CarUI.iconButton("square.on.square")
     private let reloadButton = CarUI.iconButton("arrow.clockwise")
@@ -44,7 +44,7 @@ final class CarBrowserViewController: UIViewController {
     private var contentTopToToolbar: NSLayoutConstraint!
     private var contentTopToSafe: NSLayoutConstraint!
 
-    private let zoomLevels: [Double] = [0.85, 1.0, 1.15, 1.3]
+    private let zoomLevels: [Double] = (0...20).map { 0.5 + Double($0) * 0.05 }
 
     // MARK: دورة الحياة
 
@@ -89,6 +89,8 @@ final class CarBrowserViewController: UIViewController {
 
         zoomButton.addAction(UIAction { [weak self] _ in self?.cycleZoom() }, for: .touchUpInside)
         collapseButton.addAction(UIAction { [weak self] _ in self?.setToolbarCollapsed(true) }, for: .touchUpInside)
+        fullscreenButton.accessibilityLabel = carTr("تكبير الفيديو", "Expand video")
+        fullscreenButton.accessibilityHint = carTr("يعرض الفيديو بأكبر مساحة متاحة", "Shows the video in the largest available area")
         fullscreenButton.addAction(UIAction { [weak self] _ in self?.enterVideoFullscreen() }, for: .touchUpInside)
         starButton.addAction(UIAction { [weak self] _ in self?.saveShortcut() }, for: .touchUpInside)
         tabsButton.addAction(UIAction { [weak self] _ in self?.showTabsPanel() }, for: .touchUpInside)
@@ -319,11 +321,12 @@ final class CarBrowserViewController: UIViewController {
 
     private func cycleZoom() {
         let current = WDSettings.carZoom
-        let index = zoomLevels.firstIndex { abs($0 - current) < 0.01 } ?? 1
-        let next = zoomLevels[(index + 1) % zoomLevels.count]
-        WDSettings.carZoom = next
-        pool.applyZoom(next)
-        showToast("حجم النص \(Int(next * 100))%")
+        let roundedPercent = Int((current * 100).rounded())
+        let next = roundedPercent >= 150 ? 50.0 : Double(roundedPercent + 5)
+        let zoom = next / 100.0
+        WDSettings.carZoom = zoom
+        pool.applyZoom(zoom)
+        showToast("\(carTr("تكبير الصفحة", "Page zoom")) \(Int(zoom * 100))%")
     }
 
     private func saveShortcut() {

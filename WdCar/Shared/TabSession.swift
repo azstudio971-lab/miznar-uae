@@ -24,7 +24,7 @@ final class TabSession: NSObject, ObservableObject {
     init(tabID: UUID, side: BrowserSide, initialURL: URL?) {
         self.tabID = tabID
         self.side = side
-        let desktop = (side == .car) ? true : WDSettings.phoneDesktopMode
+        let desktop = (side == .car) ? WDSettings.carDesktopMode : WDSettings.phoneDesktopMode
         self._isDesktopMode = Published(initialValue: desktop)
 
         let configuration = WebEngine.makeConfiguration(for: side)
