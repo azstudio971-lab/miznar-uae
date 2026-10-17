@@ -72,10 +72,11 @@ final class CarInterfaceTests: XCTestCase {
 
     private func waitForDocument(_ web: WKWebView, marker: String? = nil) async throws {
         for _ in 0..<300 {
-            if !web.isLoading,
-               let ready = try? await web.evaluateJavaScript("document.readyState") as? String,
+            if let ready = try? await web.evaluateJavaScript("document.readyState") as? String,
                (ready == "complete" || ready == "interactive") {
-                if marker == nil { return }
+                if marker == nil,
+                   let title = try? await web.evaluateJavaScript("document.title") as? String,
+                   !title.isEmpty, web.url?.scheme != "about" { return }
                 if let title = try? await web.evaluateJavaScript("document.title") as? String, title == marker { return }
             }
             try await Task.sleep(nanoseconds: 100_000_000)
