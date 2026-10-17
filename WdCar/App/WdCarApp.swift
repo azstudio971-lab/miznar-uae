@@ -51,7 +51,7 @@ final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.backgroundColor = .black
         if externalDisplay {
             window.overrideUserInterfaceStyle = .dark
-            window.rootViewController = CarBrowserViewController()
+            window.rootViewController = CarDashboardViewController()
         } else {
             window.rootViewController = UIHostingController(
                 rootView: RootView().environmentObject(AppState.shared).tint(.wdAccent))
