@@ -85,6 +85,8 @@ final class CarInterfaceTests: XCTestCase {
     }
 
     func testFullFrameAtAllZoomLevelsAndVideoExit() async throws {
+        let savedZoom = WDSettings.carZoom
+        defer { WDSettings.carZoom = savedZoom }
         let session = TabSession(tabID: UUID(), side: .car, initialURL: nil)
         defer { session.tearDown() }
         let controller = UIViewController()
@@ -133,6 +135,8 @@ final class CarInterfaceTests: XCTestCase {
     }
 
     func testLiveDesktopSitesAtThreeZoomLevels() async throws {
+        let savedZoom = WDSettings.carZoom
+        defer { WDSettings.carZoom = savedZoom }
         for address in ["https://www.youtube.com/", "https://example.com/"] {
             var lastError: Error?
             var verified = false
@@ -149,6 +153,7 @@ final class CarInterfaceTests: XCTestCase {
                     try await Task.sleep(nanoseconds: 500_000_000)
                     let title = try await session.webView.evaluateJavaScript("document.title") as? String ?? ""
                     guard !title.isEmpty else { throw NSError(domain: "WudCarTests", code: 2) }
+                    if address.contains("youtube.com") { XCTAssertEqual(session.webView.url?.host, "www.youtube.com") }
                     for zoom in [0.5, 1.0, 1.5] {
                         session.applyCarZoom(zoom)
                         try await Task.sleep(nanoseconds: 300_000_000)
