@@ -136,6 +136,46 @@ enum WebEngine {
       }
 
       window.__wdEnterFS = function () { return enter(null); };
+      // A reversible expansion control in the video's upper corner.
+      var expandButton = null;
+      function updateExpandButton() {
+        var video = biggestVideo();
+        var rect = video ? video.getBoundingClientRect() : null;
+        var viewport = window.visualViewport;
+        var vw = viewport ? viewport.width : innerWidth;
+        var vh = viewport ? viewport.height : innerHeight;
+        var visible = !!rect && rect.width > 80 && rect.height > 60 &&
+          rect.bottom > 0 && rect.top < vh && rect.right > 0 && rect.left < vw &&
+          !state.fsVideo && !document.hidden;
+        if (!visible) { if (expandButton) { expandButton.style.display = 'none'; } return; }
+        if (!expandButton) {
+          expandButton = document.createElement('button');
+          expandButton.id = 'wd-expand-video';
+          expandButton.type = 'button';
+          expandButton.textContent = '⛶';
+          expandButton.setAttribute('aria-label', 'تكبير الفيديو / Expand video');
+          expandButton.style.cssText = 'position:fixed!important;z-index:2147483646!important;display:block;border:1px solid rgba(255,255,255,.55);border-radius:8px;background:rgba(0,0,0,.75);color:white;line-height:1;cursor:pointer;padding:0;box-sizing:border-box;';
+          expandButton.addEventListener('click', function (event) {
+            event.preventDefault(); event.stopPropagation();
+            if (enter(biggestVideo())) { expandButton.style.display = 'none'; }
+          });
+          (document.body || document.documentElement).appendChild(expandButton);
+        }
+        var factor = document.documentElement.clientWidth / vw;
+        factor = factor > 0 ? factor : 1;
+        var size = 36 / factor;
+        var inset = 8 / factor;
+        expandButton.style.display = 'block';
+        expandButton.style.width = size + 'px';
+        expandButton.style.height = size + 'px';
+        expandButton.style.fontSize = (26 / factor) + 'px';
+        expandButton.style.left = Math.max(inset, Math.min(vw - size - inset, rect.right - size - inset)) + 'px';
+        expandButton.style.top = Math.max(inset, Math.min(vh - size - inset, rect.top + inset)) + 'px';
+      }
+      setInterval(updateExpandButton, 500);
+      window.addEventListener('scroll', updateExpandButton, true);
+      window.addEventListener('resize', updateExpandButton);
+
       window.__wdExitFS = exit;
       window.__wdSetFit = function (f) {
         state.fit = f;
