@@ -55,7 +55,10 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate {
         xtream.tabImage = UIImage(systemName: "antenna.radiowaves.left.and.right")
         xtream.emptyViewTitleVariants = [tr("أضف حساب Xtream من iPhone", "Add an Xtream account on iPhone")]
 
-        let tabs = welcomeTemplate()
+        let welcome = welcomeTemplate()
+        welcome.tabTitle = carTr("الرئيسية", "Home")
+        welcome.tabImage = UIImage(systemName: "house")
+        let tabs = CPTabBarTemplate(templates: [welcome, entertainment, xtream])
         // Fill lists before installing the root, so the first frame is usable.
         rebuildEntertainment(ShortcutStore.shared.shortcuts)
         rebuildAccounts(XtreamStore.shared.accounts)

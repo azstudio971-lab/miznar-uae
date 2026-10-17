@@ -9,7 +9,7 @@ struct WdCarApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     var body: some Scene {
         WindowGroup {
-            DisplayRootView().environmentObject(AppState.shared).tint(.wdAccent)
+            RootView().environmentObject(AppState.shared).tint(.wdAccent)
         }
     }
 }
@@ -38,14 +38,13 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             configuration.delegateClass = CarSceneDelegate.self
             return configuration
         }
-        if CarExternalDisplaySceneDelegate.roles.contains(session.role.rawValue) {
-            let configuration = UISceneConfiguration(name: "External Display", sessionRole: session.role)
-            configuration.sceneClass = UIWindowScene.self
-            configuration.delegateClass = CarExternalDisplaySceneDelegate.self
-            return configuration
-        }
-        // SwiftUI owns new phone scenes. Keep PhoneSceneDelegate below for existing UIKit sessions.
-        return UISceneConfiguration(name: nil, sessionRole: session.role)
+        // Preserve the approved UIKit routing for application-role external screens.
+        let external = CarExternalDisplaySceneDelegate.roles.contains(session.role.rawValue)
+        let configuration = UISceneConfiguration(name: external ? "External Display" : "Default Configuration",
+                                                 sessionRole: session.role)
+        configuration.sceneClass = UIWindowScene.self
+        configuration.delegateClass = external ? CarExternalDisplaySceneDelegate.self : PhoneSceneDelegate.self
+        return configuration
     }
 }
 
@@ -91,48 +90,3 @@ final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 }
 
-/// Also handles an external screen supplied with the ordinary application scene role.
-private struct DisplayRootView: View {
-    @State private var external = false
-    private var preview: Bool {
-        #if DEBUG
-        ProcessInfo.processInfo.arguments.contains("--car-ui-preview")
-        #else
-        false
-        #endif
-    }
-    var body: some View {
-        Group {
-            if external || preview { CarDashboardHost() } else { RootView() }
-        }
-        .background(ScreenProbe { value in
-            guard external != value else { return }
-            external = value
-            if value {
-                AppState.shared.carScreenConnected(interactive: true)
-                CarScreenLauncher.shared.externalDisplayDidConnect()
-            }
-        })
-        .onDisappear {
-            if external { WebViewPool.car.pauseAllMedia(); AppState.shared.carScreenDisconnected() }
-        }
-    }
-}
-private struct CarDashboardHost: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> CarDashboardViewController { CarDashboardViewController() }
-    func updateUIViewController(_ uiViewController: CarDashboardViewController, context: Context) {}
-}
-private struct ScreenProbe: UIViewRepresentable {
-    let report: (Bool) -> Void
-    func makeUIView(context: Context) -> ProbeView { let view = ProbeView(); view.report = report; return view }
-    func updateUIView(_ uiView: ProbeView, context: Context) { uiView.report = report }
-    final class ProbeView: UIView {
-        var report: ((Bool) -> Void)?
-        override func didMoveToWindow() {
-            super.didMoveToWindow()
-            guard let window else { return }
-            let external = window.windowScene?.screen !== UIScreen.main
-            DispatchQueue.main.async { [weak self] in self?.report?(external) }
-        }
-    }
-}
