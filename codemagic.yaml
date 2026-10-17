@@ -1,0 +1,90 @@
+# Codemagic — بناء WudCar ورفعه إلى TestFlight
+#
+# قبل أول تشغيل (مرة واحدة، من حسابك):
+# 1) Codemagic → Teams → Integrations → Developer Portal: أضف مفتاح App Store Connect API
+#    (صلاحية App Manager) وسمّه بالاسم في الأسفل: WudCar ASC Key
+# 2) Codemagic → المشروع → Environment variables، مجموعة باسم wudcar:
+#      TEAM_ID       = معرّف فريقك في Apple (10 أحرف)
+#      APP_STORE_ID  = رقم Apple ID للتطبيق من App Store Connect (بعد إنشاء سجل التطبيق)
+# 3) تأكد أن App ID للمعرّف أدناه مفعّل عليه CarPlay (Video) في Apple Developer.
+
+workflows:
+  wudcar-testflight:
+    name: WudCar → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: WudCar ASC Key
+    environment:
+      xcode: latest
+      groups:
+        - wudcar
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.azstudio.wudcar
+      vars:
+        XCODE_PROJECT: WdCar.xcodeproj
+        XCODE_SCHEME: WdCar
+        BUNDLE_ID: com.azstudio.wudcar
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: wudcar
+          include: true
+    scripts:
+      - name: تثبيت XcodeGen
+        script: |
+          brew install xcodegen
+      - name: إنشاء مشروع Xcode
+        script: |
+          xcodegen generate
+      - name: ضبط Team ID
+        script: |
+          sed -i '' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $TEAM_ID;/g" "$XCODE_PROJECT/project.pbxproj" || true
+      - name: التحقق من المشروع (بناء Debug للمحاكي)
+        script: |
+          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug CODE_SIGNING_ALLOWED=NO build | xcpretty
+      - name: تجهيز التوقيع
+        script: |
+          xcode-project use-profiles
+      - name: رقم البناء
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_ID" || echo 0)
+          NEXT=$((LATEST + 1))
+          echo "Build number: $NEXT"
+          agvtool new-version -all $NEXT
+      - name: بناء IPA (Release)
+        script: |
+          xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+      - name: التحقق من صلاحيات CarPlay (فيديو + صوت) داخل IPA
+        script: |
+          set -e
+          IPA=$(ls build/ios/ipa/*.ipa | head -1)
+          rm -rf /tmp/ipa_check && mkdir -p /tmp/ipa_check
+          unzip -q "$IPA" -d /tmp/ipa_check
+          APP=$(ls -d /tmp/ipa_check/Payload/*.app | head -1)
+          echo "== Entitlements in signed app =="
+          codesign -d --entitlements :- "$APP" 2>/dev/null | tee /tmp/ipa_check/ents.plist
+          echo "== Provisioning profile =="
+          security cms -D -i "$APP/embedded.mobileprovision" > /tmp/ipa_check/profile.plist
+          grep -A1 -i "carplay" /tmp/ipa_check/profile.plist || true
+          for KEY in com.apple.developer.carplay-video com.apple.developer.carplay-audio; do
+            grep -q "$KEY" /tmp/ipa_check/ents.plist || { echo "MISSING in app: $KEY"; exit 1; }
+            grep -q "$KEY" /tmp/ipa_check/profile.plist || { echo "MISSING in profile: $KEY"; exit 1; }
+            echo "OK: $KEY"
+          done
+          echo "== Scene roles in Info.plist =="
+          plutil -p "$APP/Info.plist" | grep -E "ExternalDisplay|CPTemplateApplication" || { echo "External display scenes missing"; exit 1; }
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - WudCar Internal

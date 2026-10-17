@@ -1,0 +1,36 @@
+name: WdCar
+options:
+  bundleIdPrefix: com.azstudio
+  deploymentTarget:
+    iOS: "18.0"
+  developmentLanguage: ar
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MARKETING_VERSION: "1.3.0"
+    CURRENT_PROJECT_VERSION: "1"
+    VERSIONING_SYSTEM: apple-generic
+
+targets:
+  WdCar:
+    type: application
+    platform: iOS
+    scheme: {}
+    sources:
+      - path: WdCar
+    settings:
+      base:
+        PRODUCT_NAME: WdCar
+        PRODUCT_BUNDLE_IDENTIFIER: com.azstudio.wudcar   # المعرّف المقترح — ينتظر موافقتك
+        DEVELOPMENT_TEAM: ""                             # يضبطه Codemagic من متغير TEAM_ID
+        CODE_SIGN_STYLE: Automatic
+        INFOPLIST_FILE: Config/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_ENTITLEMENTS: Config/WdCar.entitlements
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SUPPORTS_MACCATALYST: NO
