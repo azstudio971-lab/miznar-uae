@@ -92,7 +92,7 @@ final class CarInterfaceTests: XCTestCase {
         session.webView.loadHTMLString("<html><head><title>WudCar layout fixture</title><meta name='viewport' content='width=device-width, initial-scale=1'></head><body style='margin:0;background:#e9b33f'><div style='width:100%;height:100vh'><video controls width='640' height='360'></video></div></body></html>", baseURL: nil)
         try await waitForDocument(session.webView, marker: "WudCar layout fixture")
         for zoom in [0.5, 1.0, 1.5] {
-            session.webView.pageZoom = zoom
+            session.webView.pageZoom = CGFloat(zoom)
             controller.view.layoutIfNeeded()
             XCTAssertEqual(session.webView.frame, controller.view.bounds)
             XCTAssertEqual(session.webView.transform, .identity)
@@ -104,10 +104,12 @@ final class CarInterfaceTests: XCTestCase {
             session.enterVideoFullscreen { continuation.resume(returning: $0) }
         }
         XCTAssertTrue(found)
-        XCTAssertEqual(try await session.webView.evaluateJavaScript("document.documentElement.classList.contains('wd-fs')") as? Bool, true)
+        let entered = try await session.webView.evaluateJavaScript("document.documentElement.classList.contains('wd-fs')") as? Bool
+        XCTAssertEqual(entered, true)
         session.exitVideoFullscreen()
         try await Task.sleep(nanoseconds: 300_000_000)
-        XCTAssertEqual(try await session.webView.evaluateJavaScript("document.documentElement.classList.contains('wd-fs')") as? Bool, false)
+        let exited = try await session.webView.evaluateJavaScript("document.documentElement.classList.contains('wd-fs')") as? Bool
+        XCTAssertEqual(exited, false)
     }
 
     func testLiveDesktopSitesAtThreeZoomLevels() async throws {
@@ -125,7 +127,7 @@ final class CarInterfaceTests: XCTestCase {
             let title = try await session.webView.evaluateJavaScript("document.title") as? String ?? ""
             XCTAssertFalse(title.isEmpty)
             for zoom in [0.5, 1.0, 1.5] {
-                session.webView.pageZoom = zoom
+                session.webView.pageZoom = CGFloat(zoom)
                 try await Task.sleep(nanoseconds: 300_000_000)
                 XCTAssertEqual(session.webView.frame, controller.view.bounds)
                 let report = try await session.webView.evaluateJavaScript("JSON.stringify({title:document.title,url:location.href,viewport:innerWidth,document:document.documentElement.clientWidth,ua:navigator.userAgent})")
