@@ -5,31 +5,15 @@ struct RootView: View {
     @ObservedObject private var bridge = CarKeyboardBridge.shared
     @AppStorage(WDKeys.language) private var language = L10n.language.rawValue
     @AppStorage(WDKeys.appearance) private var appearance = AppAppearance.system.rawValue
-    @State private var introFinished = false
 
     var body: some View {
-        ZStack {
-            MainTabView()
-                .id(language) // يعيد بناء الواجهة بعد تغيير اللغة
-                .sheet(isPresented: $app.showCarScreenHelp) {
-                    CarScreenSheet()
-                        .environmentObject(app)
-                        .presentationDetents([.medium, .large])
-                }
-
-            if !introFinished && !app.isCarConnected {
-                IntroView {
-                    withAnimation(.easeOut(duration: 0.35)) { introFinished = true }
-                }
-                .transition(.opacity)
-                .zIndex(1)
+        MainTabView()
+            .id(language)
+            .sheet(isPresented: $app.showCarScreenHelp) {
+                CarScreenSheet()
+                    .environmentObject(app)
+                    .presentationDetents([.medium, .large])
             }
-        }
-        .task {
-            // A failed intro must never cover the phone indefinitely.
-            try? await Task.sleep(for: .seconds(3))
-            introFinished = true
-        }
         .environment(\.layoutDirection, language == AppLanguage.ar.rawValue ? .rightToLeft : .leftToRight)
         .environment(\.locale, Locale(identifier: language))
         .preferredColorScheme(AppAppearance(rawValue: appearance)?.colorScheme)
