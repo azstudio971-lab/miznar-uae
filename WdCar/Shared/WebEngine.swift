@@ -21,6 +21,7 @@ enum WebEngine {
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
 
         if side == .car {
+            configuration.defaultWebpagePreferences.preferredContentMode = WDSettings.carDesktopMode ? .desktop : .mobile
             let script = WKUserScript(source: carScript, injectionTime: .atDocumentStart, forMainFrameOnly: false)
             configuration.userContentController.addUserScript(script)
         }
