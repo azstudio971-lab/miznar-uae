@@ -10,6 +10,8 @@ final class CarDashboardViewController: UIViewController {
     private var zoomLabel: UILabel?
     private var tvController: UIHostingController<XtreamHomeView>?
     private weak var welcomeGradient: CAGradientLayer?
+    private weak var welcomeCopy: UIStackView?
+    private let welcomeSizes: [CGFloat] = [25, 18, 16, 16, 18]
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -41,6 +43,40 @@ final class CarDashboardViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         welcomeGradient?.frame = pageView?.bounds ?? .zero
+        fitWelcomeText()
+    }
+
+    private func fitWelcomeText() {
+        guard pageView?.accessibilityIdentifier == "car.home", let copy = welcomeCopy,
+              copy.bounds.width > 0, let pageView else { return }
+        let available = max(1, pageView.bounds.height - 44)
+        let labels = copy.arrangedSubviews.compactMap { $0 as? UILabel }
+        func requiredHeight(_ scale: CGFloat) -> CGFloat {
+            var height = CGFloat(max(0, labels.count - 1)) * 10 * scale
+            for (index, item) in labels.enumerated() {
+                let weight: UIFont.Weight = (index == 0 || index == 4) ? .bold : .medium
+                let font = UIFont.systemFont(ofSize: welcomeSizes[index] * scale, weight: weight)
+                let bounds = (item.text ?? "").boundingRect(
+                    with: CGSize(width: copy.bounds.width, height: .greatestFiniteMagnitude),
+                    options: [.usesLineFragmentOrigin, .usesFontLeading],
+                    attributes: [.font: font], context: nil)
+                height += ceil(bounds.height) + 1
+            }
+            return height
+        }
+        var low: CGFloat = 0.35
+        var high: CGFloat = 1
+        for _ in 0..<12 {
+            let middle = (low + high) / 2
+            if requiredHeight(middle) <= available { low = middle } else { high = middle }
+        }
+        copy.spacing = 10 * low
+        for (index, item) in labels.enumerated() {
+            let size = welcomeSizes[index] * low
+            if abs(item.font.pointSize - size) > 0.05 {
+                item.font = .systemFont(ofSize: size, weight: (index == 0 || index == 4) ? .bold : .medium)
+            }
+        }
     }
 
     private func updateLanguage() {
@@ -165,6 +201,7 @@ final class CarDashboardViewController: UIViewController {
                   "Your safety comes first. Please follow traffic safety rules and avoid interacting with the screen while driving.", size: 16),
             label("رافقتكم السلامة ..", "Safe travels", size: 18, accent: true)
         ])
+        welcomeCopy = copy
         copy.axis = .vertical
         copy.spacing = 10
         copy.alignment = .fill
@@ -185,7 +222,7 @@ final class CarDashboardViewController: UIViewController {
             row.bottomAnchor.constraint(equalTo: page.bottomAnchor, constant: -22),
             logo.widthAnchor.constraint(equalTo: row.widthAnchor, multiplier: 0.29),
             logo.heightAnchor.constraint(lessThanOrEqualTo: row.heightAnchor, multiplier: 0.82),
-            copy.widthAnchor.constraint(equalTo: row.widthAnchor, multiplier: 0.64)
+            copy.heightAnchor.constraint(lessThanOrEqualTo: row.heightAnchor)
         ])
         return page
     }

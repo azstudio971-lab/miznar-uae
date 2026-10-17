@@ -85,6 +85,40 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertNotNil(find("car.home", in: dashboard.view))
     }
 
+    func testHomeFitsWideAndCompactCarScreens() throws {
+        let savedLanguage = WDSettings.carLanguage
+        defer { WDSettings.carLanguage = savedLanguage }
+        func labels(in view: UIView) -> [UILabel] {
+            (view as? UILabel).map { [$0] } ?? view.subviews.flatMap { labels(in: $0) }
+        }
+        for language in ["ar", "en"] {
+            WDSettings.carLanguage = language
+            for size in [CGSize(width: 960, height: 480), CGSize(width: 640, height: 360)] {
+                let dashboard = CarDashboardViewController()
+                dashboard.loadViewIfNeeded()
+                dashboard.view.frame = CGRect(origin: .zero, size: size)
+                for _ in 0..<3 {
+                    dashboard.view.setNeedsLayout()
+                    dashboard.view.layoutIfNeeded()
+                }
+                let home = try XCTUnwrap(find("car.home", in: dashboard.view))
+                for item in labels(in: home) {
+                    let needed = item.sizeThatFits(CGSize(width: item.bounds.width, height: .greatestFiniteMagnitude))
+                    XCTAssertLessThanOrEqual(needed.height, item.bounds.height + 2, "Welcome text must not be truncated")
+                    let rect = item.convert(item.bounds, to: home)
+                    XCTAssertTrue(home.bounds.insetBy(dx: -1, dy: -1).contains(rect))
+                }
+                let image = UIGraphicsImageRenderer(bounds: dashboard.view.bounds).image { context in
+                    dashboard.view.layer.render(in: context.cgContext)
+                }
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "wudcar-home-\(language)-\(Int(size.width))x\(Int(size.height))"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+            }
+        }
+    }
+
     func testM3UParsingAndAddedShortcuts() throws {
         let content = """
         #EXTM3U
