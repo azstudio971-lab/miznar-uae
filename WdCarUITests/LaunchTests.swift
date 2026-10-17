@@ -1,7 +1,7 @@
 import XCTest
 
 final class LaunchTests: XCTestCase {
-    func testPhoneColdLaunchAndForeground() {
+    func test01PhoneColdLaunchAndForeground() {
         continueAfterFailure = false
         let app = XCUIApplication()
         XCUIDevice.shared.orientation = .portrait
@@ -18,7 +18,7 @@ final class LaunchTests: XCTestCase {
         app.activate()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10), "Phone tabs must survive background and foreground")
     }
-    func testCarWelcomeBrowserAndSettings() {
+    func test02CarWelcomeBrowserAndSettings() {
         continueAfterFailure = false
         let app = XCUIApplication()
         XCUIDevice.shared.orientation = .landscapeLeft
@@ -34,6 +34,7 @@ final class LaunchTests: XCTestCase {
         app.buttons["car.menu"].tap()
         app.buttons["car.settings"].tap()
         XCTAssertTrue(app.segmentedControls["car.browserMode"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.segmentedControls["car.browserMode"].buttons.element(boundBy: 0).isSelected, "Desktop must be the default")
         app.buttons["car.menu"].tap()
         app.buttons["car.xtream"].tap()
         XCTAssertTrue(app.navigationBars["Xtream Codes"].waitForExistence(timeout: 5))

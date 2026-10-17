@@ -48,10 +48,13 @@ workflows:
           xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
             -configuration Debug CODE_SIGNING_ALLOWED=NO build | xcpretty
+      - name: تهيئة جلسة إصدار سابق لاختبار التحديث
+        script: bash scripts/prepare-phone-upgrade.sh
       - name: اختبار فتح الآيفون وقائمة السيارة
         script: |
           set -euo pipefail
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for a in d["devices"].values() for v in a if "iPhone" in v["name"]))')
+          DEVICE=${WUDCAR_TEST_DEVICE:-$DEVICE}
           xcodebuild -project "$XCODE_PROJECT" -scheme WdCarUITests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -resultBundlePath /tmp/WudCarUI.xcresult CODE_SIGNING_ALLOWED=NO test | tee /tmp/wudcar-ui.log | xcpretty
       - name: تجهيز التوقيع
         script: |
@@ -78,13 +81,15 @@ workflows:
           security cms -D -i "$APP/embedded.mobileprovision" > /tmp/ipa_check/profile.plist
           grep -A1 -i "carplay" /tmp/ipa_check/profile.plist || true
           for KEY in com.apple.developer.carplay-video com.apple.developer.carplay-audio; do
-            grep -q "$KEY" /tmp/ipa_check/ents.plist || { echo "MISSING in app: $KEY"; exit 1; }
-            grep -q "$KEY" /tmp/ipa_check/profile.plist || { echo "MISSING in profile: $KEY"; exit 1; }
+            test "$(/usr/libexec/PlistBuddy -c "Print :$KEY" /tmp/ipa_check/ents.plist 2>/dev/null)" = true || { echo "MISSING in app: $KEY"; exit 1; }
+            test "$(/usr/libexec/PlistBuddy -c "Print :Entitlements:$KEY" /tmp/ipa_check/profile.plist 2>/dev/null)" = true || { echo "MISSING in profile: $KEY"; exit 1; }
             echo "OK: $KEY"
           done
           echo "== Scene roles in Info.plist =="
-          plutil -p "$APP/Info.plist" | grep -E "ExternalDisplay|CPTemplateApplication" || { echo "External display scenes missing"; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :UIApplicationSceneManifest:UISceneConfigurations" "$APP/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c "Print :UIApplicationSceneManifest:UISceneConfigurations:CPTemplateApplicationSceneSessionRoleApplication:0:UISceneClassName" "$APP/Info.plist")" = CPTemplateApplicationScene
     artifacts:
+      - /tmp/legacy-upgrade.log
       - /tmp/WudCarUI.xcresult
       - /tmp/wudcar-ui.log
       - build/ios/ipa/*.ipa

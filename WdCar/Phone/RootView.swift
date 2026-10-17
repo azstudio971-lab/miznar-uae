@@ -17,7 +17,7 @@ struct RootView: View {
                         .presentationDetents([.medium, .large])
                 }
 
-            if !introFinished {
+            if !introFinished && !app.isCarConnected {
                 IntroView {
                     withAnimation(.easeOut(duration: 0.35)) { introFinished = true }
                 }
