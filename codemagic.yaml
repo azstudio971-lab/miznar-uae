@@ -53,6 +53,10 @@ workflows:
           set -euo pipefail
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for a in d["devices"].values() for v in a if "iPhone" in v["name"]))')
           xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 180 -resultBundlePath /tmp/WudCarInterface.xcresult CODE_SIGNING_ALLOWED=NO test | tee /tmp/wudcar-interface-tests.log
+      - name: صور التحقق من عرض المتصفح
+        script: |
+          mkdir -p build/test-screenshots
+          xcrun xcresulttool export attachments --path /tmp/WudCarInterface.xcresult --output-path build/test-screenshots || true
       - name: تجهيز التوقيع
         script: |
           xcode-project use-profiles
@@ -85,6 +89,7 @@ workflows:
           echo "== Scene roles in Info.plist =="
           plutil -p "$APP/Info.plist" | grep -E "ExternalDisplay|CPTemplateApplication" || { echo "External display scenes missing"; exit 1; }
     artifacts:
+      - build/test-screenshots/**/*
       - /tmp/WudCarInterface.xcresult
       - /tmp/wudcar-interface-tests.log
       - build/ios/ipa/*.ipa
