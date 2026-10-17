@@ -32,6 +32,8 @@ workflows:
       branch_patterns:
         - pattern: wudcar
           include: true
+        - pattern: wudcar-carplay-ui-update
+          include: true
     scripts:
       - name: تثبيت XcodeGen
         script: |
