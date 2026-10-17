@@ -47,6 +47,34 @@ enum WebEngine {
         try { window.webkit.messageHandlers.wd.postMessage(msg); } catch (e) {}
       }
 
+      // Reflow the document to the visual viewport after native pageZoom.
+      // The WKWebView frame is never scaled. Website-specific fixed containers are left alone.
+      var layoutQueued = false;
+      function applyCarLayout() {
+        if (window !== window.top || !document.documentElement) { return; }
+        var viewport = window.visualViewport;
+        var width = viewport ? viewport.width : window.innerWidth;
+        var height = viewport ? viewport.height : window.innerHeight;
+        if (!(width > 0 && height > 0)) { return; }
+        var root = document.documentElement;
+        var value = width.toFixed(2) + 'px';
+        if (root.style.getPropertyValue('width') !== value) {
+          root.style.setProperty('width', value, 'important');
+          root.style.setProperty('min-width', value, 'important');
+        }
+        root.style.setProperty('--wd-vw', value);
+        root.style.setProperty('--wd-vh', height.toFixed(2) + 'px');
+      }
+      function scheduleCarLayout() {
+        if (layoutQueued) { return; }
+        layoutQueued = true;
+        requestAnimationFrame(function () { layoutQueued = false; applyCarLayout(); });
+      }
+      window.__wdApplyCarLayout = scheduleCarLayout;
+      document.addEventListener('DOMContentLoaded', scheduleCarLayout);
+      window.addEventListener('resize', scheduleCarLayout);
+      if (window.visualViewport) { window.visualViewport.addEventListener('resize', scheduleCarLayout); }
+
       // ---------- ملء الشاشة ----------
       function ensureStyle() {
         if (document.getElementById('wd-style')) { return; }
@@ -55,7 +83,7 @@ enum WebEngine {
         s.textContent = [
           'html.wd-fs, html.wd-fs body { overflow: hidden !important; background: #000 !important; }',
           'html.wd-fs body * { visibility: hidden !important; }',
-          'html.wd-fs .wd-fs-video { visibility: visible !important; position: fixed !important; left: 0 !important; top: 0 !important; right: auto !important; bottom: auto !important; width: 100vw !important; height: 100vh !important; max-width: none !important; max-height: none !important; margin: 0 !important; transform: none !important; z-index: 2147483647 !important; background: #000 !important; object-fit: var(--wd-fit, contain) !important; }'
+          'html.wd-fs .wd-fs-video { visibility: visible !important; position: fixed !important; left: 0 !important; top: 0 !important; right: auto !important; bottom: auto !important; width: var(--wd-vw, 100vw) !important; height: var(--wd-vh, 100vh) !important; max-width: none !important; max-height: none !important; margin: 0 !important; transform: none !important; z-index: 2147483647 !important; background: #000 !important; object-fit: var(--wd-fit, contain) !important; }'
         ].join('\n');
         (document.head || document.documentElement).appendChild(s);
       }
