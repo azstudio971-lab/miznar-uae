@@ -19,6 +19,7 @@ final class TabSession: NSObject, ObservableObject {
     let focusEvents = PassthroughSubject<FocusInfo, Never>()
 
     private var observations: [NSKeyValueObservation] = []
+    private var didTryYouTubeDesktopRedirect = false
     private var store: TabStore { TabStore.of(side) }
 
     init(tabID: UUID, side: BrowserSide, initialURL: URL?) {
@@ -48,7 +49,24 @@ final class TabSession: NSObject, ObservableObject {
 
     // MARK: التنقل
 
-    func load(_ url: URL) { webView.load(URLRequest(url: url)) }
+    func load(_ url: URL) {
+        didTryYouTubeDesktopRedirect = false
+        webView.load(URLRequest(url: requestedURL(url)))
+    }
+
+    private func requestedURL(_ url: URL) -> URL {
+        guard side == .car,
+              let host = url.host?.lowercased(),
+              ["youtube.com", "www.youtube.com", "m.youtube.com"].contains(host),
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        components.host = isDesktopMode ? "www.youtube.com" : "m.youtube.com"
+        var query = (components.queryItems ?? []).filter { !["app", "persist_app"].contains($0.name) }
+        if isDesktopMode {
+            query += [URLQueryItem(name: "app", value: "desktop"), URLQueryItem(name: "persist_app", value: "1")]
+        }
+        components.queryItems = query.isEmpty ? nil : query
+        return components.url ?? url
+    }
     func reload() { webView.reload() }
     func stopLoading() { webView.stopLoading() }
     func goBack() { webView.goBack() }
@@ -60,7 +78,9 @@ final class TabSession: NSObject, ObservableObject {
     func resetZoom() { webView.pageZoom = 1.0 }
 
     func applyCarZoom(_ zoom: Double) {
-        webView.pageZoom = CGFloat(min(1.5, max(0.5, zoom)))
+        let clamped = min(1.5, max(0.5, zoom))
+        if side == .car { WDSettings.carZoom = clamped }
+        webView.pageZoom = CGFloat(clamped)
         applyCarLayout()
     }
 
@@ -72,7 +92,8 @@ final class TabSession: NSObject, ObservableObject {
     func setDesktopMode(_ on: Bool) {
         isDesktopMode = on
         webView.customUserAgent = on ? WebEngine.desktopUserAgent : nil
-        webView.reload()
+        webView.configuration.defaultWebpagePreferences.preferredContentMode = on ? .desktop : .mobile
+        if let url = webView.url, side == .car { load(url) } else { webView.reload() }
     }
 
     // MARK: جسر الكتابة (السيارة)
@@ -198,6 +219,13 @@ extension TabSession: WKNavigationDelegate, WKUIDelegate {
 
         guard let url = navigationAction.request.url, let scheme = url.scheme?.lowercased() else {
             decisionHandler(.allow, preferences)
+            return
+        }
+        if side == .car, isDesktopMode, url.host?.lowercased() == "m.youtube.com",
+           !didTryYouTubeDesktopRedirect {
+            didTryYouTubeDesktopRedirect = true
+            decisionHandler(.cancel, preferences)
+            webView.load(URLRequest(url: requestedURL(url)))
             return
         }
         let webSchemes: Set<String> = ["http", "https", "about", "blob", "data", "file", "javascript"]
