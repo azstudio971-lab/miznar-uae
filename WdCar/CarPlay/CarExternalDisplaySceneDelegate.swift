@@ -27,7 +27,7 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
         window.overrideUserInterfaceStyle = .dark
         window.rootViewController = CarBrowserViewController()
         window.isHidden = false
-        if role == Self.interactiveRole { window.makeKeyAndVisible() }
+        window.makeKeyAndVisible()
         self.window = window
 
         AppState.shared.carScreenConnected(interactive: role == Self.interactiveRole)

@@ -44,6 +44,7 @@ workflows:
           sed -i '' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $TEAM_ID;/g" "$XCODE_PROJECT/project.pbxproj" || true
       - name: التحقق من المشروع (بناء Debug للمحاكي)
         script: |
+          set -euo pipefail
           xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
             -configuration Debug CODE_SIGNING_ALLOWED=NO build | xcpretty
@@ -86,5 +87,3 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        beta_groups:
-          - WudCar Internal

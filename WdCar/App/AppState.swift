@@ -54,11 +54,11 @@ final class AppState: ObservableObject {
     }
     @Published private(set) var toast: String?
 
-    var isCarConnected: Bool { carMode != .none }
+    var isCarConnected: Bool { carMode != .none || carScreenActive }
 
     var carStatusText: String {
         switch carMode {
-        case .none: return tr("غير متصل", "Not connected")
+        case .none: return carScreenActive ? tr("متصل — شاشة خارجية", "Connected — external display") : tr("غير متصل", "Not connected")
         case .window: return tr("متصل — المتصفح الكامل", "Connected — full browser")
         case .templates: return tr("متصل — وضع القوالب (الفيديو عبر AirPlay)", "Connected — templates mode (video via AirPlay)")
         }
@@ -86,7 +86,7 @@ final class AppState: ObservableObject {
         onMain {
             self.carMode = .none
             self.carVideoSupport = .unknown
-            DrivingMonitor.shared.stop()
+            if !self.carScreenActive { DrivingMonitor.shared.stop() }
             CarKeyboardBridge.shared.cancel()
         }
     }

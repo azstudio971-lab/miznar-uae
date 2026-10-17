@@ -40,12 +40,16 @@ struct SettingsView: View {
                     Button(tr("تشغيل المتصفح على شاشة السيارة", "Show browser on car screen")) {
                         app.showCarScreenHelp = true
                     }
+                    Button(tr("نسخ سجل اتصال CarPlay", "Copy CarPlay connection log")) {
+                        UIPasteboard.general.string = WDLog.recentText
+                        app.showToast(tr("نُسخ سجل الاتصال", "Connection log copied"))
+                    }
                     Toggle(tr("إيقاف الفيديو أثناء القيادة", "Pause video while driving"), isOn: $lockVideo)
                 } header: {
                     Text("CarPlay")
                 } footer: {
-                    Text(tr("في CarPlay يعرض النظام الفيديو فقط والسيارة متوقفة، ويحوّله لصوت أثناء القيادة. إذا ظهر «غير مدعوم» فالسيارة أو الشاشة نفسها لا تقبل الفيديو، وسيصل الصوت فقط مهما كان التطبيق.",
-                            "In CarPlay the system shows video only while parked and switches to audio while driving. If it says “Not supported”, the car or screen itself does not accept video, so only audio is delivered regardless of the app."))
+                    Text(tr("في CarPlay يعرض النظام الفيديو فقط والسيارة متوقفة، ويحوّله لصوت أثناء القيادة. حالة دعم الفيديو تصف ما يعلنه النظام لهذه الجلسة. يمكن نسخ سجل الاتصال لتشخيص الشاشة الخارجية.",
+                            "In CarPlay the system shows video only while parked and switches to audio while driving. Video support describes what the system reports for this session. Copy the connection log to diagnose the external display."))
                 }
 
                 Section(tr("المتصفح", "Browser")) {

@@ -12,7 +12,7 @@ import UIKit
 ///   على شاشة السيارة وهي متوقفة، ويحوّله لصوت فقط أثناء القيادة تلقائياً.
 final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate {
 
-    private weak var interfaceController: CPInterfaceController?
+    private var interfaceController: CPInterfaceController?
     private var sessionConfiguration: CPSessionConfiguration?
     private let entertainment = CPListTemplate(title: tr("الترفيه", "Entertainment"), sections: [])
     private let xtream = CPListTemplate(title: "Xtream Codes", sections: [])
@@ -56,7 +56,20 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate {
         xtream.emptyViewTitleVariants = [tr("أضف حساب Xtream من iPhone", "Add an Xtream account on iPhone")]
 
         let tabs = CPTabBarTemplate(templates: [entertainment, xtream])
-        interfaceController?.setRootTemplate(tabs, animated: false, completion: nil)
+        // Fill lists before installing the root, so the first frame is usable.
+        rebuildEntertainment(ShortcutStore.shared.shortcuts)
+        rebuildAccounts(XtreamStore.shared.accounts)
+        interfaceController?.setRootTemplate(tabs, animated: false) { [weak self] success, error in
+            WDLog.car("root template installed=\(success) error=\(String(describing: error))")
+            guard !success, let self else { return }
+            let retry = CPListItem(text: tr("إعادة فتح ود كار", "Open WudCar"), detailText: error?.localizedDescription)
+            retry.handler = { [weak self] _, completion in
+                self?.interfaceController?.setRootTemplate(tabs, animated: false, completion: nil)
+                completion()
+            }
+            let fallback = CPListTemplate(title: "WudCar", sections: [CPListSection(items: [retry])])
+            self.interfaceController?.setRootTemplate(fallback, animated: false, completion: nil)
+        }
 
         ShortcutStore.shared.$shortcuts
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
