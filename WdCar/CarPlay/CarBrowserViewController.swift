@@ -5,6 +5,12 @@ import WebKit
 /// متصفح السيارة الكامل — يُرسم داخل نافذة CarPlay.
 /// الشريط العلوي (من اليسار): حجم النص | إخفاء الشريط | ملء شاشة الفيديو | حفظ | التبويبات | تحديث | العنوان | الرئيسية | رجوع | إغلاق
 final class CarBrowserViewController: UIViewController {
+    var onVideoFullscreenChange: ((Bool) -> Void)?
+
+    func pauseForNavigation() {
+        currentSession?.exitVideoFullscreen()
+        pool.pauseAllMedia()
+    }
 
     private let store = TabStore.car
     private let pool = WebViewPool.car
@@ -44,7 +50,6 @@ final class CarBrowserViewController: UIViewController {
     private var contentTopToToolbar: NSLayoutConstraint!
     private var contentTopToSafe: NSLayoutConstraint!
 
-    private let zoomLevels: [Double] = (0...20).map { 0.5 + Double($0) * 0.05 }
 
     // MARK: دورة الحياة
 
@@ -363,6 +368,7 @@ final class CarBrowserViewController: UIViewController {
 
     private func setVideoFullscreen(_ on: Bool) {
         videoFullscreen = on
+        onVideoFullscreenChange?(on)
         if on { videoOverlay.present() } else { videoOverlay.isHidden = true }
         applyToolbarVisibility()
         updateDrivingLock()
