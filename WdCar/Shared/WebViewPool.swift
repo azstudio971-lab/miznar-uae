@@ -43,7 +43,7 @@ final class WebViewPool {
     }
 
     func applyZoom(_ zoom: Double) {
-        sessions.values.forEach { $0.webView.pageZoom = CGFloat(min(1.5, max(0.5, zoom))) }
+        sessions.values.forEach { $0.applyCarZoom(zoom) }
     }
 
     func applyDesktopMode(_ enabled: Bool) {
