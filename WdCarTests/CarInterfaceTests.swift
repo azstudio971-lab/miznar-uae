@@ -107,7 +107,19 @@ final class CarInterfaceTests: XCTestCase {
             XCTAssertEqual(Double(session.webView.pageZoom), zoom, accuracy: 0.001)
             let metrics = try await session.webView.evaluateJavaScript("JSON.stringify({viewport:innerWidth,document:document.documentElement.clientWidth,zoom:document.documentElement.style.zoom})")
             print("WUDCAR ZOOM \(zoom): \(metrics)")
+            let image: UIImage? = await withCheckedContinuation { continuation in
+                session.webView.takeSnapshot(with: nil) { image, _ in continuation.resume(returning: image) }
+            }
+            XCTAssertNotNil(image)
+            if let image {
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "car-content-\(Int(zoom * 100))"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+            }
         }
+        let overlayExists = try await session.webView.evaluateJavaScript("!!document.getElementById('wd-expand-video')") as? Bool
+        XCTAssertEqual(overlayExists, true)
         let found: Bool = await withCheckedContinuation { continuation in
             session.enterVideoFullscreen { continuation.resume(returning: $0) }
         }
