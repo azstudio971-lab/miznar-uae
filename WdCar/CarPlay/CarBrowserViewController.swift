@@ -255,7 +255,7 @@ final class CarBrowserViewController: UIViewController {
         currentSession = session
 
         let webView = session.webView
-        webView.pageZoom = CGFloat(WDSettings.carZoom)
+        session.applyCarZoom(WDSettings.carZoom)
         contentView.insertSubview(webView, at: 0)
         CarUI.pin(webView, to: contentView)
 
