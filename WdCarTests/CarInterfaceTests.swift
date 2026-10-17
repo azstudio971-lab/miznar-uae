@@ -15,6 +15,8 @@ final class CarInterfaceTests: XCTestCase {
     }
 
     private func display(_ controller: UIViewController) {
+        testWindow?.isHidden = true
+        testWindow?.rootViewController = nil
         let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first!
         testWindow = UIWindow(windowScene: scene)
         testWindow.rootViewController = controller
@@ -72,7 +74,7 @@ final class CarInterfaceTests: XCTestCase {
         for _ in 0..<300 {
             if !web.isLoading,
                let ready = try? await web.evaluateJavaScript("document.readyState") as? String,
-               ready == "complete" {
+               (ready == "complete" || ready == "interactive") {
                 if marker == nil { return }
                 if let title = try? await web.evaluateJavaScript("document.title") as? String, title == marker { return }
             }
@@ -89,11 +91,16 @@ final class CarInterfaceTests: XCTestCase {
         controller.view.addSubview(session.webView)
         CarUI.pin(session.webView, to: controller.view)
         controller.view.layoutIfNeeded()
-        session.webView.loadHTMLString("<html><head><title>WudCar layout fixture</title><meta name='viewport' content='width=device-width, initial-scale=1'></head><body style='margin:0;background:#e9b33f'><div style='width:100%;height:100vh'><video controls width='640' height='360'></video></div></body></html>", baseURL: nil)
+        session.webView.loadHTMLString("<html><head><title>WudCar layout fixture</title><meta name='viewport' content='width=device-width, initial-scale=1'></head><body style='margin:0;background:#000'><div id='fill' style='width:100%;min-height:5000px;background:#e9b33f'><video controls width='640' height='360'></video></div></body></html>", baseURL: nil)
         try await waitForDocument(session.webView, marker: "WudCar layout fixture")
         for zoom in [0.5, 1.0, 1.5] {
-            session.webView.pageZoom = CGFloat(zoom)
+            session.applyCarZoom(zoom)
             controller.view.layoutIfNeeded()
+            try await Task.sleep(nanoseconds: 300_000_000)
+            let fillWidth = try await session.webView.evaluateJavaScript("document.getElementById('fill').getBoundingClientRect().width") as? Double ?? 0
+            let viewportWidth = try await session.webView.evaluateJavaScript("window.visualViewport.width") as? Double ?? 0
+            XCTAssertGreaterThan(fillWidth, 0)
+            XCTAssertEqual(fillWidth, viewportWidth, accuracy: 1, "Page content must fill the visual viewport at every zoom level")
             XCTAssertEqual(session.webView.frame, controller.view.bounds)
             XCTAssertEqual(session.webView.transform, .identity)
             XCTAssertEqual(Double(session.webView.pageZoom), zoom, accuracy: 0.001)
@@ -113,26 +120,38 @@ final class CarInterfaceTests: XCTestCase {
     }
 
     func testLiveDesktopSitesAtThreeZoomLevels() async throws {
-        let session = TabSession(tabID: UUID(), side: .car, initialURL: nil)
-        defer { session.tearDown() }
-        session.setDesktopMode(true)
-        let controller = UIViewController()
-        display(controller)
-        controller.view.addSubview(session.webView)
-        CarUI.pin(session.webView, to: controller.view)
-        controller.view.layoutIfNeeded()
         for address in ["https://www.youtube.com/", "https://example.com/"] {
-            session.load(URL(string: address)!)
-            try await waitForDocument(session.webView)
-            let title = try await session.webView.evaluateJavaScript("document.title") as? String ?? ""
-            XCTAssertFalse(title.isEmpty)
-            for zoom in [0.5, 1.0, 1.5] {
-                session.webView.pageZoom = CGFloat(zoom)
-                try await Task.sleep(nanoseconds: 300_000_000)
-                XCTAssertEqual(session.webView.frame, controller.view.bounds)
-                let report = try await session.webView.evaluateJavaScript("JSON.stringify({title:document.title,url:location.href,viewport:innerWidth,document:document.documentElement.clientWidth,ua:navigator.userAgent})")
-                print("WUDCAR LIVE \(address) \(zoom): \(report)")
+            var lastError: Error?
+            var verified = false
+            for attempt in 1...2 {
+                let session = TabSession(tabID: UUID(), side: .car, initialURL: nil)
+                let controller = UIViewController()
+                display(controller)
+                controller.view.addSubview(session.webView)
+                CarUI.pin(session.webView, to: controller.view)
+                controller.view.layoutIfNeeded()
+                do {
+                    session.load(URL(string: address)!)
+                    try await waitForDocument(session.webView)
+                    try await Task.sleep(nanoseconds: 500_000_000)
+                    let title = try await session.webView.evaluateJavaScript("document.title") as? String ?? ""
+                    guard !title.isEmpty else { throw NSError(domain: "WudCarTests", code: 2) }
+                    for zoom in [0.5, 1.0, 1.5] {
+                        session.applyCarZoom(zoom)
+                        try await Task.sleep(nanoseconds: 300_000_000)
+                        XCTAssertEqual(session.webView.frame, controller.view.bounds)
+                        let report = try await session.webView.evaluateJavaScript("JSON.stringify({title:document.title,url:location.href,viewport:innerWidth,visual:visualViewport.width,root:document.documentElement.getBoundingClientRect().width,body:document.body.getBoundingClientRect().width,ua:navigator.userAgent})")
+                        print("WUDCAR LIVE \(address) \(zoom): \(report)")
+                    }
+                    verified = true
+                } catch {
+                    lastError = error
+                    print("WUDCAR LIVE attempt \(attempt) failed: \(address) \(error)")
+                }
+                session.tearDown()
+                if verified { break }
             }
+            if !verified { throw lastError ?? NSError(domain: "WudCarTests", code: 3) }
         }
     }
 }
