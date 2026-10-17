@@ -59,6 +59,10 @@ final class ShortcutStore: ObservableObject {
         }
     }
 
+    static func isBuiltIn(_ shortcut: SiteShortcut) -> Bool {
+        defaults.contains { $0.url.host == shortcut.url.host && $0.url.path == shortcut.url.path }
+    }
+
     static let palette = ["#2E7D32", "#1565C0", "#6A1B9A", "#C62828", "#EF6C00", "#00838F", "#37474F", "#AD1457"]
 
     private static var defaults: [SiteShortcut] {

@@ -25,6 +25,11 @@ struct RootView: View {
                 .zIndex(1)
             }
         }
+        .task {
+            // A failed intro must never cover the phone indefinitely.
+            try? await Task.sleep(for: .seconds(3))
+            introFinished = true
+        }
         .environment(\.layoutDirection, language == AppLanguage.ar.rawValue ? .rightToLeft : .leftToRight)
         .environment(\.locale, Locale(identifier: language))
         .preferredColorScheme(AppAppearance(rawValue: appearance)?.colorScheme)

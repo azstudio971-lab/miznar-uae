@@ -55,7 +55,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate {
         xtream.tabImage = UIImage(systemName: "antenna.radiowaves.left.and.right")
         xtream.emptyViewTitleVariants = [tr("أضف حساب Xtream من iPhone", "Add an Xtream account on iPhone")]
 
-        let tabs = CPTabBarTemplate(templates: [entertainment, xtream])
+        let tabs = welcomeTemplate()
         // Fill lists before installing the root, so the first frame is usable.
         rebuildEntertainment(ShortcutStore.shared.shortcuts)
         rebuildAccounts(XtreamStore.shared.accounts)
@@ -99,6 +99,37 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate {
         statusTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             self?.refreshVideoSupport()
         }
+    }
+
+    private func welcomeTemplate() -> CPListTemplate {
+        let browser = CPListItem(text: carTr("الترفيه", "Entertainment"), detailText: carTr("المتصفح بكامل الشاشة", "Full-screen browser"), image: UIImage(systemName: "play.tv"))
+        browser.handler = { [weak self] _, completion in self?.startCarScreen(); completion() }
+        let accounts = CPListItem(text: "Xtream Codes", detailText: carTr("اشتراكات IPTV", "IPTV subscriptions"), image: UIImage(systemName: "antenna.radiowaves.left.and.right"))
+        accounts.handler = { [weak self] _, completion in
+            if let self { self.interfaceController?.pushTemplate(self.xtream, animated: true, completion: nil) }
+            completion()
+        }
+        let settings = CPListItem(text: carTr("الإعدادات", "Settings"), detailText: carTr("اللغة وعرض المتصفح", "Language and browser layout"), image: UIImage(systemName: "gearshape"))
+        settings.handler = { [weak self] _, completion in self?.showCarSettings(); completion() }
+        return CPListTemplate(title: carTr("مرحبًا بكم في ود كار", "Welcome to WudCar"), sections: [CPListSection(items: [browser, accounts, settings])])
+    }
+
+    private func showCarSettings() {
+        let language = CPListItem(text: carTr("اللغة: العربية", "Language: English"), detailText: carTr("تغيير إلى الإنجليزية", "Switch to Arabic"))
+        language.handler = { [weak self] _, completion in
+            WDSettings.carLanguage = WDSettings.carLanguage == "ar" ? "en" : "ar"
+            if let self { self.interfaceController?.setRootTemplate(self.welcomeTemplate(), animated: false, completion: nil) }
+            completion()
+        }
+        let mode = CPListItem(text: carTr("عرض المتصفح", "Browser layout"), detailText: WDSettings.carDesktopMode ? carTr("سطح المكتب", "Desktop") : carTr("الهاتف", "Mobile"))
+        mode.handler = { [weak self] _, completion in
+            WDSettings.carDesktopMode.toggle()
+            WebViewPool.car.applyDesktopMode(WDSettings.carDesktopMode)
+            self?.interfaceController?.popTemplate(animated: false) { [weak self] _, _ in self?.showCarSettings() }
+            completion()
+        }
+        let template = CPListTemplate(title: carTr("إعدادات السيارة", "Car settings"), sections: [CPListSection(items: [language, mode])])
+        interfaceController?.pushTemplate(template, animated: true, completion: nil)
     }
 
     /// يقرأ دعم الفيديو من السيارة ويحدّث الواجهة والهاتف عند تغيّره

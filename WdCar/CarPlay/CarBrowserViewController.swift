@@ -6,13 +6,14 @@ import WebKit
 /// الشريط العلوي (من اليسار): حجم النص | إخفاء الشريط | ملء شاشة الفيديو | حفظ | التبويبات | تحديث | العنوان | الرئيسية | رجوع | إغلاق
 final class CarBrowserViewController: UIViewController {
 
+    var onExit: (() -> Void)?
     private let store = TabStore.car
     private let pool = WebViewPool.car
     private var bag = Set<AnyCancellable>()
     private var sessionBag = Set<AnyCancellable>()
     private weak var currentSession: TabSession?
 
-    private var showingHome = false
+    private var showingHome = true
     private var toolbarCollapsed = false
     private var videoFullscreen = false
     private var blockTimer: Timer?
@@ -30,21 +31,22 @@ final class CarBrowserViewController: UIViewController {
     private var textPanel: CarTextInputView?
     private var tabsPanel: CarTabsPanel?
 
-    private let zoomButton = CarUI.textButton("ع ع", size: 17)
+    private let zoomButton = CarUI.textButton("ع ع", size: 12)
     private let collapseButton = CarUI.iconButton("chevron.up")
     private let fullscreenButton = CarUI.iconButton("arrow.up.left.and.arrow.down.right")
     private let starButton = CarUI.iconButton("star")
     private let tabsButton = CarUI.iconButton("square.on.square")
     private let reloadButton = CarUI.iconButton("arrow.clockwise")
-    private let urlButton = CarUI.textButton("أدخل عنوان URL أو ابحث", size: 16)
+    private let urlButton = CarUI.textButton("أدخل عنوان URL أو ابحث", size: 13)
     private let homeButton = CarUI.iconButton("house")
     private let backButton = CarUI.iconButton("chevron.left")
+    private let menuButton = CarUI.iconButton("square.grid.2x2")
     private let closeButton = CarUI.iconButton("xmark")
 
     private var contentTopToToolbar: NSLayoutConstraint!
     private var contentTopToSafe: NSLayoutConstraint!
 
-    private let zoomLevels: [Double] = [0.85, 1.0, 1.15, 1.3]
+    private let zoomLevels: [Double] = [0.65, 0.75, 0.85, 1.0]
 
     // MARK: دورة الحياة
 
@@ -67,7 +69,7 @@ final class CarBrowserViewController: UIViewController {
 
     private func buildToolbar() {
         toolbar.axis = .horizontal
-        toolbar.spacing = 7
+        toolbar.spacing = 3
         toolbar.alignment = .fill
         toolbar.semanticContentAttribute = .forceLeftToRight
 
@@ -77,9 +79,16 @@ final class CarBrowserViewController: UIViewController {
         urlButton.setContentHuggingPriority(.defaultLow, for: .horizontal)
         urlButton.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let buttons: [UIButton] = [zoomButton, collapseButton, fullscreenButton, starButton, tabsButton,
+        let buttons: [UIButton] = [menuButton, zoomButton, collapseButton, fullscreenButton, starButton, tabsButton,
                                    reloadButton, urlButton, homeButton, backButton, closeButton]
+        urlButton.accessibilityIdentifier = "car.address"
+        menuButton.accessibilityIdentifier = "car.menu"
+        homeButton.accessibilityIdentifier = "car.home"
         buttons.forEach { button in
+            var compact = button.configuration
+            compact?.contentInsets = NSDirectionalEdgeInsets(top: 3, leading: 5, bottom: 3, trailing: 5)
+            compact?.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+            button.configuration = compact
             if button !== urlButton {
                 button.setContentHuggingPriority(.required, for: .horizontal)
                 button.setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -87,6 +96,9 @@ final class CarBrowserViewController: UIViewController {
             toolbar.addArrangedSubview(button)
         }
 
+        menuButton.addAction(UIAction { [weak self] _ in
+            self?.currentSession?.pauseMedia(); self?.onExit?()
+        }, for: .touchUpInside)
         zoomButton.addAction(UIAction { [weak self] _ in self?.cycleZoom() }, for: .touchUpInside)
         collapseButton.addAction(UIAction { [weak self] _ in self?.setToolbarCollapsed(true) }, for: .touchUpInside)
         fullscreenButton.addAction(UIAction { [weak self] _ in self?.enterVideoFullscreen() }, for: .touchUpInside)
@@ -102,7 +114,7 @@ final class CarBrowserViewController: UIViewController {
         view.addSubview(toolbar)
         let guide = view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
-            toolbar.topAnchor.constraint(equalTo: guide.topAnchor, constant: 6),
+            toolbar.topAnchor.constraint(equalTo: guide.topAnchor, constant: 3),
             toolbar.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 8),
             toolbar.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -8),
             toolbar.heightAnchor.constraint(equalToConstant: 42)
@@ -116,7 +128,7 @@ final class CarBrowserViewController: UIViewController {
         view.addSubview(contentView)
 
         let guide = view.safeAreaLayoutGuide
-        contentTopToToolbar = contentView.topAnchor.constraint(equalTo: toolbar.bottomAnchor, constant: 6)
+        contentTopToToolbar = contentView.topAnchor.constraint(equalTo: toolbar.bottomAnchor, constant: 3)
         contentTopToSafe = contentView.topAnchor.constraint(equalTo: guide.topAnchor)
         NSLayoutConstraint.activate([
             contentTopToToolbar,
@@ -171,7 +183,7 @@ final class CarBrowserViewController: UIViewController {
 
         let guide = view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
-            restoreButton.topAnchor.constraint(equalTo: guide.topAnchor, constant: 6),
+            restoreButton.topAnchor.constraint(equalTo: guide.topAnchor, constant: 3),
             restoreButton.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -10),
             restoreButton.widthAnchor.constraint(equalToConstant: 48),
             restoreButton.heightAnchor.constraint(equalToConstant: 36),
@@ -225,7 +237,7 @@ final class CarBrowserViewController: UIViewController {
             contentView.bringSubviewToFront(shortcutsView)
             currentSession?.webView.isHidden = true
             progressView.isHidden = true
-            CarUI.setTitle(urlButton, "أدخل عنوان URL أو ابحث", size: 16)
+            CarUI.setTitle(urlButton, carTr("اكتب عنوانًا أو ابحث", "Address or search"), size: 13)
             backButton.isEnabled = tab.url != nil
             return
         }
@@ -235,7 +247,7 @@ final class CarBrowserViewController: UIViewController {
         shortcutsView.isHidden = true
         session.webView.isHidden = false
         contentView.bringSubviewToFront(progressView)
-        CarUI.setTitle(urlButton, tab.url?.host ?? tab.displayTitle, size: 16)
+        CarUI.setTitle(urlButton, tab.url?.host ?? tab.displayTitle, size: 13)
         backButton.isEnabled = true
     }
 
@@ -259,7 +271,7 @@ final class CarBrowserViewController: UIViewController {
                 guard let self else { return }
                 self.progressView.isHidden = !loading || self.showingHome
                 self.progressView.setProgress(Float(progress), animated: true)
-                CarUI.setSymbol(self.reloadButton, loading ? "xmark" : "arrow.clockwise")
+                CarUI.setSymbol(self.reloadButton, loading ? "xmark" : "arrow.clockwise", size: 13)
             }
             .store(in: &sessionBag)
 

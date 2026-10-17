@@ -25,7 +25,7 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
         let window = UIWindow(windowScene: windowScene)
         window.backgroundColor = .black
         window.overrideUserInterfaceStyle = .dark
-        window.rootViewController = CarBrowserViewController()
+        window.rootViewController = CarDashboardViewController()
         window.isHidden = false
         window.makeKeyAndVisible()
         self.window = window

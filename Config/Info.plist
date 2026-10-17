@@ -38,36 +38,24 @@
 		<true/>
 		<key>UISceneConfigurations</key>
 		<dict>
-			<key>UIWindowSceneSessionRoleApplication</key>
-            <array>
-                <dict>
-                    <key>UISceneConfigurationName</key>
-                    <string>Default Configuration</string>
-                    <key>UISceneClassName</key>
-                    <string>UIWindowScene</string>
-                    <key>UISceneDelegateClassName</key>
-                    <string>$(PRODUCT_MODULE_NAME).PhoneSceneDelegate</string>
-                </dict>
-            </array>
-            <key>CPTemplateApplicationSceneSessionRoleApplication</key>
+			<key>CPTemplateApplicationSceneSessionRoleApplication</key>
 			<array>
 				<dict>
 					<key>UISceneConfigurationName</key>
 					<string>CarPlay</string>
-                    <key>UISceneClassName</key>
-                    <string>CPTemplateApplicationScene</string>
+					<key>UISceneClassName</key>
+					<string>CPTemplateApplicationScene</string>
 					<key>UISceneDelegateClassName</key>
 					<string>$(PRODUCT_MODULE_NAME).CarSceneDelegate</string>
 				</dict>
 			</array>
-			<!-- التحديث 3: شاشة السيارة كشاشة خارجية (نفس إعداد CarTV) -->
 			<key>UIWindowSceneSessionRoleExternalDisplay</key>
 			<array>
 				<dict>
 					<key>UISceneConfigurationName</key>
 					<string>External Display</string>
-                    <key>UISceneClassName</key>
-                    <string>UIWindowScene</string>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
 					<key>UISceneDelegateClassName</key>
 					<string>$(PRODUCT_MODULE_NAME).CarExternalDisplaySceneDelegate</string>
 				</dict>
@@ -77,8 +65,8 @@
 				<dict>
 					<key>UISceneConfigurationName</key>
 					<string>External Display</string>
-                    <key>UISceneClassName</key>
-                    <string>UIWindowScene</string>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
 					<key>UISceneDelegateClassName</key>
 					<string>$(PRODUCT_MODULE_NAME).CarExternalDisplaySceneDelegate</string>
 				</dict>

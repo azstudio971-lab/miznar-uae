@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - قائمة الحسابات
 
 struct XtreamHomeView: View {
+    @Environment(\.isCarDisplay) private var isCarDisplay
     @ObservedObject private var store = XtreamStore.shared
     @State private var editing: XtreamAccount?
     @State private var showAdd = false
@@ -17,8 +18,9 @@ struct XtreamHomeView: View {
                         Text(tr("أضف حساب Xtream Codes لعرض القنوات والأفلام هنا وفي CarPlay.",
                                 "Add an Xtream Codes account to browse channels and movies here and in CarPlay."))
                     } actions: {
-                        Button(tr("إضافة حساب", "Add account")) { showAdd = true }
-                            .buttonStyle(.borderedProminent)
+                        if !isCarDisplay {
+                            Button(tr("إضافة حساب", "Add account")) { showAdd = true }.buttonStyle(.borderedProminent)
+                        } else { Text(carTr("أضف الاشتراك من تطبيق الآيفون", "Add your subscription on iPhone")) }
                     }
                 } else {
                     List {
@@ -49,7 +51,7 @@ struct XtreamHomeView: View {
             .navigationDestination(for: XtreamAccount.self) { XtreamAccountView(account: $0) }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button { showAdd = true } label: { Image(systemName: "plus") }
+                    if !isCarDisplay { Button { showAdd = true } label: { Image(systemName: "plus") } }
                 }
             }
             .sheet(isPresented: $showAdd) { XtreamAccountEditor(account: nil) }
@@ -232,6 +234,7 @@ struct XtreamAccountView: View {
 // MARK: - القنوات / الأفلام
 
 struct XtreamStreamsView: View {
+    @Environment(\.isCarDisplay) private var isCarDisplay
     let account: XtreamAccount
     let kind: XtreamKind
     let category: XtreamCategory?
@@ -297,11 +300,13 @@ struct XtreamStreamsView: View {
             error = XtreamError.missingPassword.localizedDescription
             return
         }
+        if isCarDisplay && WDSettings.lockVideoWhileDriving && DrivingMonitor.shared.isMoving { return }
         PlaybackManager.shared.play(.init(title: stream.name,
                                           subtitle: account.name,
                                           url: url,
                                           isLive: kind == .live,
                                           artworkURL: stream.icon),
-                                    presentOnPhone: true)
+                                    presentOnPhone: !isCarDisplay)
+        if isCarDisplay { NotificationCenter.default.post(name: .wdCarPlayXtream, object: nil) }
     }
 }
