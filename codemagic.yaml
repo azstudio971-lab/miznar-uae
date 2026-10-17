@@ -9,6 +9,42 @@
 # 3) تأكد أن App ID للمعرّف أدناه مفعّل عليه CarPlay (Video) في Apple Developer.
 
 workflows:
+  wudcar-preview:
+    name: WudCar → Preview Update 8
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+      vars:
+        XCODE_PROJECT: WdCar.xcodeproj
+        XCODE_SCHEME: WdCar
+    scripts:
+      - name: تثبيت XcodeGen
+        script: |
+          brew install xcodegen
+      - name: إنشاء مشروع Xcode
+        script: |
+          xcodegen generate
+      - name: بناء واختبار نسخة المعاينة فقط
+        script: |
+          set -euo pipefail
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for a in d["devices"].values() for v in a if "iPhone" in v["name"]))')
+          xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -parallel-testing-enabled NO -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 180 \
+            -maximum-test-execution-time-allowance 180 \
+            -resultBundlePath /tmp/WudCarUpdate8Preview.xcresult \
+            CODE_SIGNING_ALLOWED=NO test | tee /tmp/wudcar-update8-preview.log
+      - name: تصدير صور المعاينة
+        script: |
+          mkdir -p build/update8-preview
+          xcrun xcresulttool export attachments --path /tmp/WudCarUpdate8Preview.xcresult --output-path build/update8-preview
+    artifacts:
+      - build/update8-preview/**/*
+      - /tmp/WudCarUpdate8Preview.xcresult
+      - /tmp/wudcar-update8-preview.log
+
   wudcar-testflight:
     name: WudCar → TestFlight
     max_build_duration: 60

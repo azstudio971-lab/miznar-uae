@@ -14,6 +14,7 @@ final class TabSession: NSObject, ObservableObject {
     @Published private(set) var isVideoFullscreen = false
     @Published private(set) var videoStatus = VideoStatus()
     @Published private(set) var isDesktopMode: Bool
+    @Published private(set) var navigationError: String?
 
     /// المستخدم ضغط على حقل كتابة في صفحة السيارة
     let focusEvents = PassthroughSubject<FocusInfo, Never>()
@@ -50,6 +51,7 @@ final class TabSession: NSObject, ObservableObject {
     // MARK: التنقل
 
     func load(_ url: URL) {
+        navigationError = nil
         didTryYouTubeDesktopRedirect = false
         webView.load(URLRequest(url: requestedURL(url)))
     }
@@ -239,13 +241,25 @@ extension TabSession: WKNavigationDelegate, WKUIDelegate {
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        navigationError = nil
         if side == .car { applyCarZoom(WDSettings.carZoom) }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
             self?.takeSnapshot()
         }
     }
 
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        navigationError = carTr("تعذّر تحميل هذا الموقع. قد يمنع الموقع التصفح المضمّن أو يتطلب تسجيل الدخول. جرّب فتحه في Safari أو تطبيقه الرسمي.",
+                                "This site could not load. It may block embedded browsing or require sign-in. Try Safari or its official app.")
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        navigationError = carTr("توقف تحميل الصفحة. تحقق من الاتصال أو افتح الموقع في Safari أو تطبيقه الرسمي.",
+                                "The page stopped loading. Check the connection, or try Safari or its official app.")
+    }
+
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        navigationError = carTr("توقف الموقع عن الاستجابة. أعد تحميل الصفحة.", "The website stopped responding. Reload the page.")
         webView.reload()
     }
 

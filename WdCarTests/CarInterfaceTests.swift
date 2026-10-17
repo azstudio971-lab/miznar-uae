@@ -44,8 +44,15 @@ final class CarInterfaceTests: XCTestCase {
         display(dashboard)
         let menu = try XCTUnwrap(find("car.navigation", in: dashboard.view) as? UISegmentedControl)
         XCTAssertEqual(menu.selectedSegmentIndex, 0)
+        XCTAssertEqual(menu.numberOfSegments, 4)
+        XCTAssertEqual(menu.titleForSegment(at: 2), "التلفزيون TV")
         XCTAssertNotNil(find("car.home", in: dashboard.view))
-        menu.selectedSegmentIndex = 2
+        let welcomeImage = UIGraphicsImageRenderer(bounds: dashboard.view.bounds).image { _ in dashboard.view.drawHierarchy(in: dashboard.view.bounds, afterScreenUpdates: true) }
+        let welcomeAttachment = XCTAttachment(image: welcomeImage)
+        welcomeAttachment.name = "wudcar-update8-home-preview"
+        welcomeAttachment.lifetime = .keepAlways
+        add(welcomeAttachment)
+        menu.selectedSegmentIndex = 3
         menu.sendActions(for: .valueChanged)
         let stepper = try XCTUnwrap(find("car.zoom", in: dashboard.view) as? UIStepper)
         XCTAssertEqual(stepper.minimumValue, 50)
@@ -62,12 +69,42 @@ final class CarInterfaceTests: XCTestCase {
         let reset = try XCTUnwrap(find("car.zoom.reset", in: dashboard.view) as? UIButton)
         reset.sendActions(for: .touchUpInside)
         XCTAssertEqual(WDSettings.carZoom, 1)
+        menu.selectedSegmentIndex = 2
+        menu.sendActions(for: .valueChanged)
+        XCTAssertTrue(dashboard.children.contains { $0 is UIHostingController<XtreamHomeView> })
+
         menu.selectedSegmentIndex = 1
         menu.sendActions(for: .valueChanged)
+        XCTAssertTrue(menu.isHidden, "The blue menu stays hidden in the Entertainment browser")
         XCTAssertTrue(dashboard.children.contains { $0 is CarBrowserViewController })
-        menu.selectedSegmentIndex = 0
-        menu.sendActions(for: .valueChanged)
+        let leave = try XCTUnwrap(find("car.exitEntertainment", in: dashboard.view) as? UIButton)
+        leave.sendActions(for: .touchUpInside)
+        XCTAssertFalse(menu.isHidden)
+        XCTAssertEqual(menu.selectedSegmentIndex, 0)
         XCTAssertNotNil(find("car.home", in: dashboard.view))
+    }
+
+    func testM3UParsingAndAddedShortcuts() throws {
+        let content = """
+        #EXTM3U
+        #EXTINF:-1 tvg-logo="https://cdn.example/logo.png" group-title="News",Channel One
+        https://stream.example/one.m3u8
+        #EXTINF:-1 group-title="Movies",Film Two
+        https://stream.example/two.mp4
+        """
+        let entries = try M3UParser.parse(Data(content.utf8))
+        XCTAssertEqual(entries.count, 2)
+        XCTAssertEqual(entries[0].title, "Channel One")
+        XCTAssertEqual(entries[0].group, "News")
+        XCTAssertEqual(entries[0].logo?.host, "cdn.example")
+        XCTAssertEqual(entries[1].title, "Film Two")
+        XCTAssertEqual(entries[1].group, "Movies")
+
+        let shortcuts = ShortcutStore.shared.shortcuts
+        for host in ["www.mp3quran.net", "m.soundcloud.com", "www.netflix.com", "pranx.com",
+                     "tv2tv.com", "www.primevideo.com", "www.tod.tv", "www.crazygames.com"] {
+            XCTAssertTrue(shortcuts.contains { $0.url.host == host }, "Missing default shortcut for \(host)")
+        }
     }
 
     private func waitForDocument(_ web: WKWebView, marker: String? = nil) async throws {

@@ -8,7 +8,7 @@ struct SettingsView: View {
     @EnvironmentObject private var app: AppState
     @AppStorage(WDKeys.language) private var language = L10n.language.rawValue
     @AppStorage(WDKeys.appearance) private var appearance = AppAppearance.system.rawValue
-    @AppStorage(WDKeys.lockVideoWhileDriving) private var lockVideo = true
+    @AppStorage(WDKeys.lockVideoWhileDriving) private var lockVideo = false
     @AppStorage(WDKeys.phoneDesktopMode) private var phoneDesktop = true
     @State private var confirmClear = false
     @State private var confirmReset = false
@@ -34,22 +34,12 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    LabeledContent(tr("الحالة", "Status"), value: app.carStatusText)
-                    LabeledContent(tr("الفيديو في السيارة", "Video in car"), value: app.carVideoText)
-                    LabeledContent(tr("شاشة السيارة", "Car screen"), value: app.carScreenText)
-                    Button(tr("تشغيل المتصفح على شاشة السيارة", "Show browser on car screen")) {
-                        app.showCarScreenHelp = true
-                    }
-                    Button(tr("نسخ سجل اتصال CarPlay", "Copy CarPlay connection log")) {
-                        UIPasteboard.general.string = WDLog.recentText
-                        app.showToast(tr("نُسخ سجل الاتصال", "Connection log copied"))
-                    }
                     Toggle(tr("إيقاف الفيديو أثناء القيادة", "Pause video while driving"), isOn: $lockVideo)
                 } header: {
                     Text("CarPlay")
                 } footer: {
-                    Text(tr("في CarPlay يعرض النظام الفيديو فقط والسيارة متوقفة، ويحوّله لصوت أثناء القيادة. حالة دعم الفيديو تصف ما يعلنه النظام لهذه الجلسة. يمكن نسخ سجل الاتصال لتشخيص الشاشة الخارجية.",
-                            "In CarPlay the system shows video only while parked and switches to audio while driving. Video support describes what the system reports for this session. Copy the connection log to diagnose the external display."))
+                    Text(tr("عند تفعيل هذا الخيار يتوقف الفيديو إذا رصد التطبيق حركة السيارة. يظل أي منع يفرضه النظام سارياً.",
+                            "When enabled, video pauses if the app detects vehicle movement. System-enforced restrictions always remain in effect."))
                 }
 
                 Section(tr("المتصفح", "Browser")) {
@@ -126,14 +116,14 @@ struct LegalTextView: View {
         tr("""
         • لا يجمع WudCar أي بيانات شخصية ولا يرسلها إلى خوادمنا، ولا يحتوي على إعلانات أو أدوات تتبع.
         • الاختصارات وعلامات التبويب والإعدادات تُحفظ على جهازك فقط.
-        • بيانات حسابات Xtream تُحفظ على جهازك، وكلمات المرور في Keychain.
+        • بيانات حسابات Xtream وقوائم M3U تُحفظ على جهازك، وبيانات الدخول وروابط القوائم في Keychain.
         • عند تصفح المواقع أو الاتصال بسيرفر IPTV، تتعامل مع تلك الجهات مباشرة وتخضع لسياساتها.
         • الموقع الجغرافي يُستخدم على الجهاز فقط لمعرفة حركة السيارة وإيقاف الفيديو، ولا يُحفظ ولا يُرسل.
         • الميكروفون والتعرف على الكلام يُستخدمان فقط عند الضغط على زر البحث الصوتي.
         """, """
         • WudCar does not collect personal data or send it to our servers, and contains no ads or trackers.
         • Shortcuts, tabs and settings are stored on your device only.
-        • Xtream account details are stored on your device, with passwords in the Keychain.
+        • Xtream accounts and M3U playlists are stored on your device; credentials and playlist URLs are kept in the Keychain.
         • When you browse websites or connect to an IPTV server, you deal with those services directly under their policies.
         • Location is used on-device only to detect vehicle movement and pause video; it is never stored or sent.
         • The microphone and speech recognition are used only when you tap voice search.

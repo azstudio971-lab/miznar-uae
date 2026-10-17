@@ -15,9 +15,9 @@ enum WDKeys {
 enum WDSettings {
     private static var defaults: UserDefaults { .standard }
 
-    /// إيقاف الفيديو تلقائياً عند حركة السيارة (مفعّل افتراضياً)
+    /// يوقف الفيديو عند حركة السيارة إذا اختار المستخدم تفعيل ذلك
     static var lockVideoWhileDriving: Bool {
-        get { defaults.object(forKey: WDKeys.lockVideoWhileDriving) as? Bool ?? true }
+        get { defaults.object(forKey: WDKeys.lockVideoWhileDriving) as? Bool ?? false }
         set { defaults.set(newValue, forKey: WDKeys.lockVideoWhileDriving) }
     }
 

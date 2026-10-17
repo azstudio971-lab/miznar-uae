@@ -17,7 +17,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     private let home = CPListTemplate(title: carTr("الرئيسية", "Home"), sections: [])
     private let entertainment = CPListTemplate(title: carTr("الترفيه", "Entertainment"), sections: [])
     private let settings = CPListTemplate(title: carTr("الإعدادات", "Settings"), sections: [])
-    private let xtream = CPListTemplate(title: "Xtream Codes", sections: [])
+    private let television = CPListTemplate(title: carTr("التلفزيون TV", "TV"), sections: [])
     private var bag = Set<AnyCancellable>()
     private var currentShortcuts: [SiteShortcut] = []
     private var lastReportedVideo: Bool?
@@ -55,16 +55,18 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         entertainment.tabTitle = carTr("الترفيه", "Entertainment")
         entertainment.tabImage = UIImage(systemName: "play.tv")
         entertainment.emptyViewTitleVariants = [carTr("أضف مواقع من iPhone", "Add sites on iPhone")]
+        television.tabTitle = carTr("التلفزيون TV", "TV")
+        television.tabImage = UIImage(systemName: "tv")
+        television.emptyViewTitleVariants = [carTr("أضف حساب Xtream أو قائمة M3U من iPhone", "Add an Xtream account or M3U playlist on iPhone")]
         settings.tabTitle = carTr("الإعدادات", "Settings")
         settings.tabImage = UIImage(systemName: "gearshape.fill")
-        xtream.emptyViewTitleVariants = [carTr("أضف حساب Xtream من iPhone", "Add an Xtream account on iPhone")]
 
-        let tabs = CPTabBarTemplate(templates: [home, entertainment, settings])
+        let tabs = CPTabBarTemplate(templates: [home, entertainment, television, settings])
         tabs.delegate = self
         tabBar = tabs
         rebuildHome()
         rebuildEntertainment(ShortcutStore.shared.shortcuts)
-        rebuildAccounts(XtreamStore.shared.accounts)
+        rebuildTelevision()
         rebuildSettings()
         interfaceController?.setRootTemplate(tabs, animated: false) { [weak self] success, error in
             WDLog.car("root template installed=\(success) error=\(String(describing: error))")
@@ -85,7 +87,12 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
         XtreamStore.shared.$accounts
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
-            .sink { [weak self] accounts in self?.rebuildAccounts(accounts) }
+            .sink { [weak self] _ in self?.rebuildTelevision() }
+            .store(in: &bag)
+
+        M3UStore.shared.$playlists
+            .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildTelevision() }
             .store(in: &bag)
 
         AppState.shared.$carScreenActive
@@ -148,8 +155,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             guard let self else { return }
             self.home.tabTitle = carTr("الرئيسية", "Home")
             self.entertainment.tabTitle = carTr("الترفيه", "Entertainment")
+            self.television.tabTitle = carTr("التلفزيون TV", "TV")
             self.settings.tabTitle = carTr("الإعدادات", "Settings")
-            self.tabBar?.updateTemplates([self.home, self.entertainment, self.settings])
+            self.tabBar?.updateTemplates([self.home, self.entertainment, self.television, self.settings])
             self.rebuildHome()
             self.rebuildSettings()
         }
@@ -235,24 +243,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             return item
         }
         entertainment.updateSections([
-            CPListSection(items: [carScreenItem(), videoStatusItem(), xtreamItem()]),
+            CPListSection(items: [carScreenItem(), videoStatusItem()]),
             CPListSection(items: Array(items))
         ])
-    }
-
-    private func xtreamItem() -> CPListItem {
-        let item = CPListItem(
-            text: "Xtream Codes",
-            detailText: carTr("اشتراكات IPTV", "IPTV subscriptions"),
-            image: UIImage(systemName: "antenna.radiowaves.left.and.right")
-        )
-        item.accessoryType = .disclosureIndicator
-        item.handler = { [weak self] _, completion in
-            guard let self else { completion(); return }
-            self.interfaceController?.pushTemplate(self.xtream, animated: true, completion: nil)
-            completion()
-        }
-        return item
     }
 
     // MARK: - التحديث 3: المتصفح على شاشة السيارة
@@ -356,8 +349,8 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     // MARK: - Xtream
 
-    private func rebuildAccounts(_ accounts: [XtreamAccount]) {
-        let items = accounts.map { account -> CPListItem in
+    private func rebuildTelevision() {
+        let accounts = XtreamStore.shared.accounts.map { account -> CPListItem in
             let item = CPListItem(text: account.name, detailText: account.displayHost)
             item.setImage(UIImage(systemName: "antenna.radiowaves.left.and.right"))
             item.accessoryType = .disclosureIndicator
@@ -367,7 +360,71 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             }
             return item
         }
-        xtream.updateSections([CPListSection(items: items)])
+        let playlists = M3UStore.shared.playlists.map { playlist -> CPListItem in
+            let item = CPListItem(text: playlist.name, detailText: "M3U / M3U8")
+            item.setImage(UIImage(systemName: "list.bullet.rectangle"))
+            item.accessoryType = .disclosureIndicator
+            item.handler = { [weak self] _, completion in
+                self?.showM3UEntries(for: playlist)
+                completion()
+            }
+            return item
+        }
+        var sections: [CPListSection] = []
+        if !accounts.isEmpty { sections.append(CPListSection(items: accounts, header: "Xtream Codes", sectionIndexTitle: nil)) }
+        if !playlists.isEmpty { sections.append(CPListSection(items: playlists, header: "M3U", sectionIndexTitle: nil)) }
+        television.updateSections(sections)
+    }
+
+    private func showM3UEntries(for playlist: M3UPlaylist) {
+        let template = loadingTemplate(title: playlist.name)
+        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+        Task { [weak self] in
+            do {
+                let entries = try await M3UStore.shared.entries(for: playlist)
+                await MainActor.run {
+                    guard let self else { return }
+                    let favorites = M3UStore.shared.favorites(in: playlist, entries: entries)
+                    let groups = Dictionary(grouping: entries, by: { $0.group.isEmpty ? carTr("قنوات أخرى", "Other channels") : $0.group })
+                    var sections: [CPListSection] = []
+                    if !favorites.isEmpty {
+                        sections.append(self.m3uSection(carTr("المفضلة", "Favorites"), entries: favorites, playlist: playlist))
+                    }
+                    for key in groups.keys.sorted() {
+                        if let values = groups[key] {
+                            sections.append(self.m3uSection(key, entries: values, playlist: playlist))
+                        }
+                    }
+                    template.emptyViewTitleVariants = [carTr("لا يوجد محتوى", "No content")]
+                    template.updateSections(sections)
+                }
+            } catch {
+                await MainActor.run { self?.fail(template, error) }
+            }
+        }
+    }
+
+    private func m3uSection(_ title: String, entries: [M3UEntry], playlist: M3UPlaylist) -> CPListSection {
+        let items = entries.prefix(Self.maxItems).map { entry -> CPListItem in
+            let item = CPListItem(text: entry.title, detailText: nil)
+            loadImage(entry.logo, into: item)
+            applyPlaybackConfiguration(to: item)
+            item.handler = { [weak self] _, completion in
+                guard let self else { completion(); return }
+                PlaybackManager.shared.play(.init(title: entry.title,
+                                                  subtitle: playlist.name,
+                                                  url: entry.url,
+                                                  isLive: true,
+                                                  artworkURL: entry.logo),
+                                            presentOnPhone: false)
+                if !self.supportsVideo {
+                    self.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+                }
+                completion()
+            }
+            return item
+        }
+        return CPListSection(items: Array(items), header: title, sectionIndexTitle: nil)
     }
 
     private func showCategories(for account: XtreamAccount) {

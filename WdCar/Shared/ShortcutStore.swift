@@ -13,6 +13,13 @@ final class ShortcutStore: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: storageKey),
            let saved = try? JSONDecoder().decode([SiteShortcut].self, from: data) {
             shortcuts = saved
+            let additions = Self.defaults.filter { candidate in
+                !saved.contains { Self.identity($0.url) == Self.identity(candidate.url) }
+            }
+            if !additions.isEmpty {
+                shortcuts.append(contentsOf: additions)
+                save()
+            }
         } else {
             shortcuts = Self.defaults
         }
@@ -21,7 +28,7 @@ final class ShortcutStore: ObservableObject {
     /// يرجع false إذا كان الموقع موجوداً مسبقاً
     @discardableResult
     func add(name: String, url: URL, colorHex: String? = nil) -> Bool {
-        let exists = shortcuts.contains { $0.url.host == url.host && $0.url.path == url.path }
+        let exists = shortcuts.contains { Self.identity($0.url) == Self.identity(url) }
         guard !exists else { return false }
         shortcuts.append(SiteShortcut(name: name, url: url, colorHex: colorHex ?? Self.palette.randomElement() ?? "#2E7D32"))
         save()
@@ -29,7 +36,8 @@ final class ShortcutStore: ObservableObject {
     }
 
     func update(_ shortcut: SiteShortcut) {
-        guard let index = shortcuts.firstIndex(where: { $0.id == shortcut.id }) else { return }
+        guard let index = shortcuts.firstIndex(where: { $0.id == shortcut.id }),
+              !shortcuts.enumerated().contains(where: { $0.offset != index && Self.identity($0.element.url) == Self.identity(shortcut.url) }) else { return }
         shortcuts[index] = shortcut
         save()
     }
@@ -59,6 +67,14 @@ final class ShortcutStore: ObservableObject {
         }
     }
 
+    private static func identity(_ url: URL) -> String {
+        var host = (url.host ?? "").lowercased()
+        if host.hasPrefix("www.") { host.removeFirst(4) }
+        if host.hasPrefix("m.") { host.removeFirst(2) }
+        let path = url.path == "/" ? "" : url.path.lowercased()
+        return host + path
+    }
+
     static let palette = ["#2E7D32", "#1565C0", "#6A1B9A", "#C62828", "#EF6C00", "#00838F", "#37474F", "#AD1457"]
 
     private static var defaults: [SiteShortcut] {
@@ -74,7 +90,15 @@ final class ShortcutStore: ObservableObject {
             ("Pluto TV", "https://pluto.tv", "#2D2D8F"),
             ("Tubi", "https://tubitv.com", "#7408FF"),
             ("Plex", "https://app.plex.tv", "#E5A00D"),
-            ("Crunchyroll", "https://www.crunchyroll.com", "#F47521")
+            ("Crunchyroll", "https://www.crunchyroll.com", "#F47521"),
+            ("القرآن الكريم – MP3Quran", "https://www.mp3quran.net/", "#168A65"),
+            ("SoundCloud – ساوند كلاود", "https://m.soundcloud.com/", "#FF5500"),
+            ("Netflix – نتفليكس", "https://www.netflix.com/", "#E50914"),
+            ("Windows XP – محاكي ويندوز XP", "https://pranx.com/windows-xp-simulator/", "#1683D8"),
+            ("علوي TV – Alawi TV", "https://tv2tv.com/login", "#134A72"),
+            ("Prime Video – برايم فيديو", "https://www.primevideo.com/", "#00A8E1"),
+            ("TOD – منصة تود", "https://www.tod.tv/ar", "#F4A900"),
+            ("CrazyGames – كريزي جيمز", "https://www.crazygames.com/", "#1C1C1C")
         ]
         return list.compactMap { name, link, color in
             URL(string: link).map { SiteShortcut(name: name, url: $0, colorHex: color) }

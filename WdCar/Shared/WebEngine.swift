@@ -164,14 +164,15 @@ enum WebEngine {
         }
         var factor = document.documentElement.clientWidth / vw;
         factor = factor > 0 ? factor : 1;
-        var size = 36 / factor;
+        var size = 50 / factor;
         var inset = 8 / factor;
         expandButton.style.display = 'block';
         expandButton.style.width = size + 'px';
         expandButton.style.height = size + 'px';
-        expandButton.style.fontSize = (26 / factor) + 'px';
-        expandButton.style.left = Math.max(inset, Math.min(vw - size - inset, rect.right - size - inset)) + 'px';
-        expandButton.style.top = Math.max(inset, Math.min(vh - size - inset, rect.top + inset)) + 'px';
+        expandButton.style.fontSize = (32 / factor) + 'px';
+        expandButton.style.borderRadius = '50%';
+        expandButton.style.left = Math.max(inset, Math.min(vw - size - inset, (vw - size) / 2)) + 'px';
+        expandButton.style.top = Math.max(inset, Math.min(vh - size - inset, rect.top + (rect.height - size) / 2)) + 'px';
       }
       setInterval(updateExpandButton, 500);
       window.addEventListener('scroll', updateExpandButton, true);

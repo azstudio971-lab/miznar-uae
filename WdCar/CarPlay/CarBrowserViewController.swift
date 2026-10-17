@@ -3,9 +3,10 @@ import Combine
 import WebKit
 
 /// متصفح السيارة الكامل — يُرسم داخل نافذة CarPlay.
-/// الشريط العلوي (من اليسار): حجم النص | إخفاء الشريط | ملء شاشة الفيديو | حفظ | التبويبات | تحديث | العنوان | الرئيسية | رجوع | إغلاق
+/// شريط المتصفح: التكبير | إخفاء الشريط | الفيديو | حفظ | التبويبات | تحديث | العنوان | اختصارات | رجوع | القائمة
 final class CarBrowserViewController: UIViewController {
     var onVideoFullscreenChange: ((Bool) -> Void)?
+    var onExitEntertainment: (() -> Void)?
 
     func pauseForNavigation() {
         currentSession?.exitVideoFullscreen()
@@ -32,6 +33,7 @@ final class CarBrowserViewController: UIViewController {
     private let videoOverlay = CarVideoOverlayView()
     private let drivingOverlay = CarDrivingLockView()
     private let toastLabel = PaddingLabel()
+    private let siteErrorLabel = PaddingLabel()
     private let restoreButton = CarUI.iconButton("chevron.down", size: 16, background: UIColor(white: 0.1, alpha: 0.85))
     private var textPanel: CarTextInputView?
     private var tabsPanel: CarTabsPanel?
@@ -45,7 +47,7 @@ final class CarBrowserViewController: UIViewController {
     private let urlButton = CarUI.textButton("أدخل عنوان URL أو ابحث", size: 16)
     private let homeButton = CarUI.iconButton("house")
     private let backButton = CarUI.iconButton("chevron.left")
-    private let closeButton = CarUI.iconButton("xmark")
+    private let closeButton = CarUI.iconButton("line.3.horizontal")
 
     private var contentTopToToolbar: NSLayoutConstraint!
     private var contentTopToSafe: NSLayoutConstraint!
@@ -103,7 +105,10 @@ final class CarBrowserViewController: UIViewController {
         urlButton.addAction(UIAction { [weak self] _ in self?.presentTextInput(mode: .url, initial: "", placeholder: "") }, for: .touchUpInside)
         homeButton.addAction(UIAction { [weak self] _ in self?.goHome() }, for: .touchUpInside)
         backButton.addAction(UIAction { [weak self] _ in self?.goBack() }, for: .touchUpInside)
-        closeButton.addAction(UIAction { [weak self] _ in self?.closeCurrentTab() }, for: .touchUpInside)
+        closeButton.accessibilityIdentifier = "car.exitEntertainment"
+        closeButton.accessibilityLabel = carTr("القائمة الرئيسية", "Main menu")
+        closeButton.accessibilityHint = carTr("العودة إلى قائمة CarPlay", "Return to the CarPlay menu")
+        closeButton.addAction(UIAction { [weak self] _ in self?.onExitEntertainment?() }, for: .touchUpInside)
 
         toolbar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(toolbar)
@@ -176,6 +181,18 @@ final class CarBrowserViewController: UIViewController {
         toastLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(toastLabel)
 
+        siteErrorLabel.font = .systemFont(ofSize: 19, weight: .semibold)
+        siteErrorLabel.textColor = .white
+        siteErrorLabel.textAlignment = .center
+        siteErrorLabel.numberOfLines = 0
+        siteErrorLabel.backgroundColor = UIColor(red: 0.10, green: 0.12, blue: 0.17, alpha: 0.96)
+        siteErrorLabel.layer.cornerRadius = 16
+        siteErrorLabel.clipsToBounds = true
+        siteErrorLabel.isHidden = true
+        siteErrorLabel.accessibilityIdentifier = "car.site.error"
+        siteErrorLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(siteErrorLabel)
+
         let guide = view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
             restoreButton.topAnchor.constraint(equalTo: guide.topAnchor, constant: 6),
@@ -183,7 +200,12 @@ final class CarBrowserViewController: UIViewController {
             restoreButton.widthAnchor.constraint(equalToConstant: 48),
             restoreButton.heightAnchor.constraint(equalToConstant: 36),
             toastLabel.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
-            toastLabel.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: -24)
+            toastLabel.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: -24),
+            siteErrorLabel.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
+            siteErrorLabel.centerYAnchor.constraint(equalTo: guide.centerYAnchor),
+            siteErrorLabel.leadingAnchor.constraint(greaterThanOrEqualTo: guide.leadingAnchor, constant: 48),
+            siteErrorLabel.trailingAnchor.constraint(lessThanOrEqualTo: guide.trailingAnchor, constant: -48),
+            siteErrorLabel.widthAnchor.constraint(lessThanOrEqualTo: guide.widthAnchor, multiplier: 0.72)
         ])
     }
 
@@ -279,6 +301,14 @@ final class CarBrowserViewController: UIViewController {
         session.$videoStatus
             .receive(on: RunLoop.main)
             .sink { [weak self] status in self?.videoOverlay.update(status) }
+            .store(in: &sessionBag)
+
+        session.$navigationError
+            .receive(on: RunLoop.main)
+            .sink { [weak self] message in
+                self?.siteErrorLabel.text = message
+                self?.siteErrorLabel.isHidden = message == nil
+            }
             .store(in: &sessionBag)
 
         session.focusEvents

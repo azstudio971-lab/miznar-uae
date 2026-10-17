@@ -1,18 +1,22 @@
 import UIKit
+import SwiftUI
 
 /// Navigation for the external car window. Scene ownership remains UIKit, as in 1.3.1 (4).
 final class CarDashboardViewController: UIViewController {
-    private let menu = UISegmentedControl(items: ["", "", ""])
+    private let menu = UISegmentedControl(items: ["", "", "", ""])
     private let bodyView = UIView()
     private var pageView: UIView?
     private var browser: CarBrowserViewController?
     private var zoomLabel: UILabel?
+    private var tvController: UIHostingController<XtreamHomeView>?
+    private weak var welcomeGradient: CAGradientLayer?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = CarUI.navy
         menu.accessibilityIdentifier = "car.navigation"
         menu.selectedSegmentTintColor = CarUI.accent
+        menu.semanticContentAttribute = .forceRightToLeft
         menu.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .normal)
         menu.setTitleTextAttributes([.foregroundColor: CarUI.navy], for: .selected)
         menu.selectedSegmentIndex = CarScreenLauncher.shared.isLaunching ? 1 : 0
@@ -34,18 +38,25 @@ final class CarDashboardViewController: UIViewController {
         showSelectedPage()
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        welcomeGradient?.frame = pageView?.bounds ?? .zero
+    }
+
     private func updateLanguage() {
         menu.setTitle(carTr("الرئيسية", "Home"), forSegmentAt: 0)
         menu.setTitle(carTr("الترفيه", "Entertainment"), forSegmentAt: 1)
-        menu.setTitle(carTr("الإعدادات", "Settings"), forSegmentAt: 2)
+        menu.setTitle(carTr("التلفزيون TV", "TV"), forSegmentAt: 2)
+        menu.setTitle(carTr("الإعدادات", "Settings"), forSegmentAt: 3)
         view.semanticContentAttribute = WDSettings.carLanguage == "ar" ? .forceRightToLeft : .forceLeftToRight
     }
 
     private func showSelectedPage() {
         pageView?.removeFromSuperview()
         pageView = nil
-        menu.isHidden = false
+        menu.isHidden = menu.selectedSegmentIndex == 1
         browser?.view.isHidden = true
+        tvController?.view.isHidden = true
         if menu.selectedSegmentIndex != 1 {
             browser?.pauseForNavigation()
         }
@@ -55,7 +66,12 @@ final class CarDashboardViewController: UIViewController {
                 let controller = CarBrowserViewController()
                 controller.onVideoFullscreenChange = { [weak self] on in
                     guard let self else { return }
-                    self.menu.isHidden = on && self.menu.selectedSegmentIndex == 1
+                    self.menu.isHidden = on || self.menu.selectedSegmentIndex == 1
+                }
+                controller.onExitEntertainment = { [weak self] in
+                    guard let self else { return }
+                    self.menu.selectedSegmentIndex = 0
+                    self.showSelectedPage()
                 }
                 addChild(controller)
                 bodyView.addSubview(controller.view)
@@ -64,7 +80,26 @@ final class CarDashboardViewController: UIViewController {
                 browser = controller
             }
             browser?.view.isHidden = false
-        case 2: install(makeSettings())
+        case 2:
+            if tvController == nil {
+                let controller = UIHostingController(rootView: XtreamHomeView())
+                controller.view.backgroundColor = UIColor(red: 0.035, green: 0.05, blue: 0.085, alpha: 1)
+                controller.overrideUserInterfaceStyle = .dark
+                addChild(controller)
+                bodyView.addSubview(controller.view)
+                CarUI.pin(controller.view, to: bodyView)
+                controller.didMove(toParent: self)
+                tvController = controller
+            }
+            if let tvView = tvController?.view {
+                if tvView.superview !== bodyView {
+                    bodyView.addSubview(tvView)
+                    CarUI.pin(tvView, to: bodyView)
+                }
+                tvView.isHidden = false
+                pageView = tvView
+            }
+        case 3: install(makeSettings())
         default: install(makeHome())
         }
     }
@@ -104,20 +139,54 @@ final class CarDashboardViewController: UIViewController {
     }
 
     private func makeHome() -> UIView {
-        let logo = UIImageView(image: UIImage(named: "LogoMark"))
-        logo.contentMode = .scaleAspectFit
-        logo.heightAnchor.constraint(equalToConstant: 48).isActive = true
-        let page = page([
-            logo,
-            label("مرحباً بكم في وُد كار (WudCar)", "Welcome to WudCar", size: 23, accent: true),
-            label("أهلاً بكم في تجربتكم الترفيهية مع وُد كار.", "Welcome to your entertainment experience with WudCar."),
-            label("يمكنكم تخصيص إعدادات التطبيق وإدارة خيارات الترفيه والمواقع المفضلة بسهولة من خلال تطبيق WudCar على هاتف iPhone.",
-                  "Customize app settings, entertainment options, and favorite websites in WudCar on your iPhone."),
-            label("سلامتكم أولويتنا، لذا نرجو الالتزام بقواعد السلامة المرورية وعدم الانشغال بالشاشة أثناء القيادة.",
-                  "Your safety comes first. Please follow traffic safety rules and avoid interacting with the screen while driving."),
-            label("رافقتكم السلامة ..", "Safe travels", accent: true)
-        ])
+        let page = UIView()
         page.accessibilityIdentifier = "car.home"
+        page.backgroundColor = UIColor(red: 0.035, green: 0.05, blue: 0.085, alpha: 1)
+        let gradient = CAGradientLayer()
+        gradient.colors = [
+            UIColor(red: 0.055, green: 0.075, blue: 0.13, alpha: 1).cgColor,
+            UIColor(red: 0.02, green: 0.03, blue: 0.055, alpha: 1).cgColor
+        ]
+        gradient.startPoint = CGPoint(x: 0, y: 0)
+        gradient.endPoint = CGPoint(x: 1, y: 1)
+        page.layer.insertSublayer(gradient, at: 0)
+        welcomeGradient = gradient
+
+        let logo = UIImageView(image: UIImage(named: "LogoFull") ?? UIImage(named: "LogoMark"))
+        logo.contentMode = .scaleAspectFit
+        logo.translatesAutoresizingMaskIntoConstraints = false
+
+        let copy = UIStackView(arrangedSubviews: [
+            label("مرحباً بكم في وُد كار (WudCar)", "Welcome to WudCar", size: 25, accent: true),
+            label("أهلاً بكم في تجربتكم الترفيهية مع وُد كار.", "Welcome to your entertainment experience with WudCar.", size: 18),
+            label("يمكنكم تخصيص إعدادات التطبيق وإدارة خيارات الترفيه والمواقع المفضلة بسهولة من خلال تطبيق WudCar على هاتف iPhone.",
+                  "Customize app settings, entertainment options, and favorite websites in WudCar on your iPhone.", size: 16),
+            label("سلامتكم أولويتنا، لذا نرجو الالتزام بقواعد السلامة المرورية وعدم الانشغال بالشاشة أثناء القيادة.",
+                  "Your safety comes first. Please follow traffic safety rules and avoid interacting with the screen while driving.", size: 16),
+            label("رافقتكم السلامة ..", "Safe travels", size: 18, accent: true)
+        ])
+        copy.axis = .vertical
+        copy.spacing = 10
+        copy.alignment = .fill
+        copy.translatesAutoresizingMaskIntoConstraints = false
+
+        let row = UIStackView(arrangedSubviews: [logo, copy])
+        row.axis = .horizontal
+        row.spacing = 30
+        row.alignment = .center
+        row.semanticContentAttribute = .forceLeftToRight
+        copy.semanticContentAttribute = .forceRightToLeft
+        row.translatesAutoresizingMaskIntoConstraints = false
+        page.addSubview(row)
+        NSLayoutConstraint.activate([
+            row.leadingAnchor.constraint(equalTo: page.leadingAnchor, constant: 34),
+            row.trailingAnchor.constraint(equalTo: page.trailingAnchor, constant: -34),
+            row.topAnchor.constraint(equalTo: page.topAnchor, constant: 22),
+            row.bottomAnchor.constraint(equalTo: page.bottomAnchor, constant: -22),
+            logo.widthAnchor.constraint(equalTo: row.widthAnchor, multiplier: 0.29),
+            logo.heightAnchor.constraint(lessThanOrEqualTo: row.heightAnchor, multiplier: 0.82),
+            copy.widthAnchor.constraint(equalTo: row.widthAnchor, multiplier: 0.64)
+        ])
         return page
     }
 
