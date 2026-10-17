@@ -137,7 +137,7 @@ enum WebEngine {
       }
 
       window.__wdEnterFS = function () { return enter(null); };
-      // A reversible expansion control in the video's upper corner.
+      // A reversible expansion control centered over the visible video.
       var expandButton = null;
       function updateExpandButton() {
         var video = biggestVideo();
@@ -162,7 +162,7 @@ enum WebEngine {
           });
           (document.body || document.documentElement).appendChild(expandButton);
         }
-        var factor = document.documentElement.clientWidth / vw;
+        var factor = Number(window.__wdNativePageZoom) || 1;
         factor = factor > 0 ? factor : 1;
         var size = 50 / factor;
         var inset = 8 / factor;
@@ -171,7 +171,7 @@ enum WebEngine {
         expandButton.style.height = size + 'px';
         expandButton.style.fontSize = (32 / factor) + 'px';
         expandButton.style.borderRadius = '50%';
-        expandButton.style.left = Math.max(inset, Math.min(vw - size - inset, (vw - size) / 2)) + 'px';
+        expandButton.style.left = Math.max(inset, Math.min(vw - size - inset, rect.left + (rect.width - size) / 2)) + 'px';
         expandButton.style.top = Math.max(inset, Math.min(vh - size - inset, rect.top + (rect.height - size) / 2)) + 'px';
       }
       setInterval(updateExpandButton, 500);
@@ -230,6 +230,14 @@ enum WebEngine {
         if (!v) { return; }
         post({ type: 'time', t: v.currentTime || 0, d: isFinite(v.duration) ? v.duration : 0, p: !v.paused });
       }, 1000);
+
+      document.addEventListener('error', function (event) {
+        var media = event.target;
+        if (media && media.tagName === 'VIDEO' && media.error &&
+            (media.error.code === 3 || media.error.code === 4)) {
+          post({ type: 'mediaError' });
+        }
+      }, true);
 
       // ---------- الكتابة ----------
       function editable(el) {

@@ -88,7 +88,7 @@ final class TabSession: NSObject, ObservableObject {
 
     func applyCarLayout() {
         guard side == .car else { return }
-        run("window.__wdApplyCarLayout && window.__wdApplyCarLayout();")
+        run("window.__wdNativePageZoom = \(Double(webView.pageZoom)); window.__wdApplyCarLayout && window.__wdApplyCarLayout();")
     }
 
     func setDesktopMode(_ on: Bool) {
@@ -198,6 +198,9 @@ extension TabSession: WKScriptMessageHandler {
                 duration: (body["d"] as? NSNumber)?.doubleValue ?? 0,
                 playing: (body["p"] as? Bool) ?? false
             )
+        case "mediaError":
+            navigationError = carTr("تعذّر تشغيل هذا الفيديو داخل المتصفح المضمّن. قد يتطلب اشتراكاً أو تطبيق الموقع الرسمي، أو يستخدم صيغة غير مدعومة.",
+                                    "This video could not play in the embedded browser. It may require a subscription or the official app, or use an unsupported format.")
         case "focus":
             focusEvents.send(FocusInfo(
                 value: body["value"] as? String ?? "",
@@ -249,6 +252,7 @@ extension TabSession: WKNavigationDelegate, WKUIDelegate {
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        if (error as NSError).code == NSURLErrorCancelled { return }
         navigationError = carTr("تعذّر تحميل هذا الموقع. قد يمنع الموقع التصفح المضمّن أو يتطلب تسجيل الدخول. جرّب فتحه في Safari أو تطبيقه الرسمي.",
                                 "This site could not load. It may block embedded browsing or require sign-in. Try Safari or its official app.")
     }
