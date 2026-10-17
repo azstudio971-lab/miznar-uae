@@ -15,7 +15,7 @@ final class CarDashboardViewController: UIViewController {
         menu.selectedSegmentTintColor = CarUI.accent
         menu.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .normal)
         menu.setTitleTextAttributes([.foregroundColor: CarUI.navy], for: .selected)
-        menu.selectedSegmentIndex = 0
+        menu.selectedSegmentIndex = CarScreenLauncher.shared.isLaunching ? 1 : 0
         menu.addAction(UIAction { [weak self] _ in self?.showSelectedPage() }, for: .valueChanged)
         let stack = UIStackView(arrangedSubviews: [menu, bodyView])
         stack.axis = .vertical
