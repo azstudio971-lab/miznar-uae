@@ -59,6 +59,16 @@ final class TabSession: NSObject, ObservableObject {
 
     func resetZoom() { webView.pageZoom = 1.0 }
 
+    func applyCarZoom(_ zoom: Double) {
+        webView.pageZoom = CGFloat(min(1.5, max(0.5, zoom)))
+        applyCarLayout()
+    }
+
+    func applyCarLayout() {
+        guard side == .car else { return }
+        run("window.__wdApplyCarLayout && window.__wdApplyCarLayout();")
+    }
+
     func setDesktopMode(_ on: Bool) {
         isDesktopMode = on
         webView.customUserAgent = on ? WebEngine.desktopUserAgent : nil
@@ -201,6 +211,7 @@ extension TabSession: WKNavigationDelegate, WKUIDelegate {
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if side == .car { applyCarZoom(WDSettings.carZoom) }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
             self?.takeSnapshot()
         }
