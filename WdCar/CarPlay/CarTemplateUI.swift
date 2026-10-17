@@ -101,7 +101,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         WDLog.car("templates connected supportsVideo=\(supportsVideo)")
         startedAt = Date()
         refreshVideoSupport()
-        statusTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] in
+        statusTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             self?.refreshVideoSupport()
         }
     }
