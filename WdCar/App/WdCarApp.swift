@@ -53,6 +53,9 @@ final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
             window.overrideUserInterfaceStyle = .dark
             window.rootViewController = CarBrowserViewController()
         } else {
+            // Phone only: give the hosting controller a full, nonzero scene-sized window.
+            window.frame = windowScene.coordinateSpace.bounds
+            window.backgroundColor = .systemBackground
             window.rootViewController = UIHostingController(
                 rootView: RootView().environmentObject(AppState.shared).tint(.wdAccent))
         }
@@ -73,3 +76,4 @@ final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
         window = nil
     }
 }
+

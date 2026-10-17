@@ -10,7 +10,7 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
-    MARKETING_VERSION: "1.3.1"
+    MARKETING_VERSION: "1.3.2"
     CURRENT_PROJECT_VERSION: "1"
     VERSIONING_SYSTEM: apple-generic
 
@@ -34,3 +34,18 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SUPPORTS_MACCATALYST: NO
+
+  WdCarUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: WdCarUITests
+    dependencies:
+      - target: WdCar
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.azstudio.wudcar.uitests
+        GENERATE_INFOPLIST_FILE: YES
+    scheme:
+      testTargets:
+        - WdCarUITests

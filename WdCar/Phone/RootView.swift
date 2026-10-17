@@ -5,7 +5,6 @@ struct RootView: View {
     @ObservedObject private var bridge = CarKeyboardBridge.shared
     @AppStorage(WDKeys.language) private var language = L10n.language.rawValue
     @AppStorage(WDKeys.appearance) private var appearance = AppAppearance.system.rawValue
-    @State private var introFinished = false
 
     var body: some View {
         ZStack {
@@ -17,13 +16,7 @@ struct RootView: View {
                         .presentationDetents([.medium, .large])
                 }
 
-            if !introFinished {
-                IntroView {
-                    withAnimation(.easeOut(duration: 0.35)) { introFinished = true }
-                }
-                .transition(.opacity)
-                .zIndex(1)
-            }
+
         }
         .environment(\.layoutDirection, language == AppLanguage.ar.rawValue ? .rightToLeft : .leftToRight)
         .environment(\.locale, Locale(identifier: language))
@@ -154,3 +147,4 @@ struct SendToCarIcon: View {
         }
     }
 }
+
