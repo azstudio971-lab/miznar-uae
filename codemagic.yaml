@@ -32,7 +32,13 @@ workflows:
       - name: بناء واختبار نسخة المعاينة فقط
         script: |
           set -euo pipefail
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for a in d["devices"].values() for v in a if "iPhone" in v["name"]))')
+          xcrun simctl list devices available
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); candidates=[(k,v["udid"]) for k,a in d["devices"].items() for v in a if "iPhone" in v["name"] and any(t in k for t in ("iOS-18-", "iOS-26-1", "iOS-26-2", "iOS-26-6"))]; print(sorted(candidates)[0][1] if candidates else "")')
+          if [ -z "$DEVICE" ]; then
+            xcodebuild -downloadPlatform iOS -buildVersion 26.1
+            DEVICE=$(xcrun simctl create WudCarStoreKitTest com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro com.apple.CoreSimulator.SimRuntime.iOS-26-1)
+          fi
+          echo "STOREKIT_TEST_DEVICE: $DEVICE"
           xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests \
             -destination "platform=iOS Simulator,id=$DEVICE" \
             -parallel-testing-enabled NO -test-timeouts-enabled YES \
@@ -101,7 +107,13 @@ workflows:
       - name: اختبار واجهة السيارة والتكبير والفيديو والمواقع
         script: |
           set -euo pipefail
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for a in d["devices"].values() for v in a if "iPhone" in v["name"]))')
+          xcrun simctl list devices available
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); candidates=[(k,v["udid"]) for k,a in d["devices"].items() for v in a if "iPhone" in v["name"] and any(t in k for t in ("iOS-18-", "iOS-26-1", "iOS-26-2", "iOS-26-6"))]; print(sorted(candidates)[0][1] if candidates else "")')
+          if [ -z "$DEVICE" ]; then
+            xcodebuild -downloadPlatform iOS -buildVersion 26.1
+            DEVICE=$(xcrun simctl create WudCarStoreKitTest com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro com.apple.CoreSimulator.SimRuntime.iOS-26-1)
+          fi
+          echo "STOREKIT_TEST_DEVICE: $DEVICE"
           xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 180 -resultBundlePath /tmp/WudCarUpdate14Interface.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-update14-interface-tests.log
       - name: صور التحقق من عرض المتصفح
         script: |
