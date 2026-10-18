@@ -184,8 +184,14 @@ final class CarInterfaceTests: XCTestCase {
             session.applyCarZoom(zoom)
             controller.view.layoutIfNeeded()
             try await Task.sleep(nanoseconds: 300_000_000)
-            let fillWidth = try await session.webView.evaluateJavaScript("document.getElementById('fill').getBoundingClientRect().width") as? Double ?? 0
-            let viewportWidth = try await session.webView.evaluateJavaScript("window.visualViewport.width") as? Double ?? 0
+            var stableMetrics: [String: Double] = [:]
+            for _ in 0..<50 {
+                stableMetrics = try await session.webView.evaluateJavaScript("({fill:document.getElementById('fill').getBoundingClientRect().width,viewport:window.visualViewport.width})") as? [String: Double] ?? [:]
+                if let fill = stableMetrics["fill"], let viewport = stableMetrics["viewport"], fill > 0, abs(fill - viewport) <= 1 { break }
+                try await Task.sleep(nanoseconds: 100_000_000)
+            }
+            let fillWidth = stableMetrics["fill"] ?? 0
+            let viewportWidth = stableMetrics["viewport"] ?? 0
             XCTAssertGreaterThan(fillWidth, 0)
             XCTAssertEqual(fillWidth, viewportWidth, accuracy: 1, "Page content must fill the visual viewport at every zoom level")
             XCTAssertEqual(session.webView.frame, controller.view.bounds)
