@@ -157,7 +157,7 @@ final class CarInterfaceTests: XCTestCase {
         browser.revealScrollControls()
         XCTAssertFalse(up.isHidden)
         try await Task.sleep(nanoseconds: 3_200_000_000)
-        XCTAssertTrue(up.isHidden, "Scroll buttons hide three seconds after the last touch")
+        XCTAssertTrue(isEffectivelyHidden(up), "Scroll buttons hide three seconds after the last touch")
         browser.revealToolbar()
         XCTAssertFalse(toolbar.isHidden)
         try await Task.sleep(nanoseconds: 4_200_000_000)
