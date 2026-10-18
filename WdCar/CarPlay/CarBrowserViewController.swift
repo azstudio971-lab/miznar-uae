@@ -260,7 +260,7 @@ final class CarBrowserViewController: UIViewController {
             .receive(on: RunLoop.main)
             .sink { [weak self] active in
                 guard let self else { return }
-                self.mouseCursor.isHidden = !active || self.showingHome
+                self.mouseCursor.isHidden = !active
                 if active && self.mouseCursorCenter == nil {
                     self.mouseCursorCenter = CGPoint(x: self.contentView.bounds.midX, y: self.contentView.bounds.midY)
                 }
@@ -286,7 +286,8 @@ final class CarBrowserViewController: UIViewController {
             contentView.bringSubviewToFront(shortcutsView)
             currentSession?.webView.isHidden = true
             progressView.isHidden = true
-            mouseCursor.isHidden = true
+            mouseCursor.isHidden = !CarMouseBridge.shared.isActive
+            updateMouseCursorFrame()
             CarUI.setTitle(urlButton, "أدخل عنوان URL أو ابحث", size: 16)
             backButton.isEnabled = tab.url != nil
             return
@@ -379,7 +380,7 @@ final class CarBrowserViewController: UIViewController {
     }
 
     private func handleMouseInput(_ input: CarMouseBridge.Input) {
-        guard CarMouseBridge.shared.isActive, let session = currentSession, !showingHome else { return }
+        guard CarMouseBridge.shared.isActive else { return }
         switch input {
         case .move(let delta):
             let center = mouseCursorCenter ?? CGPoint(x: contentView.bounds.midX, y: contentView.bounds.midY)
@@ -389,9 +390,20 @@ final class CarBrowserViewController: UIViewController {
             )
             updateMouseCursorFrame()
         case .scroll(let delta):
+            if showingHome || currentSession == nil || currentSession?.webView.isHidden == true {
+                shortcutsView.scrollFromPhone(delta)
+                return
+            }
+            guard let session = currentSession else { return }
             let dx = Double(delta.x), dy = Double(delta.y)
             session.runMouseJavaScript("window.scrollBy({left: innerWidth * \(dx), top: innerHeight * \(dy), behavior: 'smooth'})")
         case .click:
+            if showingHome || currentSession == nil || currentSession?.webView.isHidden == true {
+                let point = shortcutsView.convert(mouseCursor.center, from: contentView)
+                shortcutsView.activateShortcut(at: point)
+                return
+            }
+            guard let session = currentSession else { return }
             let point = session.webView.convert(mouseCursor.center, from: contentView)
             let width = max(session.webView.bounds.width, 1), height = max(session.webView.bounds.height, 1)
             let x = max(0, min(1, point.x / width)), y = max(0, min(1, point.y / height))
@@ -399,9 +411,9 @@ final class CarBrowserViewController: UIViewController {
         case .navigate(let command):
             switch command {
             case .back: goBack()
-            case .forward: session.webView.goForward()
+            case .forward: currentSession?.webView.goForward()
             case .home: goHome()
-            case .reload: session.reload()
+            case .reload: currentSession?.reload()
             }
         }
     }

@@ -56,6 +56,21 @@ final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionVi
             .store(in: &bag)
     }
 
+    /// Activate an app-owned shortcut from the phone touchpad without synthetic UIKit touches.
+    @discardableResult
+    func activateShortcut(at point: CGPoint) -> Bool {
+        let pointInCollection = collection.convert(point, from: self)
+        guard let index = collection.indexPathForItem(at: pointInCollection), items.indices.contains(index.item) else { return false }
+        onSelect?(items[index.item])
+        return true
+    }
+
+    func scrollFromPhone(_ delta: CGPoint) {
+        let maxY = max(0, collection.contentSize.height - collection.bounds.height)
+        let nextY = min(maxY, max(0, collection.contentOffset.y + delta.y * collection.bounds.height))
+        collection.setContentOffset(CGPoint(x: 0, y: nextY), animated: true)
+    }
+
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {

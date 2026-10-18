@@ -266,6 +266,24 @@ final class CarInterfaceTests: XCTestCase {
         try await Task.sleep(nanoseconds: 700_000_000)
         let scrollY = try await session.webView.evaluateJavaScript("window.scrollY") as? Double ?? 0
         XCTAssertGreaterThan(scrollY, 0, "Phone scroll must move the web document")
+        CarMouseBridge.shared.send(.navigate(.home))
+        try await Task.sleep(nanoseconds: 300_000_000)
+        func descendants(_ view: UIView) -> [UIView] { [view] + view.subviews.flatMap { descendants($0) } }
+        let shortcuts = try XCTUnwrap(descendants(browser.view).compactMap { $0 as? CarShortcutsView }.first)
+        let collection = try XCTUnwrap(descendants(shortcuts).compactMap { $0 as? UICollectionView }.first)
+        collection.layoutIfNeeded()
+        let cell = try XCTUnwrap(collection.visibleCells.first)
+        var selectedShortcut: UUID?
+        shortcuts.onSelect = { selectedShortcut = $0.id }
+        let container = try XCTUnwrap(cursor.superview)
+        let target = cell.convert(CGPoint(x: cell.bounds.midX, y: cell.bounds.midY), to: container)
+        CarMouseBridge.shared.send(.move(CGPoint(x: (target.x - cursor.center.x) / container.bounds.width,
+                                               y: (target.y - cursor.center.y) / container.bounds.height)))
+        try await Task.sleep(nanoseconds: 200_000_000)
+        CarMouseBridge.shared.send(.click)
+        try await Task.sleep(nanoseconds: 200_000_000)
+        XCTAssertFalse(cursor.isHidden)
+        XCTAssertNotNil(selectedShortcut, "Phone pointer must open a native WudCar shortcut from the browser home")
         let toolbar = try XCTUnwrap(find("car.browser.toolbar", in: browser.view))
         XCTAssertLessThanOrEqual(toolbar.frame.height, 38)
     }
