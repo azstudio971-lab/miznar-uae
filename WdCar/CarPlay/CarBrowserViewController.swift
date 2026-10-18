@@ -155,6 +155,7 @@ final class CarBrowserViewController: UIViewController {
             progressView.heightAnchor.constraint(equalToConstant: 3)
         ])
 
+        mouseCursor.accessibilityIdentifier = "car.mouse.cursor"
         mouseCursor.tintColor = .white
         mouseCursor.backgroundColor = UIColor(white: 0.08, alpha: 0.82)
         mouseCursor.layer.cornerRadius = 15

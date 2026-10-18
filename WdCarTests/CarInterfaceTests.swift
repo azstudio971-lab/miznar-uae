@@ -178,7 +178,7 @@ final class CarInterfaceTests: XCTestCase {
         controller.view.addSubview(session.webView)
         CarUI.pin(session.webView, to: controller.view)
         controller.view.layoutIfNeeded()
-        session.webView.loadHTMLString("<html><head><title>WudCar layout fixture</title><meta name='viewport' content='width=device-width, initial-scale=1'></head><body style='margin:0;background:#000'><div id='fill' style='width:100%;min-height:5000px;background:#e9b33f'><video controls width='640' height='360'></video></div></body></html>", baseURL: nil)
+        session.webView.loadHTMLString("<html><head><title>WudCar layout fixture</title><meta name='viewport' content='width=device-width, initial-scale=1'></head><body style='margin:0;background:#000'><div id='fill' style='width:100%;min-height:5000px;background:#e9b33f'><div style='transform:translate(9px,19px);contain:paint'><video controls width='640' height='360'></video></div></div></body></html>", baseURL: nil)
         try await waitForDocument(session.webView, marker: "WudCar layout fixture")
         for zoom in [0.5, 1.0, 1.5] {
             session.applyCarZoom(zoom)
@@ -231,15 +231,41 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertEqual(exited, false)
     }
 
-    func testMousePageAndCompactBrowserToolbar() throws {
-        let pad = UIHostingController(rootView: CarMousePadView())
-        display(pad)
-        XCTAssertNotNil(find("phone.mouse.touchpad", in: pad.view))
-        XCTAssertNotNil(find("phone.mouse.click", in: pad.view))
-        CarMouseBridge.shared.setActive(false)
-
+    func testMouseControlsWebContentAndCompactBrowserToolbar() async throws {
+        let store = TabStore.car
+        let originalID = store.activeID
+        let savedZoom = WDSettings.carZoom
+        WDSettings.carZoom = 1
+        let id = store.newTab(url: URL(string: "about:blank")!)
+        defer {
+            CarMouseBridge.shared.setActive(false)
+            store.close(id)
+            if let originalID { store.select(originalID) }
+            WDSettings.carZoom = savedZoom
+        }
+        let session = WebViewPool.car.session(for: id)
         let browser = CarBrowserViewController()
         display(browser)
+        session.webView.loadHTMLString("<html><head><title>Mouse fixture</title><meta name='viewport' content='width=device-width,initial-scale=1'></head><body style='margin:0;height:5000px'><button onclick='window.testClicks=(window.testClicks||0)+1' style='position:fixed;left:35%;top:35%;width:30%;height:30%'>Open</button></body></html>", baseURL: nil)
+        try await waitForDocument(session.webView, marker: "Mouse fixture")
+        try await Task.sleep(nanoseconds: 400_000_000)
+        CarMouseBridge.shared.setActive(true)
+        try await Task.sleep(nanoseconds: 200_000_000)
+        let cursor = try XCTUnwrap(find("car.mouse.cursor", in: browser.view))
+        XCTAssertFalse(cursor.isHidden)
+        let center = cursor.center
+        CarMouseBridge.shared.send(.move(CGPoint(x: 0.03, y: 0.03)))
+        try await Task.sleep(nanoseconds: 200_000_000)
+        XCTAssertGreaterThan(cursor.center.x, center.x)
+        XCTAssertGreaterThan(cursor.center.y, center.y)
+        CarMouseBridge.shared.send(.click)
+        try await Task.sleep(nanoseconds: 300_000_000)
+        let clicks = try await session.webView.evaluateJavaScript("window.testClicks || 0") as? Int
+        XCTAssertEqual(clicks, 1, "Phone bridge must activate web content, not just draw a cursor")
+        CarMouseBridge.shared.send(.scroll(CGPoint(x: 0, y: 0.65)))
+        try await Task.sleep(nanoseconds: 700_000_000)
+        let scrollY = try await session.webView.evaluateJavaScript("window.scrollY") as? Double ?? 0
+        XCTAssertGreaterThan(scrollY, 0, "Phone scroll must move the web document")
         let toolbar = try XCTUnwrap(find("car.browser.toolbar", in: browser.view))
         XCTAssertLessThanOrEqual(toolbar.frame.height, 38)
     }

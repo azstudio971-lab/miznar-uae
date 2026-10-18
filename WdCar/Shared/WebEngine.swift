@@ -84,7 +84,8 @@ enum WebEngine {
         s.textContent = [
           'html.wd-fs, html.wd-fs body { overflow: hidden !important; background: #000 !important; }',
           'html.wd-fs body * { visibility: hidden !important; }',
-          'html.wd-fs .wd-fs-video { visibility: visible !important; position: fixed !important; left: 50% !important; top: 50% !important; right: auto !important; bottom: auto !important; width: var(--wd-vw, 100vw) !important; height: var(--wd-vh, 100vh) !important; max-width: none !important; max-height: none !important; margin: 0 !important; transform: translate(-50%, -50%) !important; z-index: 2147483647 !important; background: #000 !important; object-fit: var(--wd-fit, contain) !important; object-position: center center !important; }'
+          'html.wd-fs .wd-fs-ancestor { transform: none !important; filter: none !important; perspective: none !important; contain: none !important; will-change: auto !important; overflow: visible !important; }',
+          'html.wd-fs .wd-fs-video { visibility: visible !important; position: fixed !important; left: 0 !important; top: 0 !important; right: auto !important; bottom: auto !important; width: var(--wd-vw, 100vw) !important; height: var(--wd-vh, 100vh) !important; max-width: none !important; max-height: none !important; margin: 0 !important; transform: none !important; z-index: 2147483647 !important; background: #000 !important; object-fit: var(--wd-fit, contain) !important; object-position: center center !important; }'
         ].join('\n');
         (document.head || document.documentElement).appendChild(s);
       }
@@ -118,6 +119,8 @@ enum WebEngine {
         if (state.fsVideo && state.fsVideo !== v) { state.fsVideo.classList.remove('wd-fs-video'); }
         state.fsVideo = v;
         state.fsTarget = el || v;
+        document.querySelectorAll('.wd-fs-ancestor').forEach(function (node) { node.classList.remove('wd-fs-ancestor'); });
+        for (var parent = v.parentElement; parent; parent = parent.parentElement) { parent.classList.add('wd-fs-ancestor'); }
         v.classList.add('wd-fs-video');
         v.style.setProperty('--wd-fit', state.fit);
         document.documentElement.classList.add('wd-fs');
@@ -130,6 +133,7 @@ enum WebEngine {
         var was = !!state.fsVideo;
         if (state.fsVideo) { state.fsVideo.classList.remove('wd-fs-video'); }
         document.documentElement.classList.remove('wd-fs');
+        document.querySelectorAll('.wd-fs-ancestor').forEach(function (node) { node.classList.remove('wd-fs-ancestor'); });
         state.fsVideo = null;
         state.fsTarget = null;
         post({ type: 'fullscreen', on: false });
