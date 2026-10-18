@@ -6,8 +6,14 @@ import CoreGraphics
 final class CarMouseBridge: ObservableObject {
     static let shared = CarMouseBridge()
 
+    enum DashboardSection: Int { case home = 0, entertainment = 1, television = 2, settings = 3 }
     enum NavigationCommand { case back, forward, home, reload }
     enum Input {
+        case selectSection(DashboardSection)
+        case playPause
+        case stopPlayback
+        case zoom(Double)
+        case toggleVideoFullscreen
         case move(CGPoint)       // normalized to the touchpad size
         case scroll(CGPoint)     // normalized to the touchpad size
         case click

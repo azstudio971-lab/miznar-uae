@@ -98,7 +98,10 @@ final class ShortcutStore: ObservableObject {
             ("علوي TV – Alawi TV", "https://tv2tv.com/login", "#134A72"),
             ("Prime Video – برايم فيديو", "https://www.primevideo.com/", "#00A8E1"),
             ("TOD – منصة تود", "https://www.tod.tv/ar", "#F4A900"),
-            ("CrazyGames – كريزي جيمز", "https://www.crazygames.com/", "#1C1C1C")
+            ("CrazyGames – كريزي جيمز", "https://www.crazygames.com/", "#1C1C1C"),
+            ("Gmail", "https://mail.google.com/", "#EA4335"),
+            ("Outlook", "https://outlook.live.com/mail/", "#0078D4"),
+            ("ChatGPT", "https://chatgpt.com/", "#10A37F")
         ]
         return list.compactMap { name, link, color in
             URL(string: link).map { SiteShortcut(name: name, url: $0, colorHex: color) }

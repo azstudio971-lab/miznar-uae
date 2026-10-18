@@ -24,6 +24,7 @@ final class PlaybackManager: ObservableObject {
     @Published private(set) var current: Item?
     @Published private(set) var isPlaying = false
     @Published private(set) var errorMessage: String?
+    @Published private(set) var isExternalDisplayPlayback = false
     @Published var isPlayerPresented = false
 
     private var artwork: UIImage?
@@ -58,7 +59,10 @@ final class PlaybackManager: ObservableObject {
         try? session.setActive(true)
 
         errorMessage = nil
+        player.pause()
+        player.replaceCurrentItem(with: nil)
         current = item
+        isExternalDisplayPlayback = !presentOnPhone
         artwork = nil
 
         let playerItem = AVPlayerItem(url: item.url)
@@ -75,10 +79,18 @@ final class PlaybackManager: ObservableObject {
         if player.timeControlStatus == .paused { player.play() } else { player.pause() }
     }
 
+    func seek(by seconds: Double) {
+        guard current?.isLive == false else { return }
+        let target = max(0, player.currentTime().seconds + seconds)
+        player.seek(to: CMTime(seconds: target, preferredTimescale: 600))
+    }
+
     func stop() {
         player.pause()
         player.replaceCurrentItem(with: nil)
         current = nil
+        isExternalDisplayPlayback = false
+        errorMessage = nil
         isPlayerPresented = false
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
@@ -90,11 +102,28 @@ final class PlaybackManager: ObservableObject {
         item.publisher(for: \.status)
             .receive(on: RunLoop.main)
             .sink { [weak self] status in
+                guard let self else { return }
                 if status == .failed {
-                    self?.errorMessage = item.error?.localizedDescription
+                    self.errorMessage = item.error?.localizedDescription
                         ?? tr("تعذّر تشغيل هذا المحتوى.", "This content could not be played.")
+                } else if status == .readyToPlay {
+                    let expectedURL = self.current?.url
+                    Task { [weak self] in
+                        do {
+                            let tracks = try await item.asset.loadTracks(withMediaType: .video)
+                            guard tracks.isEmpty, let self, self.current?.url == expectedURL else { return }
+                            await MainActor.run {
+                                guard self.current?.url == expectedURL else { return }
+                                self.errorMessage = tr("هذا المصدر لا يحتوي على فيديو؛ أُوقف الصوت فقط.",
+                                                       "This source has no video track; audio-only playback was stopped.")
+                                self.player.pause()
+                            }
+                        } catch {
+                            // AVPlayer reports transport failures through item.status; do not mask a playable source here.
+                        }
+                    }
                 }
-                self?.updateNowPlaying()
+                self.updateNowPlaying()
             }
             .store(in: &itemBag)
     }
@@ -143,11 +172,11 @@ final class PlaybackManager: ObservableObject {
         }
         center.skipForwardCommand.preferredIntervals = [15]
         center.skipForwardCommand.addTarget { [weak self] _ in
-            self?.seek(by: 15); return .success
+            self?.seekRemote(by: 15); return .success
         }
         center.skipBackwardCommand.preferredIntervals = [15]
         center.skipBackwardCommand.addTarget { [weak self] _ in
-            self?.seek(by: -15); return .success
+            self?.seekRemote(by: -15); return .success
         }
         center.changePlaybackPositionCommand.addTarget { [weak self] event in
             guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
@@ -156,10 +185,8 @@ final class PlaybackManager: ObservableObject {
         }
     }
 
-    private func seek(by seconds: Double) {
-        guard current?.isLive == false else { return }
-        let target = player.currentTime().seconds + seconds
-        player.seek(to: CMTime(seconds: max(0, target), preferredTimescale: 600))
+    private func seekRemote(by seconds: Double) {
+        seek(by: seconds)
     }
 }
 

@@ -96,6 +96,44 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertNotNil(find("car.home", in: dashboard.view))
     }
 
+    func testPhoneRemoteCanSelectDashboardSectionsAndCarLogoIsTransparent() async throws {
+        let dashboard = CarDashboardViewController()
+        display(dashboard)
+        let menu = try XCTUnwrap(find("car.navigation", in: dashboard.view) as? UISegmentedControl)
+        for section in [CarMouseBridge.DashboardSection.television, .settings, .home] {
+            CarMouseBridge.shared.send(.selectSection(section))
+            try await Task.sleep(nanoseconds: 120_000_000)
+            XCTAssertEqual(menu.selectedSegmentIndex, section.rawValue)
+        }
+        let logo = try XCTUnwrap(UIImage(named: "LogoCarMark")?.cgImage)
+        XCTAssertNotEqual(logo.alphaInfo, .none, "CarPlay uses the mark without its former teal tile")
+        let daytime = try XCTUnwrap(UIImage(named: "LogoDay")?.cgImage)
+        XCTAssertNotEqual(daytime.alphaInfo, .none, "The supplied daytime lockup retains transparency")
+    }
+
+    func testCarDisplayPlayerRoutesWithoutOpeningPhonePlayerAndStopsCleanly() async throws {
+        let manager = PlaybackManager.shared
+        defer { manager.stop() }
+        let dashboard = CarDashboardViewController()
+        display(dashboard)
+        let item = PlaybackManager.Item(title: "Test channel", subtitle: "M3U",
+                                        url: URL(fileURLWithPath: "/tmp/wudcar-missing-stream.m3u8"), isLive: true, artworkURL: nil)
+        manager.play(item, presentOnPhone: false)
+        let second = PlaybackManager.Item(title: "Second channel", subtitle: "Xtream",
+                                          url: URL(fileURLWithPath: "/tmp/wudcar-second-missing-stream.m3u8"), isLive: true, artworkURL: nil)
+        manager.play(second, presentOnPhone: false)
+        try await Task.sleep(nanoseconds: 250_000_000)
+        XCTAssertEqual(manager.current?.title, "Second channel", "Choosing another channel replaces the previous item")
+        XCTAssertTrue(manager.isExternalDisplayPlayback)
+        XCTAssertFalse(manager.isPlayerPresented, "Car TV playback must not present the phone player")
+        XCTAssertNotNil(find("car.tv.player.close", in: dashboard.view), "External display must expose a route back to TV lists")
+        manager.stop()
+        try await Task.sleep(nanoseconds: 150_000_000)
+        XCTAssertNil(manager.current)
+        XCTAssertFalse(manager.isExternalDisplayPlayback)
+        XCTAssertNil(find("car.tv.player.close", in: dashboard.view))
+    }
+
     func testHomeFitsWideAndCompactCarScreens() throws {
         let savedLanguage = WDSettings.carLanguage
         defer { WDSettings.carLanguage = savedLanguage }
@@ -113,7 +151,7 @@ final class CarInterfaceTests: XCTestCase {
                     dashboard.view.layoutIfNeeded()
                 }
                 let home = try XCTUnwrap(find("car.home", in: dashboard.view))
-                XCTAssertNotNil(UIImage(named: "LogoMark"), "The home page must use the transparent-free brand mark that matches its background")
+                XCTAssertNotNil(UIImage(named: "LogoCarMark"), "CarPlay home uses the transparent WudCar mark")
                 for item in labels(in: home) {
                     let needed = item.sizeThatFits(CGSize(width: item.bounds.width, height: .greatestFiniteMagnitude))
                     XCTAssertLessThanOrEqual(needed.height, item.bounds.height + 2, "Welcome text must not be truncated")
@@ -149,7 +187,8 @@ final class CarInterfaceTests: XCTestCase {
 
         let shortcuts = ShortcutStore.shared.shortcuts
         for host in ["www.mp3quran.net", "m.soundcloud.com", "www.netflix.com", "pranx.com",
-                     "tv2tv.com", "www.primevideo.com", "www.tod.tv", "www.crazygames.com"] {
+                     "tv2tv.com", "www.primevideo.com", "www.tod.tv", "www.crazygames.com",
+                     "mail.google.com", "outlook.live.com", "chatgpt.com"] {
             XCTAssertTrue(shortcuts.contains { $0.url.host == host }, "Missing default shortcut for \(host)")
         }
     }
@@ -291,7 +330,23 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertFalse(cursor.isHidden)
         XCTAssertNotNil(selectedShortcut, "Phone pointer must open a native WudCar shortcut from the browser home")
         let toolbar = try XCTUnwrap(find("car.browser.toolbar", in: browser.view))
-        XCTAssertLessThanOrEqual(toolbar.frame.height, 38)
+        XCTAssertLessThanOrEqual(toolbar.frame.height, 34)
+    }
+
+    func testMouseCursorHidesAfterFiveSecondsAndReturnsAtSavedPosition() async throws {
+        let browser = CarBrowserViewController()
+        display(browser)
+        CarMouseBridge.shared.setActive(false)
+        CarMouseBridge.shared.setActive(true)
+        defer { CarMouseBridge.shared.setActive(false) }
+        try await Task.sleep(nanoseconds: 5_200_000_000)
+        let cursor = try XCTUnwrap(find("car.mouse.cursor", in: browser.view))
+        XCTAssertTrue(cursor.isHidden, "The pointer should disappear after five idle seconds")
+        let savedCenter = cursor.center
+        CarMouseBridge.shared.send(.move(CGPoint(x: 0.05, y: 0.02)))
+        try await Task.sleep(nanoseconds: 120_000_000)
+        XCTAssertFalse(cursor.isHidden, "The pointer should return on activity")
+        XCTAssertNotEqual(cursor.center, savedCenter, "The pointer keeps its previous position and resumes from it")
     }
 
     func testLiveDesktopSitesInDesktopMode() async throws {

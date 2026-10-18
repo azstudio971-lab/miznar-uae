@@ -64,10 +64,11 @@ struct HomeView: View {
                 Text("وُد كار").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
             }
         } else {
-            Image("LogoFull")
+            Image("LogoDay")
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: 220)
+                .accessibilityIdentifier("home.logo.day")
         }
     }
 

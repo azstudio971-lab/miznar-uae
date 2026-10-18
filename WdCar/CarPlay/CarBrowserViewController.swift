@@ -20,6 +20,8 @@ final class CarBrowserViewController: UIViewController {
     private weak var currentSession: TabSession?
     private let mouseCursor = UIImageView(image: UIImage(systemName: "cursorarrow"))
     private var mouseCursorCenter: CGPoint?
+    private var mouseHideTimer: Timer?
+    private var mouseHiddenForIdle = false
 
     private var showingHome = false
     private var toolbarCollapsed = false
@@ -70,6 +72,7 @@ final class CarBrowserViewController: UIViewController {
 
     deinit {
         blockTimer?.invalidate()
+        mouseHideTimer?.invalidate()
     }
 
     // MARK: البناء
@@ -90,6 +93,9 @@ final class CarBrowserViewController: UIViewController {
         let buttons: [UIButton] = [zoomButton, collapseButton, fullscreenButton, starButton, tabsButton,
                                    reloadButton, urlButton, homeButton, backButton, closeButton]
         buttons.forEach { button in
+            var buttonConfig = button.configuration
+            buttonConfig?.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 6, bottom: 4, trailing: 6)
+            button.configuration = buttonConfig
             if button !== urlButton {
                 button.setContentHuggingPriority(.required, for: .horizontal)
                 button.setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -120,7 +126,7 @@ final class CarBrowserViewController: UIViewController {
             toolbar.topAnchor.constraint(equalTo: guide.topAnchor, constant: 3),
             toolbar.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 8),
             toolbar.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -8),
-            toolbar.heightAnchor.constraint(equalToConstant: 38)
+            toolbar.heightAnchor.constraint(equalToConstant: 34)
         ])
     }
 
@@ -157,10 +163,13 @@ final class CarBrowserViewController: UIViewController {
 
         mouseCursor.accessibilityIdentifier = "car.mouse.cursor"
         mouseCursor.tintColor = .white
-        mouseCursor.backgroundColor = UIColor(white: 0.08, alpha: 0.82)
-        mouseCursor.layer.cornerRadius = 15
-        mouseCursor.contentMode = .center
-        mouseCursor.frame = CGRect(x: 0, y: 0, width: 30, height: 30)
+        mouseCursor.backgroundColor = .clear
+        mouseCursor.contentMode = .scaleAspectFit
+        mouseCursor.layer.shadowColor = UIColor.black.cgColor
+        mouseCursor.layer.shadowOpacity = 0.85
+        mouseCursor.layer.shadowRadius = 2
+        mouseCursor.layer.shadowOffset = CGSize(width: 1, height: 1)
+        mouseCursor.frame = CGRect(x: 0, y: 0, width: 26, height: 26)
         mouseCursor.isHidden = true
         mouseCursor.isUserInteractionEnabled = false
         contentView.addSubview(mouseCursor)
@@ -260,10 +269,12 @@ final class CarBrowserViewController: UIViewController {
             .receive(on: RunLoop.main)
             .sink { [weak self] active in
                 guard let self else { return }
+                self.mouseHiddenForIdle = false
                 self.mouseCursor.isHidden = !active
                 if active && self.mouseCursorCenter == nil {
                     self.mouseCursorCenter = CGPoint(x: self.contentView.bounds.midX, y: self.contentView.bounds.midY)
                 }
+                if active { self.scheduleMouseCursorHide() } else { self.mouseHideTimer?.invalidate() }
                 self.updateMouseCursorFrame()
             }
             .store(in: &bag)
@@ -288,7 +299,7 @@ final class CarBrowserViewController: UIViewController {
             progressView.isHidden = true
             mouseCursor.isHidden = !CarMouseBridge.shared.isActive
             updateMouseCursorFrame()
-            CarUI.setTitle(urlButton, "أدخل عنوان URL أو ابحث", size: 16)
+            CarUI.setTitle(urlButton, "أدخل عنوان URL أو ابحث", size: 14)
             backButton.isEnabled = tab.url != nil
             return
         }
@@ -299,7 +310,7 @@ final class CarBrowserViewController: UIViewController {
         mouseCursor.isHidden = !CarMouseBridge.shared.isActive
         session.webView.isHidden = false
         contentView.bringSubviewToFront(progressView)
-        CarUI.setTitle(urlButton, tab.url?.host ?? tab.displayTitle, size: 16)
+        CarUI.setTitle(urlButton, tab.url?.host ?? tab.displayTitle, size: 14)
         backButton.isEnabled = true
     }
 
@@ -381,6 +392,9 @@ final class CarBrowserViewController: UIViewController {
 
     private func handleMouseInput(_ input: CarMouseBridge.Input) {
         guard CarMouseBridge.shared.isActive else { return }
+        mouseHiddenForIdle = false
+        mouseCursor.isHidden = false
+        scheduleMouseCursorHide()
         switch input {
         case .move(let delta):
             let center = mouseCursorCenter ?? CGPoint(x: contentView.bounds.midX, y: contentView.bounds.midY)
@@ -415,12 +429,41 @@ final class CarBrowserViewController: UIViewController {
             case .home: goHome()
             case .reload: currentSession?.reload()
             }
+        case .zoom(let delta):
+            let zoom = min(1.5, max(0.5, WDSettings.carZoom + delta))
+            WDSettings.carZoom = zoom
+            pool.applyZoom(zoom)
+            showToast("\(Int((zoom * 100).rounded()))%")
+        case .seek(let seconds):
+            if PlaybackManager.shared.current != nil { PlaybackManager.shared.seek(by: seconds) }
+            else { currentSession?.seek(by: seconds) }
+        case .toggleVideoFullscreen:
+            guard let session = currentSession, !showingHome else { return }
+            if session.isVideoFullscreen { session.exitVideoFullscreen() }
+            else { enterVideoFullscreen() }
+        case .playPause:
+            if PlaybackManager.shared.current != nil { PlaybackManager.shared.togglePlayPause() }
+            else { currentSession?.togglePlay() }
+        case .stopPlayback:
+            PlaybackManager.shared.stop()
+        case .selectSection(_):
+            break // CarDashboardViewController and CarTemplateUI own section navigation.
+        }
+    }
+
+    private func scheduleMouseCursorHide() {
+        mouseHideTimer?.invalidate()
+        mouseHideTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: false) { [weak self] _ in
+            guard let self, CarMouseBridge.shared.isActive else { return }
+            self.mouseHiddenForIdle = true
+            self.mouseCursor.isHidden = true
         }
     }
 
     private func updateMouseCursorFrame() {
         guard let mouseCursorCenter else { return }
-        mouseCursor.frame = CGRect(x: mouseCursorCenter.x - 14, y: mouseCursorCenter.y - 14, width: 28, height: 28)
+        mouseCursor.frame = CGRect(x: mouseCursorCenter.x - 13, y: mouseCursorCenter.y - 13, width: 26, height: 26)
+        mouseCursor.isHidden = !CarMouseBridge.shared.isActive || mouseHiddenForIdle
         contentView.bringSubviewToFront(mouseCursor)
     }
 

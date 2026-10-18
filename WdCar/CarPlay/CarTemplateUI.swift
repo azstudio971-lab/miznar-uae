@@ -105,6 +105,34 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             }
             .store(in: &bag)
 
+        CarMouseBridge.shared.$input
+            .compactMap { $0 }
+            .receive(on: RunLoop.main)
+            .sink { [weak self] input in
+                guard let self else { return }
+                switch input {
+                case .selectSection(let section):
+                    let template: CPTemplate
+                    switch section {
+                    case .home: template = self.home
+                    case .entertainment: template = self.entertainment
+                    case .television: template = self.television
+                    case .settings: template = self.settings
+                    }
+                    self.tabBar?.select(template)
+                case .playPause:
+                    if !AppState.shared.carScreenActive { PlaybackManager.shared.togglePlayPause() }
+                case .stopPlayback:
+                    PlaybackManager.shared.stop()
+                    self.interfaceController?.popToRootTemplate(animated: true, completion: nil)
+                case .seek(let seconds):
+                    if !AppState.shared.carScreenActive { PlaybackManager.shared.seek(by: seconds) }
+                default:
+                    break
+                }
+            }
+            .store(in: &bag)
+
         WDLog.car("templates connected supportsVideo=\(supportsVideo)")
         startedAt = Date()
         refreshVideoSupport()
@@ -114,7 +142,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     }
 
     func tabBarTemplate(_ tabBarTemplate: CPTabBarTemplate, didSelect selectedTemplate: CPTemplate) {
-        guard selectedTemplate === entertainment else { return }
+        guard selectedTemplate === entertainment, !AppState.shared.carScreenActive else { return }
         startCarScreen()
     }
 

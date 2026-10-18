@@ -1,5 +1,7 @@
 import UIKit
 import SwiftUI
+import AVKit
+import Combine
 
 /// Navigation for the external car window. Scene ownership remains UIKit, as in 1.3.1 (4).
 final class CarDashboardViewController: UIViewController {
@@ -9,6 +11,10 @@ final class CarDashboardViewController: UIViewController {
     private var browser: CarBrowserViewController?
     private var zoomLabel: UILabel?
     private var tvController: UIHostingController<XtreamHomeView>?
+    private var externalPlayer: AVPlayerViewController?
+    private let playerCloseButton = CarUI.iconButton("xmark", size: 18, background: UIColor(white: 0.05, alpha: 0.78))
+    private let playerErrorLabel = UILabel()
+    private var bag = Set<AnyCancellable>()
     private weak var welcomeGradient: CAGradientLayer?
     private weak var welcomeCopy: UIStackView?
     private let welcomeSizes: [CGFloat] = [25, 18, 16, 16, 18]
@@ -38,6 +44,7 @@ final class CarDashboardViewController: UIViewController {
         ])
         updateLanguage()
         showSelectedPage()
+        bindRemoteControl()
     }
 
     override func viewDidLayoutSubviews() {
@@ -141,6 +148,127 @@ final class CarDashboardViewController: UIViewController {
         }
     }
 
+
+    private func bindRemoteControl() {
+        CarMouseBridge.shared.$input
+            .compactMap { $0 }
+            .receive(on: RunLoop.main)
+            .sink { [weak self] input in
+                guard let self else { return }
+                switch input {
+                case .selectSection(let section):
+                    if self.externalPlayer != nil && section == .television { return }
+                    if self.externalPlayer != nil { PlaybackManager.shared.stop() }
+                    self.menu.selectedSegmentIndex = section.rawValue
+                    self.showSelectedPage()
+                case .stopPlayback:
+                    PlaybackManager.shared.stop()
+                default:
+                    break
+                }
+            }
+            .store(in: &bag)
+
+        PlaybackManager.shared.$current
+            .combineLatest(PlaybackManager.shared.$isExternalDisplayPlayback,
+                           PlaybackManager.shared.$errorMessage)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] current, requestedForDisplay, error in
+                guard let self else { return }
+                self.updateExternalPlayer(visible: current != nil && requestedForDisplay, error: error)
+            }
+            .store(in: &bag)
+
+        DrivingMonitor.shared.$isMoving
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] moving in
+                guard let self, self.externalPlayer != nil else { return }
+                if DrivingMonitor.shared.shouldBlockVideo {
+                    PlaybackManager.shared.player.pause()
+                    self.playerErrorLabel.text = carTr("تم إيقاف الفيديو أثناء القيادة", "Video paused while driving")
+                    self.playerErrorLabel.isHidden = false
+                } else if let error = PlaybackManager.shared.errorMessage {
+                    self.playerErrorLabel.text = error
+                    self.playerErrorLabel.isHidden = false
+                } else {
+                    self.playerErrorLabel.isHidden = true
+                }
+            }
+            .store(in: &bag)
+    }
+
+    private func updateExternalPlayer(visible: Bool, error: String?) {
+        guard visible else {
+            externalPlayer?.willMove(toParent: nil)
+            externalPlayer?.view.removeFromSuperview()
+            externalPlayer?.removeFromParent()
+            externalPlayer = nil
+            playerCloseButton.removeFromSuperview()
+            playerErrorLabel.removeFromSuperview()
+            menu.isHidden = menu.selectedSegmentIndex == 1
+            showSelectedPage()
+            return
+        }
+        if externalPlayer == nil {
+            menu.selectedSegmentIndex = CarMouseBridge.DashboardSection.television.rawValue
+            showSelectedPage()
+            menu.isHidden = true
+            let controller = AVPlayerViewController()
+            controller.player = PlaybackManager.shared.player
+            controller.showsPlaybackControls = true
+            controller.allowsPictureInPicturePlayback = false
+            controller.updatesNowPlayingInfoCenter = false
+            addChild(controller)
+            bodyView.addSubview(controller.view)
+            CarUI.pin(controller.view, to: bodyView)
+            controller.didMove(toParent: self)
+            externalPlayer = controller
+
+            playerCloseButton.accessibilityIdentifier = "car.tv.player.close"
+            playerCloseButton.accessibilityLabel = carTr("إيقاف والعودة للقنوات", "Stop and return to channels")
+            playerCloseButton.addAction(UIAction { _ in PlaybackManager.shared.stop() }, for: .touchUpInside)
+            playerCloseButton.translatesAutoresizingMaskIntoConstraints = false
+            bodyView.addSubview(playerCloseButton)
+            NSLayoutConstraint.activate([
+                playerCloseButton.topAnchor.constraint(equalTo: bodyView.safeAreaLayoutGuide.topAnchor, constant: 10),
+                playerCloseButton.trailingAnchor.constraint(equalTo: bodyView.safeAreaLayoutGuide.trailingAnchor, constant: -12),
+                playerCloseButton.widthAnchor.constraint(equalToConstant: 46),
+                playerCloseButton.heightAnchor.constraint(equalToConstant: 40)
+            ])
+            bodyView.bringSubviewToFront(playerCloseButton)
+
+            playerErrorLabel.textColor = .white
+            playerErrorLabel.backgroundColor = UIColor(white: 0.08, alpha: 0.92)
+            playerErrorLabel.textAlignment = .center
+            playerErrorLabel.numberOfLines = 0
+            playerErrorLabel.font = .systemFont(ofSize: 18, weight: .semibold)
+            playerErrorLabel.isHidden = true
+            playerErrorLabel.layer.cornerRadius = 14
+            playerErrorLabel.clipsToBounds = true
+            playerErrorLabel.accessibilityIdentifier = "car.tv.player.error"
+            playerErrorLabel.translatesAutoresizingMaskIntoConstraints = false
+            bodyView.addSubview(playerErrorLabel)
+            NSLayoutConstraint.activate([
+                playerErrorLabel.centerXAnchor.constraint(equalTo: bodyView.centerXAnchor),
+                playerErrorLabel.centerYAnchor.constraint(equalTo: bodyView.centerYAnchor),
+                playerErrorLabel.widthAnchor.constraint(lessThanOrEqualTo: bodyView.widthAnchor, multiplier: 0.8),
+                playerErrorLabel.leadingAnchor.constraint(greaterThanOrEqualTo: bodyView.leadingAnchor, constant: 30),
+                playerErrorLabel.trailingAnchor.constraint(lessThanOrEqualTo: bodyView.trailingAnchor, constant: -30)
+            ])
+        }
+        if let error {
+            playerErrorLabel.text = carTr("تعذّر تشغيل القناة: ", "Channel playback failed: ") + error
+            playerErrorLabel.isHidden = false
+        } else if DrivingMonitor.shared.shouldBlockVideo {
+            playerErrorLabel.text = carTr("تم إيقاف الفيديو أثناء القيادة", "Video paused while driving")
+            playerErrorLabel.isHidden = false
+            PlaybackManager.shared.player.pause()
+        } else {
+            playerErrorLabel.isHidden = true
+        }
+    }
+
     private func install(_ page: UIView) {
         pageView = page
         bodyView.addSubview(page)
@@ -189,7 +317,7 @@ final class CarDashboardViewController: UIViewController {
         page.layer.insertSublayer(gradient, at: 0)
         welcomeGradient = gradient
 
-        let logo = UIImageView(image: UIImage(named: "LogoMark") ?? UIImage(named: "LogoFull"))
+        let logo = UIImageView(image: UIImage(named: "LogoCarMark") ?? UIImage(named: "LogoMark") ?? UIImage(named: "LogoFull"))
         logo.contentMode = .scaleAspectFit
         logo.translatesAutoresizingMaskIntoConstraints = false
 
