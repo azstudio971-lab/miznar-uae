@@ -10,7 +10,7 @@
 
 workflows:
   wudcar-preview:
-    name: WudCar → Preview Update 11
+    name: WudCar → Preview Update 13
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
@@ -34,16 +34,16 @@ workflows:
             -parallel-testing-enabled NO -test-timeouts-enabled YES \
             -default-test-execution-time-allowance 180 \
             -maximum-test-execution-time-allowance 180 \
-            -resultBundlePath /tmp/WudCarUpdate11Preview.xcresult \
-            CODE_SIGNING_ALLOWED=NO test | tee /tmp/wudcar-update11-preview.log
+            -resultBundlePath /tmp/WudCarUpdate13Preview.xcresult \
+            CODE_SIGNING_ALLOWED=NO test | tee /tmp/wudcar-update13-preview.log
       - name: تصدير صور المعاينة
         script: |
-          mkdir -p build/update11-preview
-          xcrun xcresulttool export attachments --path /tmp/WudCarUpdate11Preview.xcresult --output-path build/update11-preview
+          mkdir -p build/update13-preview
+          xcrun xcresulttool export attachments --path /tmp/WudCarUpdate13Preview.xcresult --output-path build/update13-preview
     artifacts:
-      - build/update11-preview/**/*
-      - /tmp/WudCarUpdate11Preview.xcresult
-      - /tmp/wudcar-update11-preview.log
+      - build/update13-preview/**/*
+      - /tmp/WudCarUpdate13Preview.xcresult
+      - /tmp/wudcar-update13-preview.log
 
   wudcar-testflight:
     name: WudCar → TestFlight
@@ -72,7 +72,7 @@ workflows:
           include: true
         - pattern: wudcar-update10
           include: true
-        - pattern: wudcar-update11
+        - pattern: wudcar-update13
           include: true
     scripts:
       - name: تثبيت XcodeGen
@@ -94,11 +94,11 @@ workflows:
         script: |
           set -euo pipefail
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for a in d["devices"].values() for v in a if "iPhone" in v["name"]))')
-          xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 180 -resultBundlePath /tmp/WudCarUpdate11Interface.xcresult CODE_SIGNING_ALLOWED=NO test | tee /tmp/wudcar-update11-interface-tests.log
+          xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 180 -resultBundlePath /tmp/WudCarUpdate13Interface.xcresult CODE_SIGNING_ALLOWED=NO test | tee /tmp/wudcar-update13-interface-tests.log
       - name: صور التحقق من عرض المتصفح
         script: |
-          mkdir -p build/update11-test-screenshots
-          xcrun xcresulttool export attachments --path /tmp/WudCarUpdate11Interface.xcresult --output-path build/update11-test-screenshots || true
+          mkdir -p build/update13-test-screenshots
+          xcrun xcresulttool export attachments --path /tmp/WudCarUpdate13Interface.xcresult --output-path build/update13-test-screenshots || true
       - name: تجهيز التوقيع
         script: |
           xcode-project use-profiles
@@ -131,9 +131,9 @@ workflows:
           echo "== Scene roles in Info.plist =="
           plutil -p "$APP/Info.plist" | grep -E "ExternalDisplay|CPTemplateApplication" || { echo "External display scenes missing"; exit 1; }
     artifacts:
-      - build/update11-test-screenshots/**/*
-      - /tmp/WudCarUpdate11Interface.xcresult
-      - /tmp/wudcar-update11-interface-tests.log
+      - build/update13-test-screenshots/**/*
+      - /tmp/WudCarUpdate13Interface.xcresult
+      - /tmp/wudcar-update13-interface-tests.log
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
