@@ -143,25 +143,35 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertTrue(isEffectivelyHidden(up))
         XCTAssertTrue(isEffectivelyHidden(down))
         XCTAssertTrue(try XCTUnwrap(find("car.mouse.cursor", in: browser.view)).isHidden)
+        XCTAssertTrue(try XCTUnwrap(find("car.browser.toolbar.reveal", in: browser.view)).isHidden)
         XCTAssertNil(find("car.browser.reload", in: browser.view))
         XCTAssertNil(find("car.browser.favorite", in: browser.view))
         XCTAssertNil(find("car.browser.fullscreen", in: browser.view))
         XCTAssertNil(find("car.browser.zoom", in: browser.view))
     }
 
-    func testScrollArrowsHideAfterThreeSecondsAndToolbarHidesAfterFour() async throws {
+    func testScrollArrowsAndToolbarRevealCanBeUsedRepeatedly() async throws {
         let browser = CarBrowserViewController()
         display(browser)
         let up = try XCTUnwrap(find("car.browser.scroll.up", in: browser.view))
         let toolbar = try XCTUnwrap(find("car.browser.toolbar", in: browser.view))
+        let reveal = try XCTUnwrap(find("car.browser.toolbar.reveal", in: browser.view) as? UIButton)
         browser.revealScrollControls()
         XCTAssertFalse(up.isHidden)
         try await Task.sleep(nanoseconds: 3_200_000_000)
         XCTAssertTrue(isEffectivelyHidden(up), "Scroll buttons hide three seconds after the last touch")
-        browser.revealToolbar()
+
+        browser.showToolbarRevealButton()
+        XCTAssertFalse(reveal.isHidden)
+        reveal.sendActions(for: .touchUpInside)
+        XCTAssertFalse(toolbar.isHidden, "The overlay reveal button opens the toolbar")
+        try await Task.sleep(nanoseconds: 6_200_000_000)
+        XCTAssertTrue(toolbar.isHidden, "The toolbar stays open for six seconds after its last interaction")
+
+        browser.showToolbarRevealButton()
+        XCTAssertFalse(reveal.isHidden, "The reveal control is available again without leaving the browser")
+        reveal.sendActions(for: .touchUpInside)
         XCTAssertFalse(toolbar.isHidden)
-        try await Task.sleep(nanoseconds: 4_200_000_000)
-        XCTAssertTrue(toolbar.isHidden, "The browser toolbar hides four seconds after the last use")
     }
 
     func testVideoControlsHideAfterThreeSeconds() async throws {
@@ -206,13 +216,19 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertEqual(manager.current?.title, "Second channel", "Choosing another channel replaces the previous item")
         XCTAssertTrue(manager.isExternalDisplayPlayback)
         XCTAssertFalse(manager.isPlayerPresented, "Car TV playback must not present the phone player")
-        XCTAssertNotNil(find("car.tv.player.close", in: dashboard.view), "External display must expose a route back to TV lists")
-        XCTAssertNotNil(find("car.tv.player.stretch", in: dashboard.view), "External playback exposes a stretch-to-fill option")
-        manager.stop()
+        let close = try XCTUnwrap(find("car.tv.player.close", in: dashboard.view) as? UIButton,
+                                  "External display must expose a route back to TV lists")
+        XCTAssertFalse(close.isHidden, "The close control is visible as soon as playback opens")
+        XCTAssertNil(find("car.tv.player.stretch", in: dashboard.view), "The ineffective stretch control is removed")
+        try await Task.sleep(nanoseconds: 3_200_000_000)
+        XCTAssertTrue(close.isHidden, "The player close control hides after three seconds")
+        dashboard.externalPlayerWasTouched()
+        XCTAssertFalse(close.isHidden, "Touching the playing display restores the exit control")
+        close.sendActions(for: .touchUpInside)
         try await Task.sleep(nanoseconds: 150_000_000)
-        XCTAssertNil(manager.current)
+        XCTAssertNil(manager.current, "Exit stops the active channel")
         XCTAssertFalse(manager.isExternalDisplayPlayback)
-        XCTAssertNil(find("car.tv.player.close", in: dashboard.view))
+        XCTAssertNil(find("car.tv.player.close", in: dashboard.view), "Exit returns to the TV channel list")
     }
 
     func testHomeFitsWideAndCompactCarScreens() throws {

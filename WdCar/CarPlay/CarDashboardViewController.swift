@@ -4,7 +4,7 @@ import AVKit
 import Combine
 
 /// Navigation for the external car window. Scene ownership remains UIKit, as in 1.3.1 (4).
-final class CarDashboardViewController: UIViewController {
+final class CarDashboardViewController: UIViewController, UIGestureRecognizerDelegate {
     private let menu = UISegmentedControl(items: ["", "", "", ""])
     private let bodyView = UIView()
     private var pageView: UIView?
@@ -12,12 +12,10 @@ final class CarDashboardViewController: UIViewController {
     private var zoomLabel: UILabel?
     private var tvController: UIHostingController<XtreamHomeView>?
     private var externalPlayer: AVPlayerViewController?
-    private let playerCloseButton = CarUI.iconButton("xmark", size: 18, background: UIColor(white: 0.05, alpha: 0.78))
-    private let playerFitButton = CarUI.textButton("تمدد", size: 14, background: UIColor(white: 0.05, alpha: 0.78))
+    private let playerCloseButton = CarUI.iconButton("xmark.circle.fill", size: 25, background: UIColor(white: 0.05, alpha: 0.88))
     private let playerErrorLabel = UILabel()
     private var playerControlsTimer: Timer?
-    private var playerTouchRecognizer: UITapGestureRecognizer?
-    private var playerIsStretched = false
+    private var playerTouchRecognizers: [UITapGestureRecognizer] = []
     private var bag = Set<AnyCancellable>()
     private weak var welcomeGradient: CAGradientLayer?
     private weak var welcomeCopy: UIStackView?
@@ -215,14 +213,13 @@ final class CarDashboardViewController: UIViewController {
         guard visible else {
             playerControlsTimer?.invalidate()
             playerControlsTimer = nil
-            if let playerTouchRecognizer { bodyView.removeGestureRecognizer(playerTouchRecognizer) }
-            playerTouchRecognizer = nil
+            playerTouchRecognizers.forEach { $0.view?.removeGestureRecognizer($0) }
+            playerTouchRecognizers.removeAll()
             externalPlayer?.willMove(toParent: nil)
             externalPlayer?.view.removeFromSuperview()
             externalPlayer?.removeFromParent()
             externalPlayer = nil
             playerCloseButton.removeFromSuperview()
-            playerFitButton.removeFromSuperview()
             playerErrorLabel.removeFromSuperview()
             menu.isHidden = menu.selectedSegmentIndex == 1
             showSelectedPage()
@@ -243,42 +240,29 @@ final class CarDashboardViewController: UIViewController {
             CarUI.pin(controller.view, to: bodyView)
             controller.didMove(toParent: self)
             externalPlayer = controller
-            playerIsStretched = false
 
             playerCloseButton.accessibilityIdentifier = "car.tv.player.close"
             playerCloseButton.accessibilityLabel = carTr("إيقاف والعودة للقنوات", "Stop and return to channels")
             playerCloseButton.addAction(UIAction { _ in PlaybackManager.shared.stop() }, for: .touchUpInside)
             playerCloseButton.translatesAutoresizingMaskIntoConstraints = false
             bodyView.addSubview(playerCloseButton)
-            playerFitButton.translatesAutoresizingMaskIntoConstraints = false
-            bodyView.addSubview(playerFitButton)
             NSLayoutConstraint.activate([
                 playerCloseButton.topAnchor.constraint(equalTo: bodyView.safeAreaLayoutGuide.topAnchor, constant: 10),
                 playerCloseButton.trailingAnchor.constraint(equalTo: bodyView.safeAreaLayoutGuide.trailingAnchor, constant: -12),
-                playerCloseButton.widthAnchor.constraint(equalToConstant: 46),
-                playerCloseButton.heightAnchor.constraint(equalToConstant: 40),
-                playerFitButton.topAnchor.constraint(equalTo: playerCloseButton.topAnchor),
-                playerFitButton.trailingAnchor.constraint(equalTo: playerCloseButton.leadingAnchor, constant: -8),
-                playerFitButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 92),
-                playerFitButton.heightAnchor.constraint(equalTo: playerCloseButton.heightAnchor)
+                playerCloseButton.widthAnchor.constraint(equalToConstant: 54),
+                playerCloseButton.heightAnchor.constraint(equalToConstant: 50)
             ])
 
-            playerFitButton.accessibilityIdentifier = "car.tv.player.stretch"
-            playerFitButton.accessibilityLabel = carTr("تمدد لملء الشاشة", "Stretch to fill screen")
-            playerFitButton.addAction(UIAction { [weak self] _ in
-                guard let self, let player = self.externalPlayer else { return }
-                self.playerIsStretched.toggle()
-                player.videoGravity = self.playerIsStretched ? .resize : .resizeAspect
-                CarUI.setTitle(self.playerFitButton,
-                               self.playerIsStretched ? carTr("ملاءمة", "Fit") : carTr("تمدد", "Stretch"), size: 14)
-                self.showExternalPlayerControls()
-            }, for: .touchUpInside)
-            bodyView.bringSubviewToFront(playerFitButton)
-
-            let tap = UITapGestureRecognizer(target: self, action: #selector(externalPlayerWasTouched))
-            tap.cancelsTouchesInView = false
-            bodyView.addGestureRecognizer(tap)
-            playerTouchRecognizer = tap
+            let taps = [bodyView, controller.view].map { surface -> UITapGestureRecognizer in
+                let tap = UITapGestureRecognizer(target: self, action: #selector(externalPlayerWasTouched))
+                tap.cancelsTouchesInView = false
+                tap.delaysTouchesBegan = false
+                tap.delaysTouchesEnded = false
+                tap.delegate = self
+                surface.addGestureRecognizer(tap)
+                return tap
+            }
+            playerTouchRecognizers = taps
             bodyView.bringSubviewToFront(playerCloseButton)
             PlaybackManager.shared.player.playImmediately(atRate: 1)
             showExternalPlayerControls()
@@ -314,17 +298,22 @@ final class CarDashboardViewController: UIViewController {
         }
     }
 
-    @objc private func externalPlayerWasTouched() {
+    @objc func externalPlayerWasTouched() {
         showExternalPlayerControls()
     }
 
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        true
+    }
+
     private func showExternalPlayerControls() {
+        guard externalPlayer != nil else { return }
         playerCloseButton.isHidden = false
-        playerFitButton.isHidden = false
         playerControlsTimer?.invalidate()
+        bodyView.bringSubviewToFront(playerCloseButton)
         playerControlsTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { [weak self] _ in
             self?.playerCloseButton.isHidden = true
-            self?.playerFitButton.isHidden = true
         }
     }
 

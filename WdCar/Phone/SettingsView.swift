@@ -10,7 +10,6 @@ struct SettingsView: View {
     @AppStorage(WDKeys.appearance) private var appearance = AppAppearance.system.rawValue
     @AppStorage(WDKeys.lockVideoWhileDriving) private var lockVideo = false
     @AppStorage(WDKeys.phoneDesktopMode) private var phoneDesktop = true
-    @AppStorage(WDKeys.carZoom) private var carZoom = 0.5
     @State private var confirmClear = false
     @State private var confirmReset = false
     @State private var confirmXtream = false
@@ -45,21 +44,6 @@ struct SettingsView: View {
 
                 Section(tr("المتصفح", "Browser")) {
                     Toggle(tr("فتح المواقع بنسخة سطح المكتب", "Open sites in desktop mode"), isOn: $phoneDesktop)
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text(tr("حجم عرض مواقع السيارة", "Car website zoom"))
-                            Spacer()
-                            Text("\(Int((carZoom * 100).rounded()))٪")
-                                .monospacedDigit()
-                                .foregroundStyle(.secondary)
-                        }
-                        Slider(value: $carZoom, in: 0.5...1.5, step: 0.05)
-                            .accessibilityIdentifier("settings.carZoom")
-                    }
-                    .onChange(of: carZoom) { _, value in
-                        WDSettings.carZoom = value
-                        WebViewPool.car.applyZoom(value)
-                    }
                 }
 
                 Section(tr("إدارة البيانات", "Data")) {

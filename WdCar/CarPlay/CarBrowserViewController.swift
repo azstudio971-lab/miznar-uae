@@ -25,6 +25,9 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
     private var mouseHasBeenMoved = false
     private var toolbarHideTimer: Timer?
     private var scrollButtonsHideTimer: Timer?
+    private var toolbarRevealHideTimer: Timer?
+    private var screenTapRecognizer: UITapGestureRecognizer?
+    private var webViewTapRecognizer: UITapGestureRecognizer?
 
     private var showingHome = false
     private var toolbarCollapsed = true
@@ -43,6 +46,7 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
     private let siteErrorLabel = PaddingLabel()
     private let scrollUpButton = CarUI.iconButton("arrow.up", size: 17, background: UIColor(white: 0.08, alpha: 0.82))
     private let scrollDownButton = CarUI.iconButton("arrow.down", size: 17, background: UIColor(white: 0.08, alpha: 0.82))
+    private let toolbarRevealButton = CarUI.iconButton("ellipsis", size: 17, background: UIColor(white: 0.05, alpha: 0.82))
     private var scrollControls: UIStackView!
     private var textPanel: CarTextInputView?
     private var tabsPanel: CarTabsPanel?
@@ -77,6 +81,7 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
         mouseHideTimer?.invalidate()
         toolbarHideTimer?.invalidate()
         scrollButtonsHideTimer?.invalidate()
+        toolbarRevealHideTimer?.invalidate()
     }
 
     // MARK: البناء
@@ -172,6 +177,14 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
         mouseCursor.isHidden = true
         mouseCursor.isUserInteractionEnabled = false
         contentView.addSubview(mouseCursor)
+
+        let screenTap = UITapGestureRecognizer(target: self, action: #selector(handleScreenTap(_:)))
+        screenTap.cancelsTouchesInView = false
+        screenTap.delaysTouchesBegan = false
+        screenTap.delaysTouchesEnded = false
+        screenTap.delegate = self
+        view.addGestureRecognizer(screenTap)
+        screenTapRecognizer = screenTap
     }
 
     private func buildOverlays() {
@@ -188,6 +201,18 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
         scrollUpButton.addAction(UIAction { [weak self] _ in self?.scrollPage(up: true) }, for: .touchUpInside)
         scrollDownButton.addAction(UIAction { [weak self] _ in self?.scrollPage(up: false) }, for: .touchUpInside)
         view.addSubview(scrollButtons)
+
+        toolbarRevealButton.accessibilityIdentifier = "car.browser.toolbar.reveal"
+        toolbarRevealButton.accessibilityLabel = carTr("إظهار شريط المتصفح", "Show browser toolbar")
+        toolbarRevealButton.isHidden = true
+        toolbarRevealButton.translatesAutoresizingMaskIntoConstraints = false
+        toolbarRevealButton.addAction(UIAction { [weak self] _ in
+            guard let self else { return }
+            self.toolbarRevealHideTimer?.invalidate()
+            self.toolbarRevealButton.isHidden = true
+            self.setToolbarCollapsed(false)
+        }, for: .touchUpInside)
+        view.addSubview(toolbarRevealButton)
 
         videoOverlay.isHidden = true
         videoOverlay.onExit = { [weak self] in self?.currentSession?.exitVideoFullscreen() }
@@ -225,7 +250,11 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
 
         let guide = view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
-            scrollButtons.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 4),
+            toolbarRevealButton.leftAnchor.constraint(equalTo: guide.leftAnchor, constant: 4),
+            toolbarRevealButton.topAnchor.constraint(equalTo: guide.topAnchor, constant: 4),
+            toolbarRevealButton.widthAnchor.constraint(equalToConstant: 42),
+            toolbarRevealButton.heightAnchor.constraint(equalToConstant: 38),
+            scrollButtons.leftAnchor.constraint(equalTo: guide.leftAnchor, constant: 4),
             scrollButtons.centerYAnchor.constraint(equalTo: guide.centerYAnchor),
             scrollUpButton.widthAnchor.constraint(equalToConstant: 42),
             scrollUpButton.heightAnchor.constraint(equalToConstant: 40),
@@ -336,16 +365,17 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
         currentSession = session
 
         let webView = session.webView
+        if let webViewTapRecognizer { webViewTapRecognizer.view?.removeGestureRecognizer(webViewTapRecognizer) }
+        let webTap = UITapGestureRecognizer(target: self, action: #selector(handleScreenTap(_:)))
+        webTap.cancelsTouchesInView = false
+        webTap.delaysTouchesBegan = false
+        webTap.delaysTouchesEnded = false
+        webTap.delegate = self
+        webView.addGestureRecognizer(webTap)
+        webViewTapRecognizer = webTap
         session.applyCarZoom(WDSettings.carZoom)
         contentView.insertSubview(webView, at: 0)
         CarUI.pin(webView, to: contentView)
-
-        let contentTap = UITapGestureRecognizer(target: self, action: #selector(handleContentTap(_:)))
-        contentTap.cancelsTouchesInView = false
-        contentTap.delaysTouchesBegan = false
-        contentTap.delaysTouchesEnded = false
-        contentTap.delegate = self
-        contentView.addGestureRecognizer(contentTap)
 
         session.$isLoading
             .combineLatest(session.$progress)
@@ -486,18 +516,24 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
         mouseCursor.isHidden = true
     }
 
-    @objc private func handleContentTap(_ recognizer: UITapGestureRecognizer) {
+    @objc private func handleScreenTap(_ recognizer: UITapGestureRecognizer) {
         guard !videoFullscreen else { return }
         showScrollControls()
-        let point = recognizer.location(in: view)
-        if toolbarCollapsed && point.y <= view.bounds.height * 0.25 {
-            revealToolbar()
+        if toolbarCollapsed {
+            showToolbarRevealButton()
+        } else {
+            scheduleToolbarHide()
         }
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         if touch.view is UIControl { return false }
         return true
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        true
     }
 
     private func scrollPage(up: Bool) {
@@ -567,6 +603,8 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
         toolbarHideTimer?.invalidate()
         if collapsed { toolbarHideTimer = nil }
         applyToolbarVisibility()
+        toolbarRevealHideTimer?.invalidate()
+        toolbarRevealButton.isHidden = true
         if !collapsed { scheduleToolbarHide() }
     }
 
@@ -598,9 +636,20 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
     private func scheduleToolbarHide() {
         toolbarHideTimer?.invalidate()
         guard !toolbarCollapsed, !videoFullscreen else { return }
-        toolbarHideTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: false) { [weak self] _ in
+        toolbarHideTimer = Timer.scheduledTimer(withTimeInterval: 6, repeats: false) { [weak self] _ in
             guard let self, self.textPanel == nil, self.tabsPanel == nil, !self.videoFullscreen else { return }
             self.setToolbarCollapsed(true)
+            self.showToolbarRevealButton()
+        }
+    }
+
+    func showToolbarRevealButton() {
+        guard toolbarCollapsed, !videoFullscreen, textPanel == nil, tabsPanel == nil else { return }
+        toolbarRevealButton.isHidden = false
+        view.bringSubviewToFront(toolbarRevealButton)
+        toolbarRevealHideTimer?.invalidate()
+        toolbarRevealHideTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: false) { [weak self] _ in
+            self?.toolbarRevealButton.isHidden = true
         }
     }
 

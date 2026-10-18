@@ -73,8 +73,10 @@ struct HomeView: View {
         } else {
             Image("LogoDay")
                 .resizable()
-                .scaledToFit()
-                .frame(width: 220, height: 264)
+                .aspectRatio(1145.0 / 1373.0, contentMode: .fit)
+                .frame(width: 220)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, 12)
                 .accessibilityIdentifier("home.logo.day")
         }
     }
