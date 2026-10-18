@@ -18,6 +18,8 @@ final class CarBrowserViewController: UIViewController {
     private var bag = Set<AnyCancellable>()
     private var sessionBag = Set<AnyCancellable>()
     private weak var currentSession: TabSession?
+    private let mouseCursor = UIImageView(image: UIImage(systemName: "cursorarrow"))
+    private var mouseCursorCenter: CGPoint?
 
     private var showingHome = false
     private var toolbarCollapsed = false
@@ -74,7 +76,8 @@ final class CarBrowserViewController: UIViewController {
 
     private func buildToolbar() {
         toolbar.axis = .horizontal
-        toolbar.spacing = 7
+        toolbar.accessibilityIdentifier = "car.browser.toolbar"
+        toolbar.spacing = 5
         toolbar.alignment = .fill
         toolbar.semanticContentAttribute = .forceLeftToRight
 
@@ -114,10 +117,10 @@ final class CarBrowserViewController: UIViewController {
         view.addSubview(toolbar)
         let guide = view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
-            toolbar.topAnchor.constraint(equalTo: guide.topAnchor, constant: 6),
+            toolbar.topAnchor.constraint(equalTo: guide.topAnchor, constant: 3),
             toolbar.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 8),
             toolbar.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -8),
-            toolbar.heightAnchor.constraint(equalToConstant: 42)
+            toolbar.heightAnchor.constraint(equalToConstant: 38)
         ])
     }
 
@@ -128,7 +131,7 @@ final class CarBrowserViewController: UIViewController {
         view.addSubview(contentView)
 
         let guide = view.safeAreaLayoutGuide
-        contentTopToToolbar = contentView.topAnchor.constraint(equalTo: toolbar.bottomAnchor, constant: 6)
+        contentTopToToolbar = contentView.topAnchor.constraint(equalTo: toolbar.bottomAnchor, constant: 3)
         contentTopToSafe = contentView.topAnchor.constraint(equalTo: guide.topAnchor)
         NSLayoutConstraint.activate([
             contentTopToToolbar,
@@ -151,6 +154,15 @@ final class CarBrowserViewController: UIViewController {
             progressView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             progressView.heightAnchor.constraint(equalToConstant: 3)
         ])
+
+        mouseCursor.tintColor = .white
+        mouseCursor.backgroundColor = UIColor(white: 0.08, alpha: 0.82)
+        mouseCursor.layer.cornerRadius = 15
+        mouseCursor.contentMode = .center
+        mouseCursor.frame = CGRect(x: 0, y: 0, width: 30, height: 30)
+        mouseCursor.isHidden = true
+        mouseCursor.isUserInteractionEnabled = false
+        contentView.addSubview(mouseCursor)
     }
 
     private func buildOverlays() {
@@ -241,6 +253,25 @@ final class CarBrowserViewController: UIViewController {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.updateDrivingLock() }
             .store(in: &bag)
+
+        CarMouseBridge.shared.$isActive
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] active in
+                guard let self else { return }
+                self.mouseCursor.isHidden = !active || self.showingHome
+                if active && self.mouseCursorCenter == nil {
+                    self.mouseCursorCenter = CGPoint(x: self.contentView.bounds.midX, y: self.contentView.bounds.midY)
+                }
+                self.updateMouseCursorFrame()
+            }
+            .store(in: &bag)
+
+        CarMouseBridge.shared.$input
+            .compactMap { $0 }
+            .receive(on: RunLoop.main)
+            .sink { [weak self] input in self?.handleMouseInput(input) }
+            .store(in: &bag)
     }
 
     // MARK: عرض التبويب الحالي
@@ -254,6 +285,7 @@ final class CarBrowserViewController: UIViewController {
             contentView.bringSubviewToFront(shortcutsView)
             currentSession?.webView.isHidden = true
             progressView.isHidden = true
+            mouseCursor.isHidden = true
             CarUI.setTitle(urlButton, "أدخل عنوان URL أو ابحث", size: 16)
             backButton.isEnabled = tab.url != nil
             return
@@ -262,6 +294,7 @@ final class CarBrowserViewController: UIViewController {
         let session = pool.session(for: tab.id)
         if session !== currentSession { attach(session) }
         shortcutsView.isHidden = true
+        mouseCursor.isHidden = !CarMouseBridge.shared.isActive
         session.webView.isHidden = false
         contentView.bringSubviewToFront(progressView)
         CarUI.setTitle(urlButton, tab.url?.host ?? tab.displayTitle, size: 16)
@@ -342,6 +375,40 @@ final class CarBrowserViewController: UIViewController {
         } else {
             goHome()
         }
+    }
+
+    private func handleMouseInput(_ input: CarMouseBridge.Input) {
+        guard CarMouseBridge.shared.isActive, let session = currentSession, !showingHome else { return }
+        switch input {
+        case .move(let delta):
+            let center = mouseCursorCenter ?? CGPoint(x: contentView.bounds.midX, y: contentView.bounds.midY)
+            mouseCursorCenter = CGPoint(
+                x: min(max(14, center.x + delta.x * contentView.bounds.width), contentView.bounds.width - 14),
+                y: min(max(14, center.y + delta.y * contentView.bounds.height), contentView.bounds.height - 14)
+            )
+            updateMouseCursorFrame()
+        case .scroll(let delta):
+            let dx = Double(delta.x), dy = Double(delta.y)
+            session.runMouseJavaScript("window.scrollBy({left: innerWidth * \(dx), top: innerHeight * \(dy), behavior: 'smooth'})")
+        case .click:
+            let point = session.webView.convert(mouseCursor.center, from: contentView)
+            let width = max(session.webView.bounds.width, 1), height = max(session.webView.bounds.height, 1)
+            let x = max(0, min(1, point.x / width)), y = max(0, min(1, point.y / height))
+            session.runMouseJavaScript("(()=>{const x=innerWidth * \(Double(x)), y=innerHeight * \(Double(y)); const e=document.elementFromPoint(x,y); if(!e)return false; const target=e.closest('a,button,[role=button],input,video,select,textarea')||e; target.click(); return true})()")
+        case .navigate(let command):
+            switch command {
+            case .back: goBack()
+            case .forward: session.webView.goForward()
+            case .home: goHome()
+            case .reload: session.reload()
+            }
+        }
+    }
+
+    private func updateMouseCursorFrame() {
+        guard let mouseCursorCenter else { return }
+        mouseCursor.frame = CGRect(x: mouseCursorCenter.x - 14, y: mouseCursorCenter.y - 14, width: 28, height: 28)
+        contentView.bringSubviewToFront(mouseCursor)
     }
 
     private func closeCurrentTab() {

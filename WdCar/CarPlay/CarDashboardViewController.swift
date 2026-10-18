@@ -118,7 +118,8 @@ final class CarDashboardViewController: UIViewController {
             browser?.view.isHidden = false
         case 2:
             if tvController == nil {
-                let controller = UIHostingController(rootView: XtreamHomeView())
+                let controller = UIHostingController(rootView: XtreamHomeView(readOnly: true, presentPlaybackOnPhone: false))
+                controller.view.accessibilityIdentifier = "car.tv.screen"
                 controller.view.backgroundColor = UIColor(red: 0.035, green: 0.05, blue: 0.085, alpha: 1)
                 controller.overrideUserInterfaceStyle = .dark
                 addChild(controller)
@@ -177,18 +178,18 @@ final class CarDashboardViewController: UIViewController {
     private func makeHome() -> UIView {
         let page = UIView()
         page.accessibilityIdentifier = "car.home"
-        page.backgroundColor = UIColor(red: 0.035, green: 0.05, blue: 0.085, alpha: 1)
+        page.backgroundColor = CarUI.navy
         let gradient = CAGradientLayer()
         gradient.colors = [
-            UIColor(red: 0.055, green: 0.075, blue: 0.13, alpha: 1).cgColor,
-            UIColor(red: 0.02, green: 0.03, blue: 0.055, alpha: 1).cgColor
+            CarUI.navy.cgColor,
+            CarUI.navy.cgColor
         ]
         gradient.startPoint = CGPoint(x: 0, y: 0)
         gradient.endPoint = CGPoint(x: 1, y: 1)
         page.layer.insertSublayer(gradient, at: 0)
         welcomeGradient = gradient
 
-        let logo = UIImageView(image: UIImage(named: "LogoFull") ?? UIImage(named: "LogoMark"))
+        let logo = UIImageView(image: UIImage(named: "LogoMark") ?? UIImage(named: "LogoFull"))
         logo.contentMode = .scaleAspectFit
         logo.translatesAutoresizingMaskIntoConstraints = false
 

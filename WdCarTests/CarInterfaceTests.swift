@@ -33,6 +33,14 @@ final class CarInterfaceTests: XCTestCase {
         return nil
     }
 
+    private func findLabel(_ label: String, in view: UIView) -> UIView? {
+        if view.accessibilityLabel == label { return view }
+        for child in view.subviews {
+            if let found = findLabel(label, in: child) { return found }
+        }
+        return nil
+    }
+
     func testWelcomeNavigationAndPersistedZoom() throws {
         let savedZoom = WDSettings.carZoom
         let savedLanguage = WDSettings.carLanguage
@@ -50,7 +58,7 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertNotNil(find("car.home", in: dashboard.view))
         let welcomeImage = UIGraphicsImageRenderer(bounds: dashboard.view.bounds).image { _ in dashboard.view.drawHierarchy(in: dashboard.view.bounds, afterScreenUpdates: true) }
         let welcomeAttachment = XCTAttachment(image: welcomeImage)
-        welcomeAttachment.name = "wudcar-update8-home-preview"
+        welcomeAttachment.name = "wudcar-update9-home-preview"
         welcomeAttachment.lifetime = .keepAlways
         add(welcomeAttachment)
         menu.selectedSegmentIndex = 3
@@ -72,7 +80,10 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertEqual(WDSettings.carZoom, 1)
         menu.selectedSegmentIndex = 2
         menu.sendActions(for: .valueChanged)
-        XCTAssertTrue(dashboard.children.contains { $0 is UIHostingController<XtreamHomeView> })
+        let tv = try XCTUnwrap(dashboard.children.compactMap { $0 as? UIHostingController<XtreamHomeView> }.first)
+        XCTAssertTrue(tv.rootView.readOnly, "Car TV list is view-only; accounts are managed on iPhone")
+        XCTAssertFalse(tv.rootView.presentPlaybackOnPhone, "Selecting a car TV stream must not present the iPhone player")
+        XCTAssertNil(findLabel("إضافة حساب أو قائمة", in: tv.view), "Car TV must not expose the phone's add control")
 
         menu.selectedSegmentIndex = 1
         menu.sendActions(for: .valueChanged)
@@ -102,6 +113,7 @@ final class CarInterfaceTests: XCTestCase {
                     dashboard.view.layoutIfNeeded()
                 }
                 let home = try XCTUnwrap(find("car.home", in: dashboard.view))
+                XCTAssertNotNil(UIImage(named: "LogoMark"), "The home page must use the transparent-free brand mark that matches its background")
                 for item in labels(in: home) {
                     let needed = item.sizeThatFits(CGSize(width: item.bounds.width, height: .greatestFiniteMagnitude))
                     XCTAssertLessThanOrEqual(needed.height, item.bounds.height + 2, "Welcome text must not be truncated")
@@ -194,16 +206,42 @@ final class CarInterfaceTests: XCTestCase {
         }
         let overlayExists = try await session.webView.evaluateJavaScript("!!document.getElementById('wd-expand-video')") as? Bool
         XCTAssertEqual(overlayExists, true)
+        try await Task.sleep(nanoseconds: 600_000_000)
+        let expandGeometry = try await session.webView.evaluateJavaScript("(()=>{const b=document.getElementById('wd-expand-video'),v=document.querySelector('video');const br=b.getBoundingClientRect(),vr=v.getBoundingClientRect();return JSON.stringify({buttonW:br.width,buttonH:br.height,left:br.left,top:br.top,videoLeft:vr.left,videoTop:vr.top})})()") as? String
+        let expand = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(try XCTUnwrap(expandGeometry).utf8)) as? [String: Double])
+        XCTAssertLessThanOrEqual(expand["buttonW"] ?? 100, 44, "Expansion control is compact")
+        XCTAssertGreaterThan(expand["left"] ?? -1, expand["videoLeft"] ?? 0, "Expansion control sits inside the video's left edge")
+        XCTAssertLessThan(expand["left"] ?? 100, (expand["videoLeft"] ?? 0) + 100, "Expansion control stays left of center")
         let found: Bool = await withCheckedContinuation { continuation in
             session.enterVideoFullscreen { continuation.resume(returning: $0) }
         }
         XCTAssertTrue(found)
         let entered = try await session.webView.evaluateJavaScript("document.documentElement.classList.contains('wd-fs')") as? Bool
         XCTAssertEqual(entered, true)
+        let fullscreenGeometry = try await session.webView.evaluateJavaScript("(()=>{const v=document.querySelector('video'),r=v.getBoundingClientRect();return JSON.stringify({x:r.x,y:r.y,w:r.width,h:r.height,vw:innerWidth,vh:innerHeight,fit:getComputedStyle(v).objectFit})})()") as? String
+        let fullscreen = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(try XCTUnwrap(fullscreenGeometry).utf8)) as? [String: Any])
+        XCTAssertEqual(fullscreen["x"] as? Double ?? -10, 0, accuracy: 2)
+        XCTAssertEqual(fullscreen["y"] as? Double ?? -10, 0, accuracy: 2)
+        XCTAssertEqual(fullscreen["w"] as? Double ?? 0, fullscreen["vw"] as? Double ?? -1, accuracy: 2)
+        XCTAssertEqual(fullscreen["h"] as? Double ?? 0, fullscreen["vh"] as? Double ?? -1, accuracy: 2)
+        XCTAssertEqual(fullscreen["fit"] as? String, "contain", "Any remaining black bars are the aspect-ratio letterbox, not a smaller player frame")
         session.exitVideoFullscreen()
         try await Task.sleep(nanoseconds: 300_000_000)
         let exited = try await session.webView.evaluateJavaScript("document.documentElement.classList.contains('wd-fs')") as? Bool
         XCTAssertEqual(exited, false)
+    }
+
+    func testMousePageAndCompactBrowserToolbar() throws {
+        let pad = UIHostingController(rootView: CarMousePadView())
+        display(pad)
+        XCTAssertNotNil(find("phone.mouse.touchpad", in: pad.view))
+        XCTAssertNotNil(find("phone.mouse.click", in: pad.view))
+        CarMouseBridge.shared.setActive(false)
+
+        let browser = CarBrowserViewController()
+        display(browser)
+        let toolbar = try XCTUnwrap(find("car.browser.toolbar", in: browser.view))
+        XCTAssertLessThanOrEqual(toolbar.frame.height, 38)
     }
 
     func testLiveDesktopSitesInDesktopMode() async throws {

@@ -84,7 +84,7 @@ enum WebEngine {
         s.textContent = [
           'html.wd-fs, html.wd-fs body { overflow: hidden !important; background: #000 !important; }',
           'html.wd-fs body * { visibility: hidden !important; }',
-          'html.wd-fs .wd-fs-video { visibility: visible !important; position: fixed !important; left: 0 !important; top: 0 !important; right: auto !important; bottom: auto !important; width: var(--wd-vw, 100vw) !important; height: var(--wd-vh, 100vh) !important; max-width: none !important; max-height: none !important; margin: 0 !important; transform: none !important; z-index: 2147483647 !important; background: #000 !important; object-fit: var(--wd-fit, contain) !important; }'
+          'html.wd-fs .wd-fs-video { visibility: visible !important; position: fixed !important; left: 50% !important; top: 50% !important; right: auto !important; bottom: auto !important; width: var(--wd-vw, 100vw) !important; height: var(--wd-vh, 100vh) !important; max-width: none !important; max-height: none !important; margin: 0 !important; transform: translate(-50%, -50%) !important; z-index: 2147483647 !important; background: #000 !important; object-fit: var(--wd-fit, contain) !important; object-position: center center !important; }'
         ].join('\n');
         (document.head || document.documentElement).appendChild(s);
       }
@@ -137,7 +137,7 @@ enum WebEngine {
       }
 
       window.__wdEnterFS = function () { return enter(null); };
-      // A reversible expansion control centered over the visible video.
+      // A compact expansion control near the upper-left edge of the visible video.
       var expandButton = null;
       function updateExpandButton() {
         var video = biggestVideo();
@@ -155,7 +155,7 @@ enum WebEngine {
           expandButton.type = 'button';
           expandButton.textContent = '⛶';
           expandButton.setAttribute('aria-label', 'تكبير الفيديو / Expand video');
-          expandButton.style.cssText = 'position:fixed!important;z-index:2147483646!important;display:block;border:1px solid rgba(255,255,255,.55);border-radius:8px;background:rgba(0,0,0,.75);color:white;line-height:1;cursor:pointer;padding:0;box-sizing:border-box;';
+          expandButton.style.cssText = 'position:fixed!important;z-index:2147483646!important;display:block;border:1px solid rgba(255,255,255,.65);border-radius:10px;background:rgba(0,0,0,.78);color:white;line-height:1;cursor:pointer;padding:0;box-sizing:border-box;';
           expandButton.addEventListener('click', function (event) {
             event.preventDefault(); event.stopPropagation();
             if (enter(biggestVideo())) { expandButton.style.display = 'none'; }
@@ -164,15 +164,14 @@ enum WebEngine {
         }
         var factor = Number(window.__wdNativePageZoom) || 1;
         factor = factor > 0 ? factor : 1;
-        var size = 50 / factor;
-        var inset = 8 / factor;
+        var size = 42 / factor;
+        var inset = 10 / factor;
         expandButton.style.display = 'block';
         expandButton.style.width = size + 'px';
         expandButton.style.height = size + 'px';
-        expandButton.style.fontSize = (32 / factor) + 'px';
-        expandButton.style.borderRadius = '50%';
-        expandButton.style.left = Math.max(inset, Math.min(vw - size - inset, rect.left + (rect.width - size) / 2)) + 'px';
-        expandButton.style.top = Math.max(inset, Math.min(vh - size - inset, rect.top + (rect.height - size) / 2)) + 'px';
+        expandButton.style.fontSize = (27 / factor) + 'px';
+        expandButton.style.left = Math.max(inset, Math.min(vw - size - inset, rect.left + inset)) + 'px';
+        expandButton.style.top = Math.max(inset, Math.min(vh - size - inset, rect.top + inset)) + 'px';
       }
       setInterval(updateExpandButton, 500);
       window.addEventListener('scroll', updateExpandButton, true);

@@ -10,7 +10,7 @@
 
 workflows:
   wudcar-preview:
-    name: WudCar → Preview Update 8
+    name: WudCar → Preview Update 9
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
@@ -34,16 +34,16 @@ workflows:
             -parallel-testing-enabled NO -test-timeouts-enabled YES \
             -default-test-execution-time-allowance 180 \
             -maximum-test-execution-time-allowance 180 \
-            -resultBundlePath /tmp/WudCarUpdate8Preview.xcresult \
-            CODE_SIGNING_ALLOWED=NO test | tee /tmp/wudcar-update8-preview.log
+            -resultBundlePath /tmp/WudCarUpdate9Preview.xcresult \
+            CODE_SIGNING_ALLOWED=NO test | tee /tmp/wudcar-update9-preview.log
       - name: تصدير صور المعاينة
         script: |
-          mkdir -p build/update8-preview
-          xcrun xcresulttool export attachments --path /tmp/WudCarUpdate8Preview.xcresult --output-path build/update8-preview
+          mkdir -p build/update9-preview
+          xcrun xcresulttool export attachments --path /tmp/WudCarUpdate9Preview.xcresult --output-path build/update9-preview
     artifacts:
-      - build/update8-preview/**/*
-      - /tmp/WudCarUpdate8Preview.xcresult
-      - /tmp/wudcar-update8-preview.log
+      - build/update9-preview/**/*
+      - /tmp/WudCarUpdate9Preview.xcresult
+      - /tmp/wudcar-update9-preview.log
 
   wudcar-testflight:
     name: WudCar → TestFlight
@@ -67,6 +67,8 @@ workflows:
         - push
       branch_patterns:
         - pattern: wudcar
+          include: true
+        - pattern: wudcar-update9
           include: true
     scripts:
       - name: تثبيت XcodeGen

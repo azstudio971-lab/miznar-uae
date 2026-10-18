@@ -58,9 +58,12 @@ struct MainTabView: View {
             XtreamHomeView()
                 .tabItem { Label("Xtream", systemImage: "antenna.radiowaves.left.and.right") }
                 .tag(2)
+            CarMousePadView()
+                .tabItem { Label(tr("الماوس", "Mouse"), systemImage: "cursorarrow.rays") }
+                .tag(3)
             SettingsView(isSheet: false)
                 .tabItem { Label(tr("الإعدادات", "Settings"), systemImage: "gearshape") }
-                .tag(3)
+                .tag(4)
         }
         .fullScreenCover(isPresented: $playback.isPlayerPresented) {
             PlayerContainer()

@@ -107,6 +107,9 @@ final class TabSession: NSObject, ObservableObject {
     func submitInput() { run("window.__wdSubmit && window.__wdSubmit();") }
     func blurInput() { run("window.__wdBlur && window.__wdBlur();") }
 
+    /// Used only by WudCar's phone-side touchpad for its own WebView.
+    func runMouseJavaScript(_ script: String) { run(script) }
+
     // MARK: الفيديو (السيارة)
 
     func enterVideoFullscreen(completion: @escaping (Bool) -> Void) {

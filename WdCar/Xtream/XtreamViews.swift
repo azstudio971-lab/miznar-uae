@@ -3,6 +3,8 @@ import SwiftUI
 // MARK: - Xtream and M3U lists
 
 struct XtreamHomeView: View {
+    var readOnly = false
+    var presentPlaybackOnPhone = true
     @ObservedObject private var store = XtreamStore.shared
     @ObservedObject private var m3u = M3UStore.shared
     @State private var editing: XtreamAccount?
@@ -31,13 +33,15 @@ struct XtreamHomeView: View {
                             .padding(.vertical, 4)
                         }
                         .swipeActions {
-                            Button(role: .destructive) { store.remove(account.id) } label: {
-                                Label(tr("حذف", "Delete"), systemImage: "trash")
+                            if !readOnly {
+                                Button(role: .destructive) { store.remove(account.id) } label: {
+                                    Label(tr("حذف", "Delete"), systemImage: "trash")
+                                }
+                                Button { editing = account } label: {
+                                    Label(tr("تعديل", "Edit"), systemImage: "pencil")
+                                }
+                                .tint(.wdNavy)
                             }
-                            Button { editing = account } label: {
-                                Label(tr("تعديل", "Edit"), systemImage: "pencil")
-                            }
-                            .tint(.wdNavy)
                         }
                     }
                 }
@@ -54,21 +58,24 @@ struct XtreamHomeView: View {
                             Label(playlist.name, systemImage: "list.bullet.rectangle")
                         }
                         .swipeActions {
-                            Button(role: .destructive) { m3u.remove(playlist.id) } label: {
-                                Label(tr("حذف", "Delete"), systemImage: "trash")
+                            if !readOnly {
+                                Button(role: .destructive) { m3u.remove(playlist.id) } label: {
+                                    Label(tr("حذف", "Delete"), systemImage: "trash")
+                                }
+                                Button { editingM3U = playlist } label: {
+                                    Label(tr("تعديل", "Edit"), systemImage: "pencil")
+                                }
+                                .tint(.wdNavy)
                             }
-                            Button { editingM3U = playlist } label: {
-                                Label(tr("تعديل", "Edit"), systemImage: "pencil")
-                            }
-                            .tint(.wdNavy)
                         }
                     }
                 }
             }
             .navigationTitle(tr("التلفزيون TV", "TV"))
-            .navigationDestination(for: XtreamAccount.self) { XtreamAccountView(account: $0) }
-            .navigationDestination(for: M3UPlaylist.self) { M3UEntriesView(playlist: $0) }
+            .navigationDestination(for: XtreamAccount.self) { XtreamAccountView(account: $0, presentPlaybackOnPhone: presentPlaybackOnPhone) }
+            .navigationDestination(for: M3UPlaylist.self) { M3UEntriesView(playlist: $0, presentPlaybackOnPhone: presentPlaybackOnPhone) }
             .toolbar {
+                if !readOnly {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button(tr("إضافة حساب Xtream", "Add Xtream account"), systemImage: "plus") { showAdd = true }
@@ -77,6 +84,7 @@ struct XtreamHomeView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel(tr("إضافة حساب أو قائمة", "Add account or playlist"))
+                }
                 }
             }
             .sheet(isPresented: $showAdd) { XtreamAccountEditor(account: nil) }
@@ -149,6 +157,7 @@ struct M3UPlaylistEditor: View {
 
 struct M3UEntriesView: View {
     let playlist: M3UPlaylist
+    var presentPlaybackOnPhone = true
     @ObservedObject private var store = M3UStore.shared
     @State private var entries: [M3UEntry] = []
     @State private var query = ""
@@ -200,7 +209,7 @@ struct M3UEntriesView: View {
                                                   url: entry.url,
                                                   isLive: true,
                                                   artworkURL: entry.logo),
-                                            presentOnPhone: true)
+                                            presentOnPhone: presentPlaybackOnPhone)
             } label: {
                 HStack {
                     AsyncImage(url: entry.logo) { image in image.resizable().scaledToFit() } placeholder: {
@@ -348,6 +357,7 @@ struct XtreamAccountEditor: View {
 
 struct XtreamAccountView: View {
     let account: XtreamAccount
+    var presentPlaybackOnPhone = true
     @State private var kind: XtreamKind = .live
     @State private var categories: [XtreamCategory] = []
     @State private var info: XtreamAccountInfo?
@@ -379,11 +389,11 @@ struct XtreamAccountView: View {
             } else {
                 Section(kind.title) {
                     NavigationLink(tr("الكل", "All")) {
-                        XtreamStreamsView(account: account, kind: kind, category: nil)
+                        XtreamStreamsView(account: account, kind: kind, category: nil, presentPlaybackOnPhone: presentPlaybackOnPhone)
                     }
                     ForEach(categories) { category in
                         NavigationLink(category.name) {
-                            XtreamStreamsView(account: account, kind: kind, category: category)
+                            XtreamStreamsView(account: account, kind: kind, category: category, presentPlaybackOnPhone: presentPlaybackOnPhone)
                         }
                     }
                 }
@@ -414,6 +424,7 @@ struct XtreamStreamsView: View {
     let account: XtreamAccount
     let kind: XtreamKind
     let category: XtreamCategory?
+    var presentPlaybackOnPhone = true
 
     @ObservedObject private var playback = PlaybackManager.shared
     @State private var streams: [XtreamStream] = []
@@ -481,6 +492,6 @@ struct XtreamStreamsView: View {
                                           url: url,
                                           isLive: kind == .live,
                                           artworkURL: stream.icon),
-                                    presentOnPhone: true)
+                                    presentOnPhone: presentPlaybackOnPhone)
     }
 }
