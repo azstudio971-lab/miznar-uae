@@ -80,6 +80,13 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             self.interfaceController?.setRootTemplate(fallback, animated: false, completion: nil)
         }
 
+        SubscriptionStore.shared.$state.removeDuplicates().receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.rebuildEntertainment(self.currentShortcuts)
+                self.rebuildTelevision()
+            }.store(in: &bag)
+
         ShortcutStore.shared.$shortcuts
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
             .sink { [weak self] shortcuts in self?.rebuildEntertainment(shortcuts) }
@@ -260,6 +267,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     private func rebuildEntertainment(_ shortcuts: [SiteShortcut]) {
         currentShortcuts = shortcuts
+        guard SubscriptionStore.shared.hasAccess else {
+            entertainment.updateSections([CPListSection(items: [CPListItem(text: carTr("الاشتراك مطلوب", "Subscription required"), detailText: carTr("فعّل الاشتراك من تطبيق iPhone أثناء التوقف.", "Subscribe in the iPhone app while parked."))])]); return
+        }
         let items = shortcuts.prefix(Self.maxItems - 3).map { shortcut -> CPListItem in
             let item = CPListItem(text: shortcut.name, detailText: shortcut.url.host)
             loadImage(Favicon.url(for: shortcut.url), into: item)
@@ -294,6 +304,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     }
 
     private func startCarScreen() {
+        guard SubscriptionStore.shared.hasAccess else {
+            showAlert([carTr("فعّل اشتراك ود كار أو استعده من تطبيق iPhone أثناء التوقف.", "Activate or restore WudCar Premium on iPhone while parked.")]); return
+        }
         WDLog.car("templates: browser item tapped active=\(AppState.shared.carScreenActive) supportsVideo=\(supportsVideo)")
         if AppState.shared.carScreenActive {
             showAlert([
@@ -318,6 +331,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     /// الاختصار يُفتح على شاشة السيارة إن كان المتصفح معروضاً، وإلا على الهاتف
     private func openShortcut(_ url: URL) {
+        guard SubscriptionStore.shared.hasAccess else { startCarScreen(); return }
         if AppState.shared.carScreenActive {
             WDLog.car("templates: open shortcut on car screen \(url.host ?? "")")
             TabStore.car.newTab(url: url)
@@ -377,6 +391,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     // MARK: - Xtream
 
     private func rebuildTelevision() {
+        guard SubscriptionStore.shared.hasAccess else {
+            television.updateSections([CPListSection(items: [CPListItem(text: carTr("الاشتراك مطلوب", "Subscription required"), detailText: carTr("فعّل الاشتراك من تطبيق iPhone أثناء التوقف.", "Subscribe in the iPhone app while parked."))])]); return
+        }
         let accounts = XtreamStore.shared.accounts.map { account -> CPListItem in
             let item = CPListItem(text: account.name, detailText: account.displayHost)
             item.setImage(UIImage(systemName: "antenna.radiowaves.left.and.right"))

@@ -82,6 +82,7 @@ enum WebEngine {
         var s = document.createElement('style');
         s.id = 'wd-style';
         s.textContent = [
+          '#wd-expand-video::before { content: \"\"; position: absolute; inset: calc(-1 * var(--wd-hitpad, 11px)); }',
           'html.wd-fs, html.wd-fs body { overflow: hidden !important; background: #000 !important; }',
           'html.wd-fs body * { visibility: hidden !important; }',
           'html.wd-fs .wd-fs-ancestor { transform: none !important; filter: none !important; perspective: none !important; contain: none !important; will-change: auto !important; overflow: visible !important; }',
@@ -154,12 +155,13 @@ enum WebEngine {
           !state.fsVideo && !document.hidden;
         if (!visible) { if (expandButton) { expandButton.style.display = 'none'; } return; }
         if (!expandButton) {
+          ensureStyle();
           expandButton = document.createElement('button');
           expandButton.id = 'wd-expand-video';
           expandButton.type = 'button';
           expandButton.textContent = '⛶';
           expandButton.setAttribute('aria-label', 'تكبير الفيديو / Expand video');
-          expandButton.style.cssText = 'position:fixed!important;z-index:2147483646!important;display:block;border:1px solid rgba(255,255,255,.65);border-radius:10px;background:rgba(0,0,0,.78);color:white;line-height:1;cursor:pointer;padding:0;box-sizing:border-box;';
+          expandButton.style.cssText = 'position:fixed!important;z-index:2147483646!important;display:block;border:1px solid rgba(255,255,255,.65);border-radius:5px;background:rgba(0,0,0,.78);color:white;line-height:1;cursor:pointer;padding:0;box-sizing:border-box;';
           expandButton.addEventListener('click', function (event) {
             event.preventDefault(); event.stopPropagation();
             if (enter(biggestVideo())) { expandButton.style.display = 'none'; }
@@ -168,12 +170,13 @@ enum WebEngine {
         }
         var factor = Number(window.__wdNativePageZoom) || 1;
         factor = factor > 0 ? factor : 1;
-        var size = 42 / factor;
+        var size = 21 / factor;
         var inset = 10 / factor;
         expandButton.style.display = 'block';
         expandButton.style.width = size + 'px';
         expandButton.style.height = size + 'px';
-        expandButton.style.fontSize = (27 / factor) + 'px';
+        expandButton.style.fontSize = (13.5 / factor) + 'px';
+        expandButton.style.setProperty('--wd-hitpad', (11 / factor) + 'px');
         expandButton.style.left = Math.max(inset, Math.min(vw - size - inset, rect.left + inset)) + 'px';
         expandButton.style.top = Math.max(inset, Math.min(vh - size - inset, rect.top + inset)) + 'px';
       }

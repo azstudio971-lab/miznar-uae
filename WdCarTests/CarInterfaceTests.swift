@@ -2,11 +2,28 @@ import XCTest
 import UIKit
 import WebKit
 import SwiftUI
+import StoreKitTest
 @testable import WdCar
 
 @MainActor
 final class CarInterfaceTests: XCTestCase {
     private var testWindow: UIWindow!
+    private static var purchaseSession: SKTestSession?
+
+    override func setUp() async throws {
+        try await super.setUp()
+        if Self.purchaseSession == nil {
+            let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "WudCar", withExtension: "storekit"))
+            let session = try SKTestSession(contentsOf: url)
+            session.disableDialogs = true
+            session.clearTransactions()
+            _ = try await session.buyProduct(identifier: SubscriptionStore.productID)
+            Self.purchaseSession = session
+        }
+        await SubscriptionStore.shared.refresh()
+        XCTAssertTrue(SubscriptionStore.shared.hasAccess, "Car interface tests use a verified StoreKit test subscription")
+    }
+
 
     override func tearDown() {
         testWindow?.isHidden = true
@@ -48,6 +65,28 @@ final class CarInterfaceTests: XCTestCase {
             current = item.superview
         }
         return false
+    }
+
+    func testDaytimePhoneLogoAtCompactRegularAndLargeSizes() throws {
+        let image = try XCTUnwrap(UIImage(named: "LogoDay"))
+        XCTAssertEqual(image.size.width / image.size.height, 1145.0 / 1373.0, accuracy: 0.001)
+        for size in [CGSize(width: 320, height: 568), CGSize(width: 390, height: 844), CGSize(width: 430, height: 932)] {
+            let host = UIHostingController(rootView: HomeView(selectTab: { _ in })
+                .environmentObject(AppState.shared).environment(\.colorScheme, .light)
+                .environment(\.layoutDirection, .rightToLeft))
+            host.overrideUserInterfaceStyle = .light
+            display(host)
+            host.view.frame = CGRect(origin: .zero, size: size)
+            host.view.setNeedsLayout(); host.view.layoutIfNeeded()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.4))
+            let rendered = UIGraphicsImageRenderer(size: size).image { _ in
+                host.view.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
+            }
+            let attachment = XCTAttachment(image: rendered)
+            attachment.name = "update14-phone-day-logo-\(Int(size.width))x\(Int(size.height))"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
     }
 
     func testWelcomeNavigationAndPersistedZoom() throws {
@@ -142,6 +181,11 @@ final class CarInterfaceTests: XCTestCase {
         let down = try XCTUnwrap(find("car.browser.scroll.down", in: browser.view))
         XCTAssertTrue(isEffectivelyHidden(up))
         XCTAssertTrue(isEffectivelyHidden(down))
+        XCTAssertLessThan(up.convert(up.bounds, to: browser.view).midX, browser.view.bounds.midX)
+        XCTAssertLessThan(down.convert(down.bounds, to: browser.view).midX, browser.view.bounds.midX)
+        func descendants(_ view: UIView) -> [UIView] { [view] + view.subviews.flatMap { descendants($0) } }
+        let arrows = descendants(browser.view).filter { $0.accessibilityIdentifier?.hasPrefix("car.browser.scroll.") == true }
+        XCTAssertEqual(arrows.count, 2, "Only the new left-hand scroll controls are installed")
         XCTAssertTrue(try XCTUnwrap(find("car.mouse.cursor", in: browser.view)).isHidden)
         XCTAssertTrue(try XCTUnwrap(find("car.browser.toolbar.reveal", in: browser.view)).isHidden)
         XCTAssertNil(find("car.browser.reload", in: browser.view))
@@ -351,7 +395,8 @@ final class CarInterfaceTests: XCTestCase {
         try await Task.sleep(nanoseconds: 600_000_000)
         let expandGeometry = try await session.webView.evaluateJavaScript("(()=>{const b=document.getElementById('wd-expand-video'),v=document.querySelector('video');const br=b.getBoundingClientRect(),vr=v.getBoundingClientRect();return JSON.stringify({buttonW:br.width,buttonH:br.height,left:br.left,top:br.top,videoLeft:vr.left,videoTop:vr.top})})()") as? String
         let expand = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(try XCTUnwrap(expandGeometry).utf8)) as? [String: Double])
-        XCTAssertLessThanOrEqual(expand["buttonW"] ?? 100, 44, "Expansion control is compact")
+        XCTAssertEqual((expand["buttonW"] ?? 100) * 1.5, 21, accuracy: 1, "Expansion control has half the previous width")
+        XCTAssertEqual(expand["buttonW"], expand["buttonH"], "Expansion control is square")
         XCTAssertGreaterThan(expand["left"] ?? -1, expand["videoLeft"] ?? 0, "Expansion control sits inside the video's left edge")
         XCTAssertLessThan(expand["left"] ?? 100, (expand["videoLeft"] ?? 0) + 100, "Expansion control stays left of center")
         let found: Bool = await withCheckedContinuation { continuation in

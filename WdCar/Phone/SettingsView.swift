@@ -24,6 +24,10 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section(tr("حالة الاشتراك", "Subscription status")) {
+                    NavigationLink(tr("حالة الاشتراك وإدارته", "Subscription status and management")) { SubscriptionView() }
+                }
+
                 Section(tr("العرض", "Display")) {
                     Picker(tr("اللغة", "Language"), selection: $language) {
                         ForEach(AppLanguage.allCases) { Text($0.title).tag($0.rawValue) }

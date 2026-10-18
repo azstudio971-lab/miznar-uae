@@ -1,0 +1,52 @@
+{
+  "identifier": "WudCarUpdate14",
+  "nonRenewingSubscriptions": [],
+  "products": [],
+  "settings": {
+    "_applicationInternalID": "6823772404",
+    "_developerTeamID": "QS29RVJPUT",
+    "_failTransactionsEnabled": false,
+    "_locale": "en_US",
+    "_storefront": "ARE",
+    "_storeKitErrors": []
+  },
+  "subscriptionGroups": [
+    {
+      "id": "22490720",
+      "localizations": [],
+      "name": "WudCar Premium",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "24",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "6824232739",
+          "introductoryOffer": {
+            "internalID": "wudcar-trial-3-days",
+            "paymentMode": "free",
+            "subscriptionPeriod": "P3D"
+          },
+          "localizations": [
+            {
+              "description": "Browser, TV and mouse control",
+              "displayName": "WudCar Premium Monthly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "com.azstudio.wudcar.premium.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "WudCar Premium Monthly",
+          "subscriptionGroupID": "22490720",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}

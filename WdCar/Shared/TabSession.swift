@@ -41,6 +41,11 @@ final class TabSession: NSObject, ObservableObject {
         webView.isOpaque = false
         webView.backgroundColor = .black
         webView.scrollView.backgroundColor = .black
+        if side == .car {
+            // Use the single app-owned pair on the left, without WebKit scroll indicators.
+            webView.scrollView.showsVerticalScrollIndicator = false
+            webView.scrollView.showsHorizontalScrollIndicator = false
+        }
         if #available(iOS 16.4, *) { webView.isInspectable = true }
         if side == .car { webView.pageZoom = CGFloat(WDSettings.carZoom) }
 

@@ -11,7 +11,7 @@ settings:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
     MARKETING_VERSION: "1.4.2"
-    CURRENT_PROJECT_VERSION: "1"
+    CURRENT_PROJECT_VERSION: "14"
     VERSIONING_SYSTEM: apple-generic
 
 targets:
@@ -40,6 +40,9 @@ targets:
     platform: iOS
     sources:
       - path: WdCarTests
+        excludes: [WudCar.storekit]
+      - path: WdCarTests/WudCar.storekit
+        buildPhase: resources
     dependencies:
       - target: WdCar
     settings:

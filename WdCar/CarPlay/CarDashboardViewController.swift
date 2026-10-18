@@ -47,6 +47,8 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
         updateLanguage()
         showSelectedPage()
         bindRemoteControl()
+        SubscriptionStore.shared.$state.removeDuplicates().receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.showSelectedPage() }.store(in: &bag)
     }
 
     override func viewDidLayoutSubviews() {
@@ -104,6 +106,14 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
         tvController?.view.isHidden = true
         if menu.selectedSegmentIndex != 1 {
             browser?.pauseForNavigation()
+        }
+        if [1, 2].contains(menu.selectedSegmentIndex), !SubscriptionStore.shared.hasAccess {
+            menu.isHidden = false
+            browser?.pauseForNavigation()
+            PlaybackManager.shared.stop()
+            install(page([label("يرجى تفعيل اشتراك ود كار أو استعادته من تطبيق iPhone أثناء توقف السيارة.",
+                                "Please activate or restore WudCar Premium in the iPhone app while parked.", size: 21)]))
+            return
         }
         switch menu.selectedSegmentIndex {
         case 1:

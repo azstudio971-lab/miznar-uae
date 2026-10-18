@@ -52,13 +52,13 @@ struct MainTabView: View {
             HomeView(selectTab: { tab = $0 })
                 .tabItem { Label(tr("الرئيسية", "Home"), systemImage: "house") }
                 .tag(0)
-            PhoneBrowserScreen()
+            SubscriptionGate { PhoneBrowserScreen() }
                 .tabItem { Label(tr("الترفيه", "Entertainment"), systemImage: "play.tv") }
                 .tag(1)
-            XtreamHomeView()
+            SubscriptionGate { XtreamHomeView() }
                 .tabItem { Label("Xtream", systemImage: "antenna.radiowaves.left.and.right") }
                 .tag(2)
-            CarMousePadView()
+            SubscriptionGate { CarMousePadView() }
                 .tabItem { Label(tr("الماوس", "Mouse"), systemImage: "cursorarrow.rays") }
                 .tag(3)
             SettingsView(isSheet: false)

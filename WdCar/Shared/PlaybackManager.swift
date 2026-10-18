@@ -55,6 +55,10 @@ final class PlaybackManager: ObservableObject {
     // MARK: التشغيل
 
     func play(_ item: Item, presentOnPhone: Bool) {
+        guard SubscriptionStore.shared.hasAccess else {
+            errorMessage = tr("يلزم اشتراك ود كار. فعّله أو استعده من إعدادات الهاتف.", "WudCar Premium is required. Subscribe or restore in iPhone settings.")
+            return
+        }
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo, options: [])
         try? session.setActive(true)
@@ -77,6 +81,7 @@ final class PlaybackManager: ObservableObject {
     }
 
     func togglePlayPause() {
+        guard SubscriptionStore.shared.hasAccess else { stop(); return }
         if player.timeControlStatus == .paused { player.play() } else { player.pause() }
     }
 
