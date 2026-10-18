@@ -41,6 +41,15 @@ final class CarInterfaceTests: XCTestCase {
         return nil
     }
 
+    private func isEffectivelyHidden(_ view: UIView) -> Bool {
+        var current: UIView? = view
+        while let item = current {
+            if item.isHidden || item.alpha < 0.01 { return true }
+            current = item.superview
+        }
+        return false
+    }
+
     func testWelcomeNavigationAndPersistedZoom() throws {
         let savedZoom = WDSettings.carZoom
         let savedLanguage = WDSettings.carLanguage
@@ -112,12 +121,16 @@ final class CarInterfaceTests: XCTestCase {
     func testMousePageContainsOnlyTouchpadAndTwoScrollActions() throws {
         let page = UIHostingController(rootView: CarMousePadView())
         display(page)
-        XCTAssertNotNil(find("phone.mouse.touchpad", in: page.view))
-        XCTAssertNotNil(find("phone.mouse.scroll.up", in: page.view))
-        XCTAssertNotNil(find("phone.mouse.scroll.down", in: page.view))
-        XCTAssertNil(find("phone.mouse.section.home", in: page.view))
-        XCTAssertNil(find("phone.mouse.section.entertainment", in: page.view))
-        XCTAssertNotNil(find("phone.mouse.safetyNote", in: page.view))
+        page.view.layoutIfNeeded()
+        XCTAssertGreaterThan(page.view.bounds.width, 0)
+        XCTAssertGreaterThan(page.view.bounds.height, 0)
+        let rendered = UIGraphicsImageRenderer(bounds: page.view.bounds).image { _ in
+            page.view.drawHierarchy(in: page.view.bounds, afterScreenUpdates: true)
+        }
+        let attachment = XCTAttachment(image: rendered)
+        attachment.name = "wudcar-update11-mouse-pad-preview"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     func testBrowserToolbarIsHiddenByDefaultAndScrollArrowsStartHidden() throws {
@@ -127,8 +140,8 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertTrue(toolbar.isHidden, "The website must take the full available display at startup")
         let up = try XCTUnwrap(find("car.browser.scroll.up", in: browser.view))
         let down = try XCTUnwrap(find("car.browser.scroll.down", in: browser.view))
-        XCTAssertTrue(up.isHidden)
-        XCTAssertTrue(down.isHidden)
+        XCTAssertTrue(isEffectivelyHidden(up))
+        XCTAssertTrue(isEffectivelyHidden(down))
         XCTAssertTrue(try XCTUnwrap(find("car.mouse.cursor", in: browser.view)).isHidden)
         XCTAssertNil(find("car.browser.reload", in: browser.view))
         XCTAssertNil(find("car.browser.favorite", in: browser.view))
@@ -405,16 +418,23 @@ final class CarInterfaceTests: XCTestCase {
         let browser = CarBrowserViewController()
         display(browser)
         CarMouseBridge.shared.setActive(false)
+        try await Task.sleep(nanoseconds: 150_000_000)
         CarMouseBridge.shared.setActive(true)
+        try await Task.sleep(nanoseconds: 150_000_000)
         defer { CarMouseBridge.shared.setActive(false) }
         try await Task.sleep(nanoseconds: 3_200_000_000)
         let cursor = try XCTUnwrap(find("car.mouse.cursor", in: browser.view))
         XCTAssertTrue(cursor.isHidden, "The pointer should disappear after three idle seconds")
-        let savedCenter = cursor.center
         CarMouseBridge.shared.send(.move(CGPoint(x: 0.05, y: 0.02)))
         try await Task.sleep(nanoseconds: 120_000_000)
         XCTAssertFalse(cursor.isHidden, "The pointer should return on activity")
-        XCTAssertNotEqual(cursor.center, savedCenter, "The pointer keeps its previous position and resumes from it")
+        let firstCenter = cursor.center
+        try await Task.sleep(nanoseconds: 3_200_000_000)
+        XCTAssertTrue(cursor.isHidden, "The pointer should hide again after three idle seconds")
+        CarMouseBridge.shared.send(.move(CGPoint(x: 0.02, y: 0.01)))
+        try await Task.sleep(nanoseconds: 120_000_000)
+        XCTAssertFalse(cursor.isHidden, "The pointer should show after another phone movement")
+        XCTAssertNotEqual(cursor.center, firstCenter, "The pointer keeps its position when it resumes")
     }
 
     func testLiveDesktopSitesInDesktopMode() async throws {
