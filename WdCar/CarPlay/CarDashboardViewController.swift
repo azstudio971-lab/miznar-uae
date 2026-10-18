@@ -151,10 +151,9 @@ final class CarDashboardViewController: UIViewController {
 
     private func bindRemoteControl() {
         CarMouseBridge.shared.$input
-            .compactMap { $0 }
             .receive(on: RunLoop.main)
-            .sink { [weak self] input in
-                guard let self else { return }
+            .sink { [weak self] value in
+                guard let self, let input = value else { return }
                 switch input {
                 case .selectSection(let section):
                     if self.externalPlayer != nil && section == .television { return }

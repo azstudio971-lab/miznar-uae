@@ -13,6 +13,7 @@ final class CarMouseBridge: ObservableObject {
         case playPause
         case stopPlayback
         case zoom(Double)
+        case seek(Double)
         case toggleVideoFullscreen
         case move(CGPoint)       // normalized to the touchpad size
         case scroll(CGPoint)     // normalized to the touchpad size
