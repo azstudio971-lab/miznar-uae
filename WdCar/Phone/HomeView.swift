@@ -27,6 +27,13 @@ struct HomeView: View {
 
                     carStatus
 
+                    HomeCard(symbol: "cursorarrow.rays",
+                             title: tr("الماوس", "Mouse"),
+                             subtitle: tr("الماوس يعمل بالمتصفح فقط أثناء توقف السيارة.",
+                                          "Mouse works in the browser only while the car is stopped.")) {
+                        selectTab(3)
+                    }
+
                     HomeCard(symbol: "play.tv",
                              title: tr("الترفيه", "Entertainment"),
                              subtitle: tr("\(shortcuts.shortcuts.count) موقع في الاختصارات", "\(shortcuts.shortcuts.count) saved sites")) {
@@ -42,7 +49,7 @@ struct HomeView: View {
                     HomeCard(symbol: "gearshape",
                              title: tr("الإعدادات", "Settings"),
                              subtitle: tr("اللغة، وضع العرض، البيانات", "Language, appearance, data")) {
-                        selectTab(3)
+                        selectTab(4)
                     }
                 }
                 .padding(20)
@@ -67,7 +74,7 @@ struct HomeView: View {
             Image("LogoDay")
                 .resizable()
                 .scaledToFit()
-                .frame(maxWidth: 220)
+                .frame(width: 220, height: 264)
                 .accessibilityIdentifier("home.logo.day")
         }
     }

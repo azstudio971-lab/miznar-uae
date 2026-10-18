@@ -30,7 +30,7 @@ enum WDSettings {
     /// حجم النص في متصفح السيارة
     static var carZoom: Double {
         get {
-            let stored = defaults.object(forKey: WDKeys.carZoom) as? Double ?? 1.0
+            let stored = defaults.object(forKey: WDKeys.carZoom) as? Double ?? 0.5
             return min(1.5, max(0.5, stored))
         }
         set { defaults.set(min(1.5, max(0.5, newValue)), forKey: WDKeys.carZoom) }

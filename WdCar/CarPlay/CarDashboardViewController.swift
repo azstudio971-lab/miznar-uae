@@ -13,7 +13,11 @@ final class CarDashboardViewController: UIViewController {
     private var tvController: UIHostingController<XtreamHomeView>?
     private var externalPlayer: AVPlayerViewController?
     private let playerCloseButton = CarUI.iconButton("xmark", size: 18, background: UIColor(white: 0.05, alpha: 0.78))
+    private let playerFitButton = CarUI.textButton("تمدد", size: 14, background: UIColor(white: 0.05, alpha: 0.78))
     private let playerErrorLabel = UILabel()
+    private var playerControlsTimer: Timer?
+    private var playerTouchRecognizer: UITapGestureRecognizer?
+    private var playerIsStretched = false
     private var bag = Set<AnyCancellable>()
     private weak var welcomeGradient: CAGradientLayer?
     private weak var welcomeCopy: UIStackView?
@@ -178,6 +182,16 @@ final class CarDashboardViewController: UIViewController {
             }
             .store(in: &bag)
 
+        PlaybackManager.shared.$isPlaying
+            .removeDuplicates()
+            .filter { $0 }
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self, self.externalPlayer != nil else { return }
+                self.showExternalPlayerControls()
+            }
+            .store(in: &bag)
+
         DrivingMonitor.shared.$isMoving
             .removeDuplicates()
             .receive(on: RunLoop.main)
@@ -199,11 +213,16 @@ final class CarDashboardViewController: UIViewController {
 
     private func updateExternalPlayer(visible: Bool, error: String?) {
         guard visible else {
+            playerControlsTimer?.invalidate()
+            playerControlsTimer = nil
+            if let playerTouchRecognizer { bodyView.removeGestureRecognizer(playerTouchRecognizer) }
+            playerTouchRecognizer = nil
             externalPlayer?.willMove(toParent: nil)
             externalPlayer?.view.removeFromSuperview()
             externalPlayer?.removeFromParent()
             externalPlayer = nil
             playerCloseButton.removeFromSuperview()
+            playerFitButton.removeFromSuperview()
             playerErrorLabel.removeFromSuperview()
             menu.isHidden = menu.selectedSegmentIndex == 1
             showSelectedPage()
@@ -218,24 +237,51 @@ final class CarDashboardViewController: UIViewController {
             controller.showsPlaybackControls = true
             controller.allowsPictureInPicturePlayback = false
             controller.updatesNowPlayingInfoCenter = false
+            controller.videoGravity = .resizeAspect
             addChild(controller)
             bodyView.addSubview(controller.view)
             CarUI.pin(controller.view, to: bodyView)
             controller.didMove(toParent: self)
             externalPlayer = controller
+            playerIsStretched = false
 
             playerCloseButton.accessibilityIdentifier = "car.tv.player.close"
             playerCloseButton.accessibilityLabel = carTr("إيقاف والعودة للقنوات", "Stop and return to channels")
             playerCloseButton.addAction(UIAction { _ in PlaybackManager.shared.stop() }, for: .touchUpInside)
             playerCloseButton.translatesAutoresizingMaskIntoConstraints = false
             bodyView.addSubview(playerCloseButton)
+            playerFitButton.translatesAutoresizingMaskIntoConstraints = false
+            bodyView.addSubview(playerFitButton)
             NSLayoutConstraint.activate([
                 playerCloseButton.topAnchor.constraint(equalTo: bodyView.safeAreaLayoutGuide.topAnchor, constant: 10),
                 playerCloseButton.trailingAnchor.constraint(equalTo: bodyView.safeAreaLayoutGuide.trailingAnchor, constant: -12),
                 playerCloseButton.widthAnchor.constraint(equalToConstant: 46),
-                playerCloseButton.heightAnchor.constraint(equalToConstant: 40)
+                playerCloseButton.heightAnchor.constraint(equalToConstant: 40),
+                playerFitButton.topAnchor.constraint(equalTo: playerCloseButton.topAnchor),
+                playerFitButton.trailingAnchor.constraint(equalTo: playerCloseButton.leadingAnchor, constant: -8),
+                playerFitButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 92),
+                playerFitButton.heightAnchor.constraint(equalTo: playerCloseButton.heightAnchor)
             ])
+
+            playerFitButton.accessibilityIdentifier = "car.tv.player.stretch"
+            playerFitButton.accessibilityLabel = carTr("تمدد لملء الشاشة", "Stretch to fill screen")
+            playerFitButton.addAction(UIAction { [weak self] _ in
+                guard let self, let player = self.externalPlayer else { return }
+                self.playerIsStretched.toggle()
+                player.videoGravity = self.playerIsStretched ? .resize : .resizeAspect
+                CarUI.setTitle(self.playerFitButton,
+                               self.playerIsStretched ? carTr("ملاءمة", "Fit") : carTr("تمدد", "Stretch"), size: 14)
+                self.showExternalPlayerControls()
+            }, for: .touchUpInside)
+            bodyView.bringSubviewToFront(playerFitButton)
+
+            let tap = UITapGestureRecognizer(target: self, action: #selector(externalPlayerWasTouched))
+            tap.cancelsTouchesInView = false
+            bodyView.addGestureRecognizer(tap)
+            playerTouchRecognizer = tap
             bodyView.bringSubviewToFront(playerCloseButton)
+            PlaybackManager.shared.player.playImmediately(atRate: 1)
+            showExternalPlayerControls()
 
             playerErrorLabel.textColor = .white
             playerErrorLabel.backgroundColor = UIColor(white: 0.08, alpha: 0.92)
@@ -265,6 +311,20 @@ final class CarDashboardViewController: UIViewController {
             PlaybackManager.shared.player.pause()
         } else {
             playerErrorLabel.isHidden = true
+        }
+    }
+
+    @objc private func externalPlayerWasTouched() {
+        showExternalPlayerControls()
+    }
+
+    private func showExternalPlayerControls() {
+        playerCloseButton.isHidden = false
+        playerFitButton.isHidden = false
+        playerControlsTimer?.invalidate()
+        playerControlsTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { [weak self] _ in
+            self?.playerCloseButton.isHidden = true
+            self?.playerFitButton.isHidden = true
         }
     }
 

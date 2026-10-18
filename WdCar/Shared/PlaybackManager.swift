@@ -34,6 +34,7 @@ final class PlaybackManager: ObservableObject {
     private init() {
         player.allowsExternalPlayback = true
         player.usesExternalPlaybackWhileExternalScreenIsActive = true
+        player.automaticallyWaitsToMinimizeStalling = true
 
         player.publisher(for: \.timeControlStatus)
             .receive(on: RunLoop.main)
@@ -68,7 +69,7 @@ final class PlaybackManager: ObservableObject {
         let playerItem = AVPlayerItem(url: item.url)
         observe(playerItem)
         player.replaceCurrentItem(with: playerItem)
-        player.play()
+        player.playImmediately(atRate: 1)
         updateNowPlaying()
         loadArtwork(for: item)
 
@@ -106,22 +107,6 @@ final class PlaybackManager: ObservableObject {
                 if status == .failed {
                     self.errorMessage = item.error?.localizedDescription
                         ?? tr("تعذّر تشغيل هذا المحتوى.", "This content could not be played.")
-                } else if status == .readyToPlay {
-                    let expectedURL = self.current?.url
-                    Task { [weak self] in
-                        do {
-                            let tracks = try await item.asset.loadTracks(withMediaType: .video)
-                            guard tracks.isEmpty, let self, self.current?.url == expectedURL else { return }
-                            await MainActor.run {
-                                guard self.current?.url == expectedURL else { return }
-                                self.errorMessage = tr("هذا المصدر لا يحتوي على فيديو؛ أُوقف الصوت فقط.",
-                                                       "This source has no video track; audio-only playback was stopped.")
-                                self.player.pause()
-                            }
-                        } catch {
-                            // AVPlayer reports transport failures through item.status; do not mask a playable source here.
-                        }
-                    }
                 }
                 self.updateNowPlaying()
             }

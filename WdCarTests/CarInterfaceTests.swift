@@ -96,6 +96,73 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertNotNil(find("car.home", in: dashboard.view))
     }
 
+    func testDefaultCarZoomIs50PercentAndPreferencePersists() {
+        let defaults = UserDefaults.standard
+        let prior = defaults.object(forKey: WDKeys.carZoom)
+        defer {
+            if let prior { defaults.set(prior, forKey: WDKeys.carZoom) }
+            else { defaults.removeObject(forKey: WDKeys.carZoom) }
+        }
+        defaults.removeObject(forKey: WDKeys.carZoom)
+        XCTAssertEqual(WDSettings.carZoom, 0.5)
+        WDSettings.carZoom = 0.85
+        XCTAssertEqual(defaults.double(forKey: WDKeys.carZoom), 0.85, accuracy: 0.001)
+    }
+
+    func testMousePageContainsOnlyTouchpadAndTwoScrollActions() throws {
+        let page = UIHostingController(rootView: CarMousePadView())
+        display(page)
+        XCTAssertNotNil(find("phone.mouse.touchpad", in: page.view))
+        XCTAssertNotNil(find("phone.mouse.scroll.up", in: page.view))
+        XCTAssertNotNil(find("phone.mouse.scroll.down", in: page.view))
+        XCTAssertNil(find("phone.mouse.section.home", in: page.view))
+        XCTAssertNil(find("phone.mouse.section.entertainment", in: page.view))
+        XCTAssertNotNil(find("phone.mouse.safetyNote", in: page.view))
+    }
+
+    func testBrowserToolbarIsHiddenByDefaultAndScrollArrowsStartHidden() throws {
+        let browser = CarBrowserViewController()
+        display(browser)
+        let toolbar = try XCTUnwrap(find("car.browser.toolbar", in: browser.view))
+        XCTAssertTrue(toolbar.isHidden, "The website must take the full available display at startup")
+        let up = try XCTUnwrap(find("car.browser.scroll.up", in: browser.view))
+        let down = try XCTUnwrap(find("car.browser.scroll.down", in: browser.view))
+        XCTAssertTrue(up.isHidden)
+        XCTAssertTrue(down.isHidden)
+        XCTAssertTrue(try XCTUnwrap(find("car.mouse.cursor", in: browser.view)).isHidden)
+        XCTAssertNil(find("car.browser.reload", in: browser.view))
+        XCTAssertNil(find("car.browser.favorite", in: browser.view))
+        XCTAssertNil(find("car.browser.fullscreen", in: browser.view))
+        XCTAssertNil(find("car.browser.zoom", in: browser.view))
+    }
+
+    func testScrollArrowsHideAfterThreeSecondsAndToolbarHidesAfterFour() async throws {
+        let browser = CarBrowserViewController()
+        display(browser)
+        let up = try XCTUnwrap(find("car.browser.scroll.up", in: browser.view))
+        let toolbar = try XCTUnwrap(find("car.browser.toolbar", in: browser.view))
+        browser.revealScrollControls()
+        XCTAssertFalse(up.isHidden)
+        try await Task.sleep(nanoseconds: 3_200_000_000)
+        XCTAssertTrue(up.isHidden, "Scroll buttons hide three seconds after the last touch")
+        browser.revealToolbar()
+        XCTAssertFalse(toolbar.isHidden)
+        try await Task.sleep(nanoseconds: 4_200_000_000)
+        XCTAssertTrue(toolbar.isHidden, "The browser toolbar hides four seconds after the last use")
+    }
+
+    func testVideoControlsHideAfterThreeSeconds() async throws {
+        let owner = UIViewController()
+        display(owner)
+        let overlay = CarVideoOverlayView(frame: owner.view.bounds)
+        owner.view.addSubview(overlay)
+        overlay.present()
+        let controls = try XCTUnwrap(find("car.video.controls", in: overlay))
+        XCTAssertEqual(controls.alpha, 1)
+        try await Task.sleep(nanoseconds: 3_300_000_000)
+        XCTAssertLessThan(controls.alpha, 0.1, "The video controls should fade after three seconds")
+    }
+
     func testPhoneRemoteCanSelectDashboardSectionsAndCarLogoIsTransparent() async throws {
         let dashboard = CarDashboardViewController()
         display(dashboard)
@@ -127,6 +194,7 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertTrue(manager.isExternalDisplayPlayback)
         XCTAssertFalse(manager.isPlayerPresented, "Car TV playback must not present the phone player")
         XCTAssertNotNil(find("car.tv.player.close", in: dashboard.view), "External display must expose a route back to TV lists")
+        XCTAssertNotNil(find("car.tv.player.stretch", in: dashboard.view), "External playback exposes a stretch-to-fill option")
         manager.stop()
         try await Task.sleep(nanoseconds: 150_000_000)
         XCTAssertNil(manager.current)
@@ -297,7 +365,7 @@ final class CarInterfaceTests: XCTestCase {
         CarMouseBridge.shared.setActive(true)
         try await Task.sleep(nanoseconds: 200_000_000)
         let cursor = try XCTUnwrap(find("car.mouse.cursor", in: browser.view))
-        XCTAssertFalse(cursor.isHidden)
+        XCTAssertTrue(cursor.isHidden, "Activating the remote must not reveal the pointer before a movement")
         let center = cursor.center
         CarMouseBridge.shared.send(.move(CGPoint(x: 0.03, y: 0.03)))
         try await Task.sleep(nanoseconds: 200_000_000)
@@ -333,15 +401,15 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertLessThanOrEqual(toolbar.frame.height, 34)
     }
 
-    func testMouseCursorHidesAfterFiveSecondsAndReturnsAtSavedPosition() async throws {
+    func testMouseCursorHidesAfterThreeSecondsAndReturnsAtSavedPosition() async throws {
         let browser = CarBrowserViewController()
         display(browser)
         CarMouseBridge.shared.setActive(false)
         CarMouseBridge.shared.setActive(true)
         defer { CarMouseBridge.shared.setActive(false) }
-        try await Task.sleep(nanoseconds: 5_200_000_000)
+        try await Task.sleep(nanoseconds: 3_200_000_000)
         let cursor = try XCTUnwrap(find("car.mouse.cursor", in: browser.view))
-        XCTAssertTrue(cursor.isHidden, "The pointer should disappear after five idle seconds")
+        XCTAssertTrue(cursor.isHidden, "The pointer should disappear after three idle seconds")
         let savedCenter = cursor.center
         CarMouseBridge.shared.send(.move(CGPoint(x: 0.05, y: 0.02)))
         try await Task.sleep(nanoseconds: 120_000_000)

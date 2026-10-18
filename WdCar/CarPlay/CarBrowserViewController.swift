@@ -4,7 +4,7 @@ import WebKit
 
 /// متصفح السيارة الكامل — يُرسم داخل نافذة CarPlay.
 /// شريط المتصفح: التكبير | إخفاء الشريط | الفيديو | حفظ | التبويبات | تحديث | العنوان | اختصارات | رجوع | القائمة
-final class CarBrowserViewController: UIViewController {
+final class CarBrowserViewController: UIViewController, UIGestureRecognizerDelegate {
     var onVideoFullscreenChange: ((Bool) -> Void)?
     var onExitEntertainment: (() -> Void)?
 
@@ -21,10 +21,13 @@ final class CarBrowserViewController: UIViewController {
     private let mouseCursor = UIImageView(image: UIImage(systemName: "cursorarrow"))
     private var mouseCursorCenter: CGPoint?
     private var mouseHideTimer: Timer?
-    private var mouseHiddenForIdle = false
+    private var mouseHiddenForIdle = true
+    private var mouseHasBeenMoved = false
+    private var toolbarHideTimer: Timer?
+    private var scrollButtonsHideTimer: Timer?
 
     private var showingHome = false
-    private var toolbarCollapsed = false
+    private var toolbarCollapsed = true
     private var videoFullscreen = false
     private var blockTimer: Timer?
 
@@ -38,16 +41,14 @@ final class CarBrowserViewController: UIViewController {
     private let drivingOverlay = CarDrivingLockView()
     private let toastLabel = PaddingLabel()
     private let siteErrorLabel = PaddingLabel()
-    private let restoreButton = CarUI.iconButton("chevron.down", size: 16, background: UIColor(white: 0.1, alpha: 0.85))
+    private let scrollUpButton = CarUI.iconButton("arrow.up", size: 17, background: UIColor(white: 0.08, alpha: 0.82))
+    private let scrollDownButton = CarUI.iconButton("arrow.down", size: 17, background: UIColor(white: 0.08, alpha: 0.82))
+    private var scrollControls: UIStackView!
     private var textPanel: CarTextInputView?
     private var tabsPanel: CarTabsPanel?
 
-    private let zoomButton = CarUI.textButton("ع ع", size: 17)
     private let collapseButton = CarUI.iconButton("chevron.up")
-    private let fullscreenButton = CarUI.iconButton("arrow.up.left.and.arrow.down.right", background: CarUI.accent)
-    private let starButton = CarUI.iconButton("star")
     private let tabsButton = CarUI.iconButton("square.on.square")
-    private let reloadButton = CarUI.iconButton("arrow.clockwise")
     private let urlButton = CarUI.textButton("أدخل عنوان URL أو ابحث", size: 16)
     private let homeButton = CarUI.iconButton("house")
     private let backButton = CarUI.iconButton("chevron.left")
@@ -68,11 +69,14 @@ final class CarBrowserViewController: UIViewController {
         buildOverlays()
         bind()
         refresh()
+        setToolbarCollapsed(true)
     }
 
     deinit {
         blockTimer?.invalidate()
         mouseHideTimer?.invalidate()
+        toolbarHideTimer?.invalidate()
+        scrollButtonsHideTimer?.invalidate()
     }
 
     // MARK: البناء
@@ -90,8 +94,7 @@ final class CarBrowserViewController: UIViewController {
         urlButton.setContentHuggingPriority(.defaultLow, for: .horizontal)
         urlButton.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let buttons: [UIButton] = [zoomButton, collapseButton, fullscreenButton, starButton, tabsButton,
-                                   reloadButton, urlButton, homeButton, backButton, closeButton]
+        let buttons: [UIButton] = [collapseButton, tabsButton, urlButton, homeButton, backButton, closeButton]
         buttons.forEach { button in
             var buttonConfig = button.configuration
             buttonConfig?.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 6, bottom: 4, trailing: 6)
@@ -103,14 +106,9 @@ final class CarBrowserViewController: UIViewController {
             toolbar.addArrangedSubview(button)
         }
 
-        zoomButton.addAction(UIAction { [weak self] _ in self?.cycleZoom() }, for: .touchUpInside)
+        collapseButton.accessibilityLabel = carTr("إخفاء الشريط", "Hide toolbar")
         collapseButton.addAction(UIAction { [weak self] _ in self?.setToolbarCollapsed(true) }, for: .touchUpInside)
-        fullscreenButton.accessibilityLabel = carTr("تكبير الفيديو", "Expand video")
-        fullscreenButton.accessibilityHint = carTr("يعرض الفيديو بأكبر مساحة متاحة", "Shows the video in the largest available area")
-        fullscreenButton.addAction(UIAction { [weak self] _ in self?.enterVideoFullscreen() }, for: .touchUpInside)
-        starButton.addAction(UIAction { [weak self] _ in self?.saveShortcut() }, for: .touchUpInside)
         tabsButton.addAction(UIAction { [weak self] _ in self?.showTabsPanel() }, for: .touchUpInside)
-        reloadButton.addAction(UIAction { [weak self] _ in self?.currentSession?.reload() }, for: .touchUpInside)
         urlButton.addAction(UIAction { [weak self] _ in self?.presentTextInput(mode: .url, initial: "", placeholder: "") }, for: .touchUpInside)
         homeButton.addAction(UIAction { [weak self] _ in self?.goHome() }, for: .touchUpInside)
         backButton.addAction(UIAction { [weak self] _ in self?.goBack() }, for: .touchUpInside)
@@ -118,6 +116,7 @@ final class CarBrowserViewController: UIViewController {
         closeButton.accessibilityLabel = carTr("القائمة الرئيسية", "Main menu")
         closeButton.accessibilityHint = carTr("العودة إلى قائمة CarPlay", "Return to the CarPlay menu")
         closeButton.addAction(UIAction { [weak self] _ in self?.onExitEntertainment?() }, for: .touchUpInside)
+        buttons.forEach { $0.addAction(UIAction { [weak self] _ in self?.scheduleToolbarHide() }, for: .touchDown) }
 
         toolbar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(toolbar)
@@ -176,10 +175,19 @@ final class CarBrowserViewController: UIViewController {
     }
 
     private func buildOverlays() {
-        restoreButton.isHidden = true
-        restoreButton.addAction(UIAction { [weak self] _ in self?.setToolbarCollapsed(false) }, for: .touchUpInside)
-        restoreButton.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(restoreButton)
+        let scrollButtons = UIStackView(arrangedSubviews: [scrollUpButton, scrollDownButton])
+        scrollControls = scrollButtons
+        scrollButtons.axis = .vertical
+        scrollButtons.spacing = 8
+        scrollButtons.translatesAutoresizingMaskIntoConstraints = false
+        scrollButtons.isHidden = true
+        scrollUpButton.accessibilityIdentifier = "car.browser.scroll.up"
+        scrollDownButton.accessibilityIdentifier = "car.browser.scroll.down"
+        scrollUpButton.accessibilityLabel = carTr("تمرير للأعلى", "Scroll up")
+        scrollDownButton.accessibilityLabel = carTr("تمرير للأسفل", "Scroll down")
+        scrollUpButton.addAction(UIAction { [weak self] _ in self?.scrollPage(up: true) }, for: .touchUpInside)
+        scrollDownButton.addAction(UIAction { [weak self] _ in self?.scrollPage(up: false) }, for: .touchUpInside)
+        view.addSubview(scrollButtons)
 
         videoOverlay.isHidden = true
         videoOverlay.onExit = { [weak self] in self?.currentSession?.exitVideoFullscreen() }
@@ -217,10 +225,12 @@ final class CarBrowserViewController: UIViewController {
 
         let guide = view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
-            restoreButton.topAnchor.constraint(equalTo: guide.topAnchor, constant: 6),
-            restoreButton.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -10),
-            restoreButton.widthAnchor.constraint(equalToConstant: 48),
-            restoreButton.heightAnchor.constraint(equalToConstant: 36),
+            scrollButtons.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 4),
+            scrollButtons.centerYAnchor.constraint(equalTo: guide.centerYAnchor),
+            scrollUpButton.widthAnchor.constraint(equalToConstant: 42),
+            scrollUpButton.heightAnchor.constraint(equalToConstant: 40),
+            scrollDownButton.widthAnchor.constraint(equalToConstant: 42),
+            scrollDownButton.heightAnchor.constraint(equalToConstant: 40),
             toastLabel.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
             toastLabel.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: -24),
             siteErrorLabel.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
@@ -269,12 +279,13 @@ final class CarBrowserViewController: UIViewController {
             .receive(on: RunLoop.main)
             .sink { [weak self] active in
                 guard let self else { return }
-                self.mouseHiddenForIdle = false
-                self.mouseCursor.isHidden = !active
+                self.mouseHiddenForIdle = true
+                self.mouseHasBeenMoved = false
+                self.mouseCursor.isHidden = true
                 if active && self.mouseCursorCenter == nil {
                     self.mouseCursorCenter = CGPoint(x: self.contentView.bounds.midX, y: self.contentView.bounds.midY)
                 }
-                if active { self.scheduleMouseCursorHide() } else { self.mouseHideTimer?.invalidate() }
+                if !active { self.mouseHideTimer?.invalidate() }
                 self.updateMouseCursorFrame()
             }
             .store(in: &bag)
@@ -293,11 +304,13 @@ final class CarBrowserViewController: UIViewController {
         guard let tab = store.activeTab else { return }
 
         if showingHome || tab.url == nil {
+            scrollControls.isHidden = true
+            scrollButtonsHideTimer?.invalidate()
             shortcutsView.isHidden = false
             contentView.bringSubviewToFront(shortcutsView)
             currentSession?.webView.isHidden = true
             progressView.isHidden = true
-            mouseCursor.isHidden = !CarMouseBridge.shared.isActive
+            updateMouseCursorFrame()
             updateMouseCursorFrame()
             CarUI.setTitle(urlButton, "أدخل عنوان URL أو ابحث", size: 14)
             backButton.isEnabled = tab.url != nil
@@ -307,7 +320,7 @@ final class CarBrowserViewController: UIViewController {
         let session = pool.session(for: tab.id)
         if session !== currentSession { attach(session) }
         shortcutsView.isHidden = true
-        mouseCursor.isHidden = !CarMouseBridge.shared.isActive
+        updateMouseCursorFrame()
         session.webView.isHidden = false
         contentView.bringSubviewToFront(progressView)
         CarUI.setTitle(urlButton, tab.url?.host ?? tab.displayTitle, size: 14)
@@ -327,6 +340,13 @@ final class CarBrowserViewController: UIViewController {
         contentView.insertSubview(webView, at: 0)
         CarUI.pin(webView, to: contentView)
 
+        let contentTap = UITapGestureRecognizer(target: self, action: #selector(handleContentTap(_:)))
+        contentTap.cancelsTouchesInView = false
+        contentTap.delaysTouchesBegan = false
+        contentTap.delaysTouchesEnded = false
+        contentTap.delegate = self
+        contentView.addGestureRecognizer(contentTap)
+
         session.$isLoading
             .combineLatest(session.$progress)
             .receive(on: RunLoop.main)
@@ -334,7 +354,7 @@ final class CarBrowserViewController: UIViewController {
                 guard let self else { return }
                 self.progressView.isHidden = !loading || self.showingHome
                 self.progressView.setProgress(Float(progress), animated: true)
-                CarUI.setSymbol(self.reloadButton, loading ? "xmark" : "arrow.clockwise")
+                if loading { self.hideMouseCursorUntilMoved() }
             }
             .store(in: &sessionBag)
 
@@ -369,12 +389,16 @@ final class CarBrowserViewController: UIViewController {
 
     private func open(_ url: URL) {
         showingHome = false
+        hideMouseCursorUntilMoved()
+        scrollControls.isHidden = true
+        scrollButtonsHideTimer?.invalidate()
         store.open(url, inNewTab: false)
         refresh()
     }
 
     private func goHome() {
         showingHome = true
+        hideMouseCursorUntilMoved()
         currentSession?.pauseMedia()
         refresh()
     }
@@ -384,6 +408,7 @@ final class CarBrowserViewController: UIViewController {
             showingHome = false
             refresh()
         } else if let session = currentSession, session.canGoBack {
+            hideMouseCursorUntilMoved()
             session.goBack()
         } else {
             goHome()
@@ -391,18 +416,19 @@ final class CarBrowserViewController: UIViewController {
     }
 
     private func handleMouseInput(_ input: CarMouseBridge.Input) {
-        guard CarMouseBridge.shared.isActive else { return }
-        mouseHiddenForIdle = false
-        mouseCursor.isHidden = false
-        scheduleMouseCursorHide()
+        guard mouseControlsAllowed else { return }
         switch input {
         case .move(let delta):
+            mouseHasBeenMoved = true
+            mouseHiddenForIdle = false
+            mouseCursor.isHidden = false
             let center = mouseCursorCenter ?? CGPoint(x: contentView.bounds.midX, y: contentView.bounds.midY)
             mouseCursorCenter = CGPoint(
                 x: min(max(14, center.x + delta.x * contentView.bounds.width), contentView.bounds.width - 14),
                 y: min(max(14, center.y + delta.y * contentView.bounds.height), contentView.bounds.height - 14)
             )
             updateMouseCursorFrame()
+            scheduleMouseCursorHide()
         case .scroll(let delta):
             if showingHome || currentSession == nil || currentSession?.webView.isHidden == true {
                 shortcutsView.scrollFromPhone(delta)
@@ -412,13 +438,14 @@ final class CarBrowserViewController: UIViewController {
             let dx = Double(delta.x), dy = Double(delta.y)
             session.runMouseJavaScript("window.scrollBy({left: innerWidth * \(dx), top: innerHeight * \(dy), behavior: 'smooth'})")
         case .click:
+            let clickPoint = mouseCursorCenter ?? CGPoint(x: contentView.bounds.midX, y: contentView.bounds.midY)
             if showingHome || currentSession == nil || currentSession?.webView.isHidden == true {
-                let point = shortcutsView.convert(mouseCursor.center, from: contentView)
+                let point = shortcutsView.convert(clickPoint, from: contentView)
                 shortcutsView.activateShortcut(at: point)
                 return
             }
             guard let session = currentSession else { return }
-            let point = session.webView.convert(mouseCursor.center, from: contentView)
+            let point = session.webView.convert(clickPoint, from: contentView)
             let width = max(session.webView.bounds.width, 1), height = max(session.webView.bounds.height, 1)
             let x = max(0, min(1, point.x / width)), y = max(0, min(1, point.y / height))
             session.runMouseJavaScript("(()=>{const x=innerWidth * \(Double(x)), y=innerHeight * \(Double(y)); const e=document.elementFromPoint(x,y); if(!e)return false; const target=e.closest('a,button,[role=button],input,video,select,textarea')||e; target.click(); return true})()")
@@ -429,11 +456,8 @@ final class CarBrowserViewController: UIViewController {
             case .home: goHome()
             case .reload: currentSession?.reload()
             }
-        case .zoom(let delta):
-            let zoom = min(1.5, max(0.5, WDSettings.carZoom + delta))
-            WDSettings.carZoom = zoom
-            pool.applyZoom(zoom)
-            showToast("\(Int((zoom * 100).rounded()))%")
+        case .zoom(_):
+            break // Page zoom is changed from Settings only.
         case .seek(let seconds):
             if PlaybackManager.shared.current != nil { PlaybackManager.shared.seek(by: seconds) }
             else { currentSession?.seek(by: seconds) }
@@ -451,9 +475,52 @@ final class CarBrowserViewController: UIViewController {
         }
     }
 
+    private var mouseControlsAllowed: Bool {
+        CarMouseBridge.shared.isActive && !view.isHidden && !DrivingMonitor.shared.isMoving
+    }
+
+    private func hideMouseCursorUntilMoved() {
+        mouseHideTimer?.invalidate()
+        mouseHasBeenMoved = false
+        mouseHiddenForIdle = true
+        mouseCursor.isHidden = true
+    }
+
+    @objc private func handleContentTap(_ recognizer: UITapGestureRecognizer) {
+        guard !videoFullscreen else { return }
+        showScrollControls()
+        let point = recognizer.location(in: view)
+        if toolbarCollapsed && point.y <= view.bounds.height * 0.25 {
+            revealToolbar()
+        }
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        if touch.view is UIControl { return false }
+        return true
+    }
+
+    private func scrollPage(up: Bool) {
+        guard let session = currentSession, !showingHome else { return }
+        let amount = up ? -0.75 : 0.75
+        session.runMouseJavaScript("window.scrollBy({left: 0, top: innerHeight * \(amount), behavior: 'smooth'})")
+        showScrollControls()
+    }
+
+    private func showScrollControls() {
+        guard !videoFullscreen, !showingHome, store.activeTab?.url != nil else { return }
+        scrollControls.isHidden = false
+        scrollButtonsHideTimer?.invalidate()
+        scrollButtonsHideTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { [weak self] _ in
+            self?.scrollControls.isHidden = true
+        }
+    }
+
+    func revealScrollControls() { showScrollControls() }
+
     private func scheduleMouseCursorHide() {
         mouseHideTimer?.invalidate()
-        mouseHideTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: false) { [weak self] _ in
+        mouseHideTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { [weak self] _ in
             guard let self, CarMouseBridge.shared.isActive else { return }
             self.mouseHiddenForIdle = true
             self.mouseCursor.isHidden = true
@@ -463,7 +530,7 @@ final class CarBrowserViewController: UIViewController {
     private func updateMouseCursorFrame() {
         guard let mouseCursorCenter else { return }
         mouseCursor.frame = CGRect(x: mouseCursorCenter.x - 13, y: mouseCursorCenter.y - 13, width: 26, height: 26)
-        mouseCursor.isHidden = !CarMouseBridge.shared.isActive || mouseHiddenForIdle
+        mouseCursor.isHidden = !CarMouseBridge.shared.isActive || !mouseHasBeenMoved || mouseHiddenForIdle
         contentView.bringSubviewToFront(mouseCursor)
     }
 
@@ -475,25 +542,6 @@ final class CarBrowserViewController: UIViewController {
         }
         showingHome = false
         store.close(id)
-    }
-
-    private func cycleZoom() {
-        let current = WDSettings.carZoom
-        let roundedPercent = Int((current * 100).rounded())
-        let next = roundedPercent >= 150 ? 50.0 : Double(roundedPercent + 5)
-        let zoom = next / 100.0
-        WDSettings.carZoom = zoom
-        pool.applyZoom(zoom)
-        showToast("\(carTr("تكبير الصفحة", "Page zoom")) \(Int(zoom * 100))%")
-    }
-
-    private func saveShortcut() {
-        guard let tab = store.activeTab, let url = tab.url, !showingHome else {
-            showToast("افتح موقعاً أولاً")
-            return
-        }
-        let added = ShortcutStore.shared.add(name: tab.url?.host ?? tab.displayTitle, url: url)
-        showToast(added ? "تمت الإضافة للاختصارات ⭐" : "الموقع موجود في الاختصارات")
     }
 
     private func enterVideoFullscreen() {
@@ -516,13 +564,24 @@ final class CarBrowserViewController: UIViewController {
 
     private func setToolbarCollapsed(_ collapsed: Bool) {
         toolbarCollapsed = collapsed
+        toolbarHideTimer?.invalidate()
+        if collapsed { toolbarHideTimer = nil }
         applyToolbarVisibility()
+        if !collapsed { scheduleToolbarHide() }
     }
+
+    func revealToolbar() { setToolbarCollapsed(false) }
 
     private func setVideoFullscreen(_ on: Bool) {
         videoFullscreen = on
         onVideoFullscreenChange?(on)
-        if on { videoOverlay.present() } else { videoOverlay.isHidden = true }
+        if on {
+            scrollControls.isHidden = true
+            scrollButtonsHideTimer?.invalidate()
+            videoOverlay.present()
+        } else {
+            videoOverlay.isHidden = true
+        }
         applyToolbarVisibility()
         updateDrivingLock()
     }
@@ -530,11 +589,19 @@ final class CarBrowserViewController: UIViewController {
     private func applyToolbarVisibility() {
         let hidden = toolbarCollapsed || videoFullscreen
         toolbar.isHidden = hidden
-        restoreButton.isHidden = !(toolbarCollapsed && !videoFullscreen)
         NSLayoutConstraint.deactivate([contentTopToToolbar, contentTopToSafe])
         NSLayoutConstraint.activate([hidden ? contentTopToSafe : contentTopToToolbar])
-        view.bringSubviewToFront(restoreButton)
+        view.bringSubviewToFront(scrollControls)
         UIView.animate(withDuration: 0.2) { self.view.layoutIfNeeded() }
+    }
+
+    private func scheduleToolbarHide() {
+        toolbarHideTimer?.invalidate()
+        guard !toolbarCollapsed, !videoFullscreen else { return }
+        toolbarHideTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: false) { [weak self] _ in
+            guard let self, self.textPanel == nil, self.tabsPanel == nil, !self.videoFullscreen else { return }
+            self.setToolbarCollapsed(true)
+        }
     }
 
     // MARK: قفل الفيديو أثناء القيادة
@@ -586,6 +653,7 @@ final class CarBrowserViewController: UIViewController {
     private func dismissTextInput() {
         textPanel?.removeFromSuperview()
         textPanel = nil
+        scheduleToolbarHide()
     }
 
     // MARK: لوحة التبويبات
@@ -621,6 +689,7 @@ final class CarBrowserViewController: UIViewController {
     private func hideTabsPanel() {
         tabsPanel?.removeFromSuperview()
         tabsPanel = nil
+        scheduleToolbarHide()
     }
 
     // MARK: تنبيه قصير

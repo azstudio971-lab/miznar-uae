@@ -35,6 +35,7 @@ final class CarVideoOverlayView: UIView, UIGestureRecognizerDelegate {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     private func build() {
+        controls.accessibilityIdentifier = "car.video.controls"
         addSubview(controls)
         CarUI.pin(controls, to: self)
 
@@ -146,7 +147,7 @@ final class CarVideoOverlayView: UIView, UIGestureRecognizerDelegate {
         hideWork?.cancel()
         let work = DispatchWorkItem { [weak self] in self?.hideControls() }
         hideWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: work)
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {

@@ -47,7 +47,7 @@ enum VideoFit: String, CaseIterable {
         switch self {
         case .contain: return "ملاءمة"
         case .cover: return "تعبئة"
-        case .fill: return "تمديد"
+        case .fill: return "تمدد لملء الشاشة"
         }
     }
 }
