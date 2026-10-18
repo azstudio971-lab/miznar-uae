@@ -50,5 +50,6 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.azstudio.wudcar.tests
         GENERATE_INFOPLIST_FILE: YES
     scheme:
+      storeKitConfiguration: WdCarTests/WudCar.storekit
       testTargets:
         - WdCarTests

@@ -39,7 +39,7 @@ workflows:
             -default-test-execution-time-allowance 180 \
             -maximum-test-execution-time-allowance 180 \
             -resultBundlePath /tmp/WudCarUpdate14Preview.xcresult \
-            CODE_SIGNING_ALLOWED=NO test | tee /tmp/wudcar-update14-preview.log
+            CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-update14-preview.log
       - name: تصدير صور المعاينة
         script: |
           mkdir -p build/update14-preview
@@ -102,7 +102,7 @@ workflows:
         script: |
           set -euo pipefail
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for a in d["devices"].values() for v in a if "iPhone" in v["name"]))')
-          xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 180 -resultBundlePath /tmp/WudCarUpdate14Interface.xcresult CODE_SIGNING_ALLOWED=NO test | tee /tmp/wudcar-update14-interface-tests.log
+          xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 180 -resultBundlePath /tmp/WudCarUpdate14Interface.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-update14-interface-tests.log
       - name: صور التحقق من عرض المتصفح
         script: |
           mkdir -p build/update14-test-screenshots
