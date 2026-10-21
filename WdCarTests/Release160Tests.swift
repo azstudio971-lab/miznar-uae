@@ -41,10 +41,22 @@ final class Release160Tests: XCTestCase {
     }
     private func ready(_ web: WKWebView, marker: String = "document.readyState === 'complete'") async throws {
         for _ in 0..<150 {
-            if (try? await evaluate(marker, web: web)) as? Bool == true { return }
+            if !web.isLoading, (try? await evaluate(marker, web: web)) as? Bool == true { return }
             try await Task.sleep(nanoseconds: 200_000_000)
         }
         XCTFail("WKWebView did not finish the requested document")
+    }
+    /// Require five seconds of continuous desktop rendering, including site-triggered reloads.
+    private func stableYouTube(_ web: WKWebView, path: String) async throws -> Bool {
+        var consecutive = 0
+        let literal = WebEngine.jsLiteral(path)
+        for _ in 0..<180 {
+            let desktop = (try? await evaluate("location.pathname === \(literal) && document.readyState === 'complete' && document.title.length > 0 && !!document.querySelector('ytd-app') && !document.querySelector('ytm-app') && innerWidth >= 1200", web: web)) as? Bool == true
+            consecutive = (!web.isLoading && desktop) ? consecutive + 1 : 0
+            if consecutive >= 20 { return true }
+            try await Task.sleep(nanoseconds: 250_000_000)
+        }
+        return false
     }
     private func capture(_ web: WKWebView, name: String) async throws {
         let image: UIImage = try await withCheckedThrowingContinuation { continuation in
@@ -57,6 +69,13 @@ final class Release160Tests: XCTestCase {
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+    private func captureApp(_ view: UIView, name: String) {
+        let image = UIGraphicsImageRenderer(size: view.bounds.size).image { _ in
+            view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
     func testZoomUpgradeIsOnceAndManualPreferenceSurvives() throws {
         let name = "WudCar160-\(UUID())"
@@ -135,10 +154,12 @@ final class Release160Tests: XCTestCase {
         let session = TabSession(tabID: UUID(), side: .phone, initialURL: nil)
         defer { session.tearDown() }
         display(DesktopViewportView(session: session), size: CGSize(width: 390, height: 700))
-        for (host, authored) in [("www.youtube.com", false), ("www.youtube.com", true), ("example.com", false)] {
+        for (index, item) in [("www.youtube.com", false), ("www.youtube.com", true), ("example.com", false)].enumerated() {
+            let (host, authored) = item
+            let title = "ScopedViewport-\(index)"
             let viewport = authored ? "<meta name='viewport' content='width=1024'>" : ""
-            session.webView.loadHTMLString("<html><head><title>ScopedViewport</title>\(viewport)</head><body>Fixture</body></html>", baseURL: URL(string: "https://\(host)/"))
-            try await ready(session.webView, marker: "document.title === 'ScopedViewport' && document.readyState === 'complete'")
+            session.webView.loadHTMLString("<html><head><title>\(title)</title>\(viewport)</head><body>Fixture</body></html>", baseURL: URL(string: "https://\(host)/"))
+            try await ready(session.webView, marker: "document.title === \(WebEngine.jsLiteral(title)) && document.readyState === 'complete'")
             let value = try await evaluate("document.querySelector('meta[name=viewport]')?.content || ''", web: session.webView) as? String
             XCTAssertEqual(value, authored ? "width=1024" : (host == "www.youtube.com" ? "width=device-width, initial-scale=1" : ""))
         }
@@ -162,22 +183,13 @@ final class Release160Tests: XCTestCase {
                 : CarBrowserViewController()
             display(controller, size: side == .phone ? CGSize(width: 390, height: 700) : CGSize(width: 960, height: 480))
             controller.view.layoutIfNeeded()
-            var desktop = false
-            for _ in 0..<150 {
-                if (try? await evaluate("!!document.querySelector('ytd-app') && document.readyState === 'complete'", web: session.webView)) as? Bool == true { desktop = true; break }
-                try await Task.sleep(nanoseconds: 200_000_000)
-            }
-            try await Task.sleep(nanoseconds: 2_000_000_000)
+            let desktop = try await stableYouTube(session.webView, path: "/results")
             let metrics = try? await evaluate("JSON.stringify({url:location.href,title:document.title,width:innerWidth,desktop:!!document.querySelector('ytd-app'),mobile:!!document.querySelector('ytm-app'),videos:document.querySelectorAll('a[href*=watch]').length,meta:document.querySelector('meta[name=viewport]')?.content,client:document.documentElement.clientWidth,visual:visualViewport.width})", web: session.webView)
             let record = XCTAttachment(string: "SIMULATOR ONLY \(side): \(String(describing: metrics)); native pageZoom=\(session.webView.pageZoom)")
             print("WUDCAR160 LIVE \(side): \(String(describing: metrics)); native bounds=\(session.webView.bounds); fit=\(session.webView.transform); pageZoom=\(session.webView.pageZoom)")
             record.name = "160-live-youtube-\(side)-metrics"; record.lifetime = .keepAlways; add(record)
             try await capture(session.webView, name: "160-live-youtube-\(side)")
-            let screen = UIGraphicsImageRenderer(size: controller.view.bounds.size).image { _ in
-                controller.view.drawHierarchy(in: controller.view.bounds, afterScreenUpdates: true)
-            }
-            let screenRecord = XCTAttachment(image: screen)
-            screenRecord.name = "160-live-app-browser-\(side)"; screenRecord.lifetime = .keepAlways; add(screenRecord)
+            captureApp(controller.view, name: "160-live-app-browser-\(side)")
             guard desktop else { throw XCTSkip("Live YouTube did not expose its desktop document in Simulator (network/consent/site restriction); physical iPhone acceptance remains pending. Car phase is not attempted before phone succeeds.") }
             let width = try await evaluate("innerWidth", web: session.webView) as? Double ?? 0
             XCTAssertGreaterThanOrEqual(width, 1200)
@@ -185,14 +197,17 @@ final class Release160Tests: XCTestCase {
             let mobile = try await evaluate("!!document.querySelector('ytm-app')", web: session.webView) as? Bool ?? true
             XCTAssertFalse(mobile)
             session.load(URL(string: "https://www.youtube.com/@NASA/videos")!)
-            try await ready(session.webView, marker: "location.pathname === '/@NASA/videos' && !!document.querySelector('ytd-app') && document.readyState === 'complete'")
-            try await Task.sleep(nanoseconds: 3_000_000_000)
+            let channelStable = try await stableYouTube(session.webView, path: "/@NASA/videos")
+            XCTAssertTrue(channelStable, "Desktop channel must remain stable after YouTube finishes loading")
             let channelWidth = try await evaluate("innerWidth", web: session.webView) as? Double ?? 0
             XCTAssertGreaterThanOrEqual(channelWidth, 1200, "Desktop viewport must survive real YouTube page navigation")
             try await capture(session.webView, name: "160-live-youtube-channel-\(side)")
+            captureApp(controller.view, name: "160-live-app-channel-\(side)")
             XCTAssertTrue(session.webView.canGoBack)
             session.goBack()
-            try await ready(session.webView, marker: "location.pathname === '/results' && !!document.querySelector('ytd-app') && document.readyState === 'complete'")
+            let backStable = try await stableYouTube(session.webView, path: "/results")
+            XCTAssertTrue(backStable, "Desktop mode must remain stable after going back")
+            print("WUDCAR160 STABLE \(side): channelWidth=\(channelWidth), channelStable=\(channelStable), backStable=\(backStable), pageZoom=\(session.webView.pageZoom)")
             XCTAssertEqual(session.webView.pageZoom, 1, accuracy: 0.001)
         }
     }
