@@ -96,14 +96,19 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertNil(SeasonalLogo.validatedImage(data: Data("broken".utf8), response: ok))
     }
 
-    func test150EntertainmentLayoutSnapshots() throws {
+    func test150EntertainmentLayoutSnapshots() async throws {
         for size in [CGSize(width: 640, height: 360), CGSize(width: 960, height: 480), CGSize(width: 1280, height: 480)] {
             let controller = UIViewController()
             let shortcuts = CarShortcutsView(frame: .zero)
             controller.view = shortcuts
             display(controller)
             controller.view.frame = CGRect(origin: .zero, size: size)
+            try await Task.sleep(nanoseconds: 600_000_000)
             controller.view.setNeedsLayout(); controller.view.layoutIfNeeded()
+            let collection = try XCTUnwrap(shortcuts.subviews.compactMap { $0 as? UICollectionView }.first)
+            collection.layoutIfNeeded()
+            XCTAssertGreaterThan(collection.numberOfItems(inSection: 0), 0, "Snapshot must contain the real shortcut data")
+            XCTAssertFalse(collection.visibleCells.isEmpty, "Cards must have visible frames before capture")
             let image = UIGraphicsImageRenderer(size: size).image { context in shortcuts.layer.render(in: context.cgContext) }
             let attachment = XCTAttachment(image: image)
             attachment.name = "wudcar150-entertainment-\(Int(size.width))x\(Int(size.height))"
