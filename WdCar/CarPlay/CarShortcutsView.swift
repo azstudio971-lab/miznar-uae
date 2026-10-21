@@ -205,10 +205,10 @@ private final class CarShortcutCell: UICollectionViewCell {
         nameLabel.text = item.url.host?.contains("rain.ae") == true ? "طقس الإمارات · Rain.ae" : item.name
         letterLabel.text = String(item.name.prefix(1))
         letterLabel.isHidden = false
-        iconView.image = item.url.host?.contains("rain.ae") == true ? UIImage(systemName: "cloud.sun.fill") : nil
+        iconView.image = item.iconURL == nil && item.url.host?.contains("rain.ae") == true ? UIImage(systemName: "cloud.sun.fill") : nil
         iconView.tintColor = .systemYellow
         if iconView.image != nil { letterLabel.isHidden = true; return }
-        ImageLoader.shared.load(Favicon.url(for: item.url)) { [weak self] image in
+        ImageLoader.shared.load(item.iconURL ?? Favicon.url(for: item.url)) { [weak self] image in
             guard let self, self.currentID == item.id else { return }
             self.iconView.image = image
             self.letterLabel.isHidden = image != nil

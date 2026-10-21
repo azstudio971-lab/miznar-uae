@@ -67,6 +67,19 @@ final class CarInterfaceTests: XCTestCase {
         return false
     }
 
+    func test150ExistingShortcutDecodesWithoutOptionalArtwork() throws {
+        let item = SiteShortcut(name: "Custom", url: URL(string: "https://example.com")!, colorHex: "#013748")
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(item)) as? [String: Any])
+        json.removeValue(forKey: "iconURL")
+        let decoded = try JSONDecoder().decode(SiteShortcut.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(decoded.id, item.id)
+        XCTAssertEqual(decoded.url, item.url)
+        XCTAssertNil(decoded.iconURL)
+        var custom = decoded
+        custom.iconURL = URL(string: "https://example.com/logo.png")
+        XCTAssertEqual(try JSONDecoder().decode(SiteShortcut.self, from: JSONEncoder().encode(custom)), custom)
+    }
+
     func test150SeasonalArtworkValidation() throws {
         let url = SeasonalLogo.url
         let ok = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "image/png"])

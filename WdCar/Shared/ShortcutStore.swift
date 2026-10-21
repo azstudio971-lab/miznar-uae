@@ -27,10 +27,10 @@ final class ShortcutStore: ObservableObject {
 
     /// يرجع false إذا كان الموقع موجوداً مسبقاً
     @discardableResult
-    func add(name: String, url: URL, colorHex: String? = nil) -> Bool {
+    func add(name: String, url: URL, colorHex: String? = nil, iconURL: URL? = nil) -> Bool {
         let exists = shortcuts.contains { Self.identity($0.url) == Self.identity(url) }
         guard !exists else { return false }
-        shortcuts.append(SiteShortcut(name: name, url: url, colorHex: colorHex ?? Self.palette.randomElement() ?? "#2E7D32"))
+        shortcuts.append(SiteShortcut(name: name, url: url, colorHex: colorHex ?? Self.palette.randomElement() ?? "#2E7D32", iconURL: iconURL))
         save()
         return true
     }
