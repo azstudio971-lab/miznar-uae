@@ -21,6 +21,7 @@ struct SiteShortcut: Identifiable, Codable, Hashable {
     var name: String
     var url: URL
     var colorHex: String
+    var iconURL: URL? = nil
 }
 
 struct FocusInfo {

@@ -73,7 +73,7 @@ struct ShortcutIcon: View {
             .fill(Color(uiColor: UIColor(hex: item.colorHex)))
             .frame(width: size, height: size)
             .overlay {
-                AsyncImage(url: Favicon.url(for: item.url)) { phase in
+                AsyncImage(url: item.iconURL ?? Favicon.url(for: item.url)) { phase in
                     if let image = phase.image {
                         image.resizable().scaledToFit().padding(size * 0.2)
                     } else {
@@ -93,6 +93,7 @@ struct ShortcutDraft: Identifiable {
     var editingID: UUID?
     var name = ""
     var url = ""
+    var iconURL = ""
     var colorHex = ShortcutStore.palette.first ?? "#013748"
 
     init() {}
@@ -107,6 +108,7 @@ struct ShortcutDraft: Identifiable {
         name = shortcut.name
         url = shortcut.url.absoluteString
         colorHex = shortcut.colorHex
+        iconURL = shortcut.iconURL?.absoluteString ?? ""
     }
 }
 
@@ -119,6 +121,10 @@ struct ShortcutEditorSheet: View {
     }
 
     private var resolvedURL: URL? { URLInput.resolve(draft.url, allowSearch: false) }
+    private var resolvedIconURL: URL? {
+        guard let url = URL(string: draft.iconURL.trimmingCharacters(in: .whitespacesAndNewlines)), url.scheme?.lowercased() == "https", url.host != nil else { return nil }
+        return url
+    }
     private var colors: [String] { ["#013748", "#FEB13B", "#FF0000", "#111111"] + ShortcutStore.palette }
 
     var body: some View {
@@ -129,7 +135,7 @@ struct ShortcutEditorSheet: View {
                         Spacer()
                         if let url = resolvedURL {
                             ShortcutIcon(item: SiteShortcut(name: draft.name.isEmpty ? (url.host ?? "?") : draft.name,
-                                                            url: url, colorHex: draft.colorHex), size: 72)
+                                                            url: url, colorHex: draft.colorHex, iconURL: resolvedIconURL), size: 72)
                         } else {
                             RoundedRectangle(cornerRadius: 17).fill(Color(uiColor: UIColor(hex: draft.colorHex)))
                                 .frame(width: 72, height: 72)
@@ -140,6 +146,10 @@ struct ShortcutEditorSheet: View {
                 Section {
                     TextField(tr("الاسم (مثال: شاهد)", "Name (e.g. Shahid)"), text: $draft.name)
                     TextField(tr("الرابط (مثال: shahid.mbc.net)", "Link (e.g. shahid.mbc.net)"), text: $draft.url)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    TextField(tr("رابط صورة HTTPS (اختياري)", "HTTPS image URL (optional)"), text: $draft.iconURL)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -167,7 +177,7 @@ struct ShortcutEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(tr("حفظ", "Save"), action: save)
-                        .disabled(resolvedURL == nil)
+                        .disabled(resolvedURL == nil || (!draft.iconURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && resolvedIconURL == nil))
                 }
             }
         }
@@ -178,10 +188,10 @@ struct ShortcutEditorSheet: View {
         let title = draft.name.trimmingCharacters(in: .whitespaces)
         let name = title.isEmpty ? (url.host ?? "موقع") : title
         if let id = draft.editingID {
-            ShortcutStore.shared.update(SiteShortcut(id: id, name: name, url: url, colorHex: draft.colorHex))
+            ShortcutStore.shared.update(SiteShortcut(id: id, name: name, url: url, colorHex: draft.colorHex, iconURL: resolvedIconURL))
             AppState.shared.showToast(tr("تم حفظ التعديل", "Changes saved"))
         } else {
-            let added = ShortcutStore.shared.add(name: name, url: url, colorHex: draft.colorHex)
+            let added = ShortcutStore.shared.add(name: name, url: url, colorHex: draft.colorHex, iconURL: resolvedIconURL)
             AppState.shared.showToast(added ? tr("تمت الإضافة للاختصارات", "Added to shortcuts")
                                             : tr("الموقع موجود مسبقاً", "Site already exists"))
         }

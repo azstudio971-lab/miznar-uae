@@ -375,8 +375,7 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
         page.layer.insertSublayer(gradient, at: 0)
         welcomeGradient = gradient
 
-        let logo = UIImageView(image: UIImage(named: "LogoCarMark") ?? UIImage(named: "LogoMark") ?? UIImage(named: "LogoFull"))
-        logo.contentMode = .scaleAspectFit
+        let logo = SeasonalLogoView(base: UIImage(named: "LogoCarMark") ?? UIImage(named: "LogoMark") ?? UIImage(named: "LogoFull"))
         logo.translatesAutoresizingMaskIntoConstraints = false
 
         let copy = UIStackView(arrangedSubviews: [

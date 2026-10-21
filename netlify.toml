@@ -2,6 +2,10 @@
 command = "npm ci && npm run build"
 publish = "dist"
 [[redirects]]
+from = "/branding/*"
+to = "/branding/missing.txt"
+status = 404
+[[redirects]]
 from = "/*"
 to = "/index.html"
 status = 200
@@ -13,3 +17,8 @@ Referrer-Policy = "strict-origin-when-cross-origin"
 X-Frame-Options = "DENY"
 Permissions-Policy = "camera=(), microphone=(), geolocation=(self)"
 Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+
+[[headers]]
+for = "/branding/*"
+[headers.values]
+Cache-Control = "public, max-age=0, must-revalidate"

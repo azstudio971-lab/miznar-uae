@@ -10,7 +10,7 @@
 
 workflows:
   wudcar-preview:
-    name: WudCar → Preview Update 14
+    name: WudCar → Preview 1.5.0
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
@@ -44,16 +44,16 @@ workflows:
             -parallel-testing-enabled NO -test-timeouts-enabled YES \
             -default-test-execution-time-allowance 180 \
             -maximum-test-execution-time-allowance 180 \
-            -resultBundlePath /tmp/WudCarUpdate14Preview.xcresult \
-            CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-update14-preview.log
+            -resultBundlePath /tmp/WudCar150Preview.xcresult \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-150-preview.log
       - name: تصدير صور المعاينة
         script: |
-          mkdir -p build/update14-preview
-          xcrun xcresulttool export attachments --path /tmp/WudCarUpdate14Preview.xcresult --output-path build/update14-preview
+          mkdir -p build/150-preview
+          xcrun xcresulttool export attachments --path /tmp/WudCar150Preview.xcresult --output-path build/150-preview
     artifacts:
-      - build/update14-preview/**/*
-      - /tmp/WudCarUpdate14Preview.xcresult
-      - /tmp/wudcar-update14-preview.log
+      - build/150-preview/**/*
+      - /tmp/WudCar150Preview.xcresult
+      - /tmp/wudcar-150-preview.log
 
   wudcar-testflight:
     name: WudCar → TestFlight
@@ -114,19 +114,19 @@ workflows:
             DEVICE=$(xcrun simctl create WudCarStoreKitTest com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro com.apple.CoreSimulator.SimRuntime.iOS-18-5)
           fi
           echo "STOREKIT_TEST_DEVICE: $DEVICE"
-          xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 180 -resultBundlePath /tmp/WudCarUpdate14Interface.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-update14-interface-tests.log
+          xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 180 -resultBundlePath /tmp/WudCar150Interface.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-150-interface-tests.log
       - name: صور التحقق من عرض المتصفح
         script: |
-          mkdir -p build/update14-test-screenshots
-          xcrun xcresulttool export attachments --path /tmp/WudCarUpdate14Interface.xcresult --output-path build/update14-test-screenshots || true
+          mkdir -p build/150-test-screenshots
+          xcrun xcresulttool export attachments --path /tmp/WudCar150Interface.xcresult --output-path build/150-test-screenshots || true
       - name: تجهيز التوقيع
         script: |
           xcode-project use-profiles
       - name: رقم البناء
         script: |
           LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_ID" || echo 0)
-          NEXT=14
-          if [ "$LATEST" -ge 14 ]; then echo "Build 14 already exists; refusing an unintended build number"; exit 1; fi
+          NEXT=$((LATEST + 1))
+          if [ "$NEXT" -lt 15 ]; then NEXT=15; fi
           echo "Build number: $NEXT"
           agvtool new-version -all $NEXT
       - name: بناء IPA (Release)
@@ -152,9 +152,9 @@ workflows:
           echo "== Scene roles in Info.plist =="
           plutil -p "$APP/Info.plist" | grep -E "ExternalDisplay|CPTemplateApplication" || { echo "External display scenes missing"; exit 1; }
     artifacts:
-      - build/update14-test-screenshots/**/*
-      - /tmp/WudCarUpdate14Interface.xcresult
-      - /tmp/wudcar-update14-interface-tests.log
+      - build/150-test-screenshots/**/*
+      - /tmp/WudCar150Interface.xcresult
+      - /tmp/wudcar-150-interface-tests.log
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
@@ -162,3 +162,87 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: false
+
+  # Manual internal-device build. Simulator results remain separate and are not represented as passing.
+  wudcar-device-validation:
+    name: WudCar 1.5.0 → Device validation (internal TestFlight)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: WudCar ASC Key
+    environment:
+      xcode: latest
+      groups:
+      - wudcar
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.azstudio.wudcar
+      vars:
+        XCODE_PROJECT: WdCar.xcodeproj
+        XCODE_SCHEME: WdCar
+        BUNDLE_ID: com.azstudio.wudcar
+    scripts:
+    - name: التحقق من المصدر والشعار الكامل
+      script: 'echo "SOURCE_COMMIT: $(git rev-parse HEAD)"
+
+        python3 scripts/verify_logo.py
+
+        '
+    - name: تثبيت XcodeGen
+      script: 'brew install xcodegen
+
+        '
+    - name: إنشاء مشروع Xcode
+      script: 'xcodegen generate
+
+        '
+    - name: ضبط Team ID
+      script: 'sed -i '''' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $TEAM_ID;/g" "$XCODE_PROJECT/project.pbxproj"
+        || true
+
+        '
+    - name: التحقق من المشروع (بناء Debug للمحاكي)
+      script: "set -euo pipefail\nxcodebuild -project \"$XCODE_PROJECT\" -scheme \"$XCODE_SCHEME\" \\\n  -sdk iphonesimulator\
+        \ -destination 'generic/platform=iOS Simulator' \\\n  -configuration Debug CODE_SIGNING_ALLOWED=NO build |\
+        \ xcpretty\n"
+    - name: تجهيز التوقيع
+      script: 'xcode-project use-profiles
+
+        '
+    - name: رقم البناء
+      script: 'set -euo pipefail
+
+        LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_ID")
+
+        [[ "$LATEST" =~ ^[0-9]+$ ]] || { echo "Cannot verify latest build number"; exit 1; }
+
+        NEXT=$((LATEST + 1))
+
+        if [ "$NEXT" -lt 15 ]; then NEXT=15; fi
+
+        agvtool new-version -all "$NEXT"
+
+        '
+    - name: بناء IPA (Release)
+      script: 'xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+
+        '
+    - name: التحقق من صلاحيات CarPlay (فيديو + صوت) داخل IPA
+      script: "set -e\nIPA=$(ls build/ios/ipa/*.ipa | head -1)\nrm -rf /tmp/ipa_check && mkdir -p /tmp/ipa_check\n\
+        unzip -q \"$IPA\" -d /tmp/ipa_check\nAPP=$(ls -d /tmp/ipa_check/Payload/*.app | head -1)\necho \"== Entitlements\
+        \ in signed app ==\"\ncodesign -d --entitlements :- \"$APP\" 2>/dev/null | tee /tmp/ipa_check/ents.plist\n\
+        echo \"== Provisioning profile ==\"\nsecurity cms -D -i \"$APP/embedded.mobileprovision\" > /tmp/ipa_check/profile.plist\n\
+        grep -A1 -i \"carplay\" /tmp/ipa_check/profile.plist || true\nfor KEY in com.apple.developer.carplay-video\
+        \ com.apple.developer.carplay-audio; do\n  grep -q \"$KEY\" /tmp/ipa_check/ents.plist || { echo \"MISSING\
+        \ in app: $KEY\"; exit 1; }\n  grep -q \"$KEY\" /tmp/ipa_check/profile.plist || { echo \"MISSING in profile:\
+        \ $KEY\"; exit 1; }\n  echo \"OK: $KEY\"\ndone\necho \"== Scene roles in Info.plist ==\"\nplutil -p \"$APP/Info.plist\"\
+        \ | grep -E \"ExternalDisplay|CPTemplateApplication\" || { echo \"External display scenes missing\"; exit\
+        \ 1; }\n"
+    artifacts:
+    - build/ios/ipa/*.ipa
+    - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
+        submit_to_app_store: false

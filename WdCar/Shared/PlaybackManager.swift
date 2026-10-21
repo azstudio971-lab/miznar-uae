@@ -92,8 +92,12 @@ final class PlaybackManager: ObservableObject {
     }
 
     func stop() {
+        itemBag.removeAll()
         player.pause()
         player.replaceCurrentItem(with: nil)
+        artwork = nil
+        isPlaying = false
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         current = nil
         isExternalDisplayPlayback = false
         errorMessage = nil
@@ -108,7 +112,7 @@ final class PlaybackManager: ObservableObject {
         item.publisher(for: \.status)
             .receive(on: RunLoop.main)
             .sink { [weak self] status in
-                guard let self else { return }
+                guard let self, self.player.currentItem === item else { return }
                 if status == .failed {
                     self.errorMessage = item.error?.localizedDescription
                         ?? tr("تعذّر تشغيل هذا المحتوى.", "This content could not be played.")

@@ -67,6 +67,7 @@ struct MainTabView: View {
         }
         .fullScreenCover(isPresented: $playback.isPlayerPresented) {
             PlayerContainer()
+                .onDisappear { if !playback.isExternalDisplayPlayback { playback.stop() } }
         }
     }
 }
@@ -81,7 +82,7 @@ private struct PlayerContainer: View {
             PlayerScreen().ignoresSafeArea()
             HStack {
                 Button {
-                    playback.isPlayerPresented = false
+                    playback.stop()
                 } label: {
                     Image(systemName: "chevron.down")
                         .font(.system(size: 18, weight: .bold))

@@ -20,8 +20,8 @@ enum WebEngine {
         configuration.preferences.isElementFullscreenEnabled = (side == .phone)
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
 
+        configuration.defaultWebpagePreferences.preferredContentMode = (side == .car ? WDSettings.carDesktopMode : WDSettings.phoneDesktopMode) ? .desktop : .mobile
         if side == .car {
-            configuration.defaultWebpagePreferences.preferredContentMode = WDSettings.carDesktopMode ? .desktop : .mobile
             let script = WKUserScript(source: carScript, injectionTime: .atDocumentStart, forMainFrameOnly: false)
             configuration.userContentController.addUserScript(script)
         }
@@ -59,10 +59,7 @@ enum WebEngine {
         if (!(width > 0 && height > 0)) { return; }
         var root = document.documentElement;
         var value = width.toFixed(2) + 'px';
-        if (root.style.getPropertyValue('width') !== value) {
-          root.style.setProperty('width', value, 'important');
-          root.style.setProperty('min-width', value, 'important');
-        }
+        // Preserve the site viewport and responsive layout; only size our video overlay.
         root.style.setProperty('--wd-vw', value);
         root.style.setProperty('--wd-vh', height.toFixed(2) + 'px');
       }

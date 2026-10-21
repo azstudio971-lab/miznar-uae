@@ -67,6 +67,92 @@ final class CarInterfaceTests: XCTestCase {
         return false
     }
 
+    func test150ExistingShortcutDecodesWithoutOptionalArtwork() throws {
+        let item = SiteShortcut(name: "Custom", url: URL(string: "https://example.com")!, colorHex: "#013748")
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(item)) as? [String: Any])
+        json.removeValue(forKey: "iconURL")
+        let decoded = try JSONDecoder().decode(SiteShortcut.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(decoded.id, item.id)
+        XCTAssertEqual(decoded.url, item.url)
+        XCTAssertNil(decoded.iconURL)
+        var custom = decoded
+        custom.iconURL = URL(string: "https://example.com/logo.png")
+        XCTAssertEqual(try JSONDecoder().decode(SiteShortcut.self, from: JSONEncoder().encode(custom)), custom)
+    }
+
+    func test150SeasonalArtworkValidation() throws {
+        let url = SeasonalLogo.url
+        let ok = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "image/png"])
+        let missing = HTTPURLResponse(url: url, statusCode: 404, httpVersion: nil, headerFields: ["Content-Type": "image/png"])
+        let html = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "text/html"])
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let png = UIGraphicsImageRenderer(size: CGSize(width: 512, height: 512), format: format).image { _ in UIColor.red.setFill(); UIRectFill(CGRect(x: 0, y: 0, width: 512, height: 512)) }.pngData()
+        XCTAssertEqual(try XCTUnwrap(png.flatMap { UIImage(data: $0) }?.cgImage).width, 512, "Fixture must be 512 pixels, not 512 Retina points")
+        XCTAssertNotNil(SeasonalLogo.validatedImage(data: png, response: ok))
+        XCTAssertNil(SeasonalLogo.validatedImage(data: png, response: missing))
+        XCTAssertNil(SeasonalLogo.validatedImage(data: png, response: html))
+        XCTAssertNil(SeasonalLogo.validatedImage(data: nil, response: nil))
+        XCTAssertNil(SeasonalLogo.validatedImage(data: Data("broken".utf8), response: ok))
+    }
+
+    func test150EntertainmentLayoutSnapshots() async throws {
+        for size in [CGSize(width: 640, height: 360), CGSize(width: 960, height: 480), CGSize(width: 1280, height: 480)] {
+            let controller = UIViewController()
+            let shortcuts = CarShortcutsView(frame: .zero)
+            controller.view = shortcuts
+            display(controller)
+            controller.view.frame = CGRect(origin: .zero, size: size)
+            try await Task.sleep(nanoseconds: 600_000_000)
+            controller.view.setNeedsLayout(); controller.view.layoutIfNeeded()
+            let collection = try XCTUnwrap(shortcuts.subviews.compactMap { $0 as? UICollectionView }.first)
+            collection.layoutIfNeeded()
+            XCTAssertGreaterThan(collection.numberOfItems(inSection: 0), 0, "Snapshot must contain the real shortcut data")
+            XCTAssertFalse(collection.visibleCells.isEmpty, "Cards must have visible frames before capture")
+            let image = UIGraphicsImageRenderer(size: size).image { context in shortcuts.layer.render(in: context.cgContext) }
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "wudcar150-entertainment-\(Int(size.width))x\(Int(size.height))"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+    }
+
+    func test150DesktopPreferenceAppliesToBothBrowsers() {
+        let phone = WDSettings.phoneDesktopMode
+        let car = WDSettings.carDesktopMode
+        defer { WDSettings.phoneDesktopMode = phone; WDSettings.carDesktopMode = car }
+        WDSettings.phoneDesktopMode = true
+        WDSettings.carDesktopMode = true
+        for side in [BrowserSide.phone, .car] {
+            XCTAssertEqual(WebEngine.makeConfiguration(for: side).defaultWebpagePreferences.preferredContentMode, .desktop)
+        }
+    }
+
+    func test150NativeToolbarHotspotAndMenu() throws {
+        let browser = CarBrowserViewController()
+        display(browser)
+        let hotspot = try XCTUnwrap(find("car.browser.toolbar.hotspot", in: browser.view) as? UIButton)
+        let reveal = try XCTUnwrap(find("car.browser.toolbar.reveal", in: browser.view) as? UIButton)
+        XCTAssertGreaterThanOrEqual(hotspot.bounds.width, 44)
+        hotspot.sendActions(for: .primaryActionTriggered)
+        XCTAssertFalse(reveal.isHidden)
+        XCTAssertEqual(reveal.menu?.children.count, 2)
+    }
+
+    func test150StopReleasesStreamOnRepeatedPlayback() throws {
+        let manager = PlaybackManager.shared
+        let url = try XCTUnwrap(Bundle.main.url(forResource: "intro_night", withExtension: "mp4"))
+        for name in ["M3U", "Xtream", "M3U", "Xtream"] {
+            manager.play(.init(title: name, subtitle: "Regression", url: url, isLive: true, artworkURL: nil), presentOnPhone: false)
+            XCTAssertNotNil(manager.player.currentItem)
+            manager.stop()
+            XCTAssertNil(manager.player.currentItem)
+            XCTAssertNil(manager.current)
+            XCTAssertFalse(manager.isPlaying)
+            XCTAssertFalse(manager.isPlayerPresented)
+        }
+    }
+
     func testDaytimePhoneLogoAtCompactRegularAndLargeSizes() throws {
         let image = try XCTUnwrap(UIImage(named: "LogoDay"))
         XCTAssertEqual(image.size.width / image.size.height, 1145.0 / 1373.0, accuracy: 0.001)
