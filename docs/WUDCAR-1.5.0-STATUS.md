@@ -69,3 +69,12 @@ Official sources reviewed:
 - https://help.netflix.com/en/node/2090
 
 Development-branch publication was authorized and completed. Production merge, production deployment and App Store submission remain separate. Before TestFlight, resolve official CarPlay-path scope and run native tests; then perform the required iPhone-first device tests before CarPlay. Do not call this release complete until these blockers and visual/provider tests are resolved.
+
+
+## Final follow-up checkpoint
+
+Development branch publication is complete. The independent Release150Tests suite passed all 5 tests at 65a1df2 in Actions run 39570854436 (desktop preferences, real-data layout captures, legacy/custom shortcut Codable compatibility, native hotspot/menu and exact-pixel artwork validation). The first run failed because its generated 512-point image used Retina scaling; the test now explicitly produces and asserts a 512-pixel PNG. Existing optional custom image URLs are now supported in the model/editor and car/phone cards. Offline detection now clears the occasion overlay via NWPathMonitor.
+
+Signed WudCar 1.5.0 (15), built from b84a4b0, uploaded successfully in Codemagic build 6ad8798b454d2506f7abbcbd. Apple processing completed; the build is associated with the existing WudCar Internal group (one tester). No external beta group or App Store review submission was added. Later changes through 65a1df2 affect tests only. The earlier Codemagic full-suite preview was canceled and is not a successful test.
+
+See WUDCAR-1.5.0-AR.md for the current authoritative status, screenshots and actual-device test requirements. The scoped 5-test pass is not a pass for the full StoreKit/M3U/Xtream/provider/device suite. Netflix and official custom CarPlay browser support remain unresolved. Native snapshots currently show letter fallbacks while favicons are unavailable/not yet loaded; visual parity and official wide brand wordmarks are not complete.
