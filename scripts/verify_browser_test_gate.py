@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
 """Fail release preparation unless the real-app YouTube probe passed (skips are insufficient)."""
+import argparse
 import pathlib
 import json
 import re
 import sys
 
-log = pathlib.Path(sys.argv[1]).read_text(errors="replace")
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("log")
+parser.add_argument("--internal-testflight", action="store_true",
+                    help="Allow the manually authorized internal testing workflow; device acceptance remains pending.")
+args = parser.parse_args()
+log = pathlib.Path(args.log).read_text(errors="replace")
 pattern = r"Test Case '[^\n]*testLiveYouTubePhoneBeforeCarProbe[^\n]*' passed"
 if not re.search(pattern, log):
     sys.exit("BLOCKED: live YouTube desktop verification did not pass. Do not upload this build.")
+if args.internal_testflight:
+    print("INTERNAL TESTING ONLY: live simulator probe passed; physical iPhone and CarPlay acceptance remains pending. No production approval.")
+    sys.exit(0)
 acceptance = json.loads(pathlib.Path("Config/BrowserAcceptance160.json").read_text())
 for target in ("iphoneYouTubeDesktop", "carPlayYouTubeDesktop"):
     evidence = acceptance.get(target, {})

@@ -65,3 +65,8 @@
 الاشتراكات وM3U وXtream والشعار وبيانات المستخدم وإعدادات التوقيع الأساسية لم تدخل في نطاق تغييرات 1.6.0.
 
 - مرجع سبب عرض 980 الافتراضي: https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/UsingtheViewport/UsingtheViewport.html
+
+
+## Authorized internal TestFlight test
+
+The owner explicitly requested a TestFlight upload for personal testing on 2026-10-21. Only the manual `wudcar-device-validation` workflow may use `--internal-testflight` after the live simulator YouTube probe passes. Both physical-device acceptance records remain false. Production release retains its original gate and is not authorized. No App Store submission or production merge is included.

@@ -212,7 +212,7 @@ workflows:
         set -euo pipefail
         DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); ids=[v["udid"] for k,a in d["devices"].items() for v in a if "iOS" in k and "iPhone" in v["name"]]; print(ids[0])')
         xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -only-testing:WdCarTests/Release160Tests -resultBundlePath /tmp/WudCar160ReleaseGate.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-160-release-gate.log
-        python3 scripts/verify_browser_test_gate.py /tmp/wudcar-160-release-gate.log
+        python3 scripts/verify_browser_test_gate.py /tmp/wudcar-160-release-gate.log --internal-testflight
     - name: تجهيز التوقيع
       script: 'xcode-project use-profiles
 
