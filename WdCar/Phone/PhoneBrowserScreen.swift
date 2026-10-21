@@ -63,7 +63,9 @@ struct PhoneBrowserScreen: View {
             }
             Spacer()
             Text(tr("الترفيه", "Entertainment"))
-                .font(.title2.bold())
+                .font(.system(size: 15, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 .foregroundStyle(.white)
             Spacer()
             AirPlayButton()
@@ -78,7 +80,7 @@ struct PhoneBrowserScreen: View {
             .disabled(store.activeTab?.url == nil)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.vertical, 2)
     }
 
     // MARK: الشريط السفلي

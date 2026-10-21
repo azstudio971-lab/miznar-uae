@@ -80,7 +80,7 @@ final class Release160Tests: XCTestCase {
         let fixture = """
         <!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
         <style>body{margin:0;background:#013748;color:white;font:24px system-ui}main{display:grid;grid-template-columns:1fr;gap:20px;padding:20px}@media(min-width:1100px){main{grid-template-columns:repeat(3,1fr)}}article{background:#182e3a;padding:30px;height:200px}a{color:#ffb13b}</style>
-        <h1>WudCar desktop viewport fixture</h1><input placeholder="Search"><main><article>Video 1</article><article>Video 2</article><article>Video 3</article></main><a href="#second">Next page</a><div style="height:2000px">Scroll</div><div id="second">Second page</div>
+        <h1>WudCar desktop viewport fixture</h1><input placeholder="Search"><main><article>Video 1</article><article>Video 2</article><article>Video 3</article></main><a href="#second">Next page</a><div style="height:2000px">Scroll</div><div id="second">Second page</div><video controls width="640" height="360"></video>
         <script>setTimeout(()=>{document.body.dataset.loaded='yes'},800)</script>
         """
         for side in [BrowserSide.phone, .car] {
@@ -109,11 +109,41 @@ final class Release160Tests: XCTestCase {
                 XCTAssertEqual(hash, "#second")
                 _ = try await evaluate("scrollTo(0,0)", web: session.webView)
             }
+            if side == .car {
+                let fullscreen: Bool = await withCheckedContinuation { continuation in
+                    session.enterVideoFullscreen { continuation.resume(returning: $0) }
+                }
+                XCTAssertTrue(fullscreen, "Existing video overlay must still enter fullscreen in the fitted viewport")
+                try await Task.sleep(nanoseconds: 300_000_000)
+                let videoWidth = try await evaluate("document.querySelector('video').getBoundingClientRect().width", web: session.webView) as? Double ?? 0
+                let viewportWidth = try await evaluate("visualViewport.width", web: session.webView) as? Double ?? 0
+                XCTAssertEqual(videoWidth, viewportWidth, accuracy: 1)
+                session.exitVideoFullscreen()
+                try await Task.sleep(nanoseconds: 200_000_000)
+                let fullscreenAfterExit = try await evaluate("document.documentElement.classList.contains('wd-fs')", web: session.webView) as? Bool ?? true
+                XCTAssertFalse(fullscreenAfterExit)
+            }
             session.setDesktopMode(false)
             host.setNeedsLayout(); host.layoutIfNeeded()
             XCTAssertEqual(session.webView.bounds.width, sizes.last!.width, accuracy: 1)
         }
     }
+    func testYouTubeViewportFallbackIsScopedAndRespectsAuthorMetadata() async throws {
+        let saved = WDSettings.phoneDesktopMode
+        defer { WDSettings.phoneDesktopMode = saved }
+        WDSettings.phoneDesktopMode = true
+        let session = TabSession(tabID: UUID(), side: .phone, initialURL: nil)
+        defer { session.tearDown() }
+        display(DesktopViewportView(session: session), size: CGSize(width: 390, height: 700))
+        for (host, authored) in [("www.youtube.com", false), ("www.youtube.com", true), ("example.com", false)] {
+            let viewport = authored ? "<meta name='viewport' content='width=1024'>" : ""
+            session.webView.loadHTMLString("<html><head><title>ScopedViewport</title>\(viewport)</head><body>Fixture</body></html>", baseURL: URL(string: "https://\(host)/"))
+            try await ready(session.webView, marker: "document.title === 'ScopedViewport' && document.readyState === 'complete'")
+            let value = try await evaluate("document.querySelector('meta[name=viewport]')?.content || ''", web: session.webView) as? String
+            XCTAssertEqual(value, authored ? "width=1024" : (host == "www.youtube.com" ? "width=device-width, initial-scale=1" : ""))
+        }
+    }
+
     /// A network probe on real WKWebView in Simulator, never a claim of physical-device acceptance.
     func testLiveYouTubePhoneBeforeCarProbe() async throws {
         let phone = WDSettings.phoneDesktopMode, car = WDSettings.carDesktopMode, zoom = WDSettings.carZoom
@@ -154,6 +184,16 @@ final class Release160Tests: XCTestCase {
             XCTAssertEqual(session.webView.pageZoom, 1, accuracy: 0.001)
             let mobile = try await evaluate("!!document.querySelector('ytm-app')", web: session.webView) as? Bool ?? true
             XCTAssertFalse(mobile)
+            session.load(URL(string: "https://www.youtube.com/@NASA/videos")!)
+            try await ready(session.webView, marker: "location.pathname === '/@NASA/videos' && !!document.querySelector('ytd-app') && document.readyState === 'complete'")
+            try await Task.sleep(nanoseconds: 3_000_000_000)
+            let channelWidth = try await evaluate("innerWidth", web: session.webView) as? Double ?? 0
+            XCTAssertGreaterThanOrEqual(channelWidth, 1200, "Desktop viewport must survive real YouTube page navigation")
+            try await capture(session.webView, name: "160-live-youtube-channel-\(side)")
+            XCTAssertTrue(session.webView.canGoBack)
+            session.goBack()
+            try await ready(session.webView, marker: "location.pathname === '/results' && !!document.querySelector('ytd-app') && document.readyState === 'complete'")
+            XCTAssertEqual(session.webView.pageZoom, 1, accuracy: 0.001)
         }
     }
 
@@ -167,7 +207,8 @@ final class Release160Tests: XCTestCase {
         let title = try XCTUnwrap(find("car.browser.shortcuts.title", in: browser.view) as? UILabel)
         XCTAssertEqual(title.font.pointSize, 15)
         XCTAssertTrue(toolbar.isHidden)
-        XCTAssertTrue(browser.activateBrowserChrome(at: hotspot.convert(CGPoint(x: 1, y: 10), to: browser.view)))
+        let edge = try XCTUnwrap(find("car.browser.toolbar.edge", in: browser.view) as? UIButton)
+        XCTAssertTrue(browser.activateBrowserChrome(at: edge.convert(CGPoint(x: 1, y: edge.bounds.midY), to: browser.view)))
         XCTAssertFalse(reveal.isHidden)
         XCTAssertNil(reveal.menu)
         XCTAssertFalse(reveal.showsMenuAsPrimaryAction)

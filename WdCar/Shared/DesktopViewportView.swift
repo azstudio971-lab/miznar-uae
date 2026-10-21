@@ -32,7 +32,7 @@ final class DesktopViewportView: UIView {
     }
 
     private func layoutWebView(desktop: Bool) {
-        guard bounds.width > 0, bounds.height > 0 else { return }
+        guard session.webView.superview === self, bounds.width > 0, bounds.height > 0 else { return }
         let width = desktop ? max(Self.desktopWidth, bounds.width) : bounds.width
         let fit = bounds.width / width
         let web = session.webView

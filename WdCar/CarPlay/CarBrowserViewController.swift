@@ -48,6 +48,7 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
     private let scrollUpButton = CarUI.iconButton("arrow.up", size: 17, background: UIColor(white: 0.08, alpha: 0.82))
     private let scrollDownButton = CarUI.iconButton("arrow.down", size: 17, background: UIColor(white: 0.08, alpha: 0.82))
     private let toolbarHotspot = UIButton(type: .custom)
+    private let toolbarEdge = UIButton(type: .custom)
     private let toolbarRevealButton = CarUI.iconButton("ellipsis", size: 17, background: UIColor(white: 0.05, alpha: 0.82))
     private var scrollControls: UIStackView!
     private var textPanel: CarTextInputView?
@@ -227,7 +228,16 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
         toolbarHotspot.translatesAutoresizingMaskIntoConstraints = false
         toolbarHotspot.addAction(UIAction { [weak self] _ in self?.showToolbarRevealButton() }, for: .primaryActionTriggered)
         view.addSubview(toolbarHotspot)
+        toolbarEdge.accessibilityIdentifier = "car.browser.toolbar.edge"
+        toolbarEdge.accessibilityLabel = carTr("إظهار شريط المتصفح", "Show browser toolbar")
+        toolbarEdge.translatesAutoresizingMaskIntoConstraints = false
+        toolbarEdge.addAction(UIAction { [weak self] _ in self?.showToolbarRevealButton() }, for: .primaryActionTriggered)
+        view.addSubview(toolbarEdge)
         NSLayoutConstraint.activate([
+            toolbarEdge.leftAnchor.constraint(equalTo: view.leftAnchor),
+            toolbarEdge.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            toolbarEdge.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            toolbarEdge.widthAnchor.constraint(equalToConstant: 12),
             toolbarHotspot.leftAnchor.constraint(equalTo: view.leftAnchor),
             toolbarHotspot.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             toolbarHotspot.widthAnchor.constraint(equalToConstant: 44),
@@ -538,11 +548,11 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
     @discardableResult
     func activateBrowserChrome(at point: CGPoint) -> Bool {
         guard !videoFullscreen, textPanel == nil, tabsPanel == nil else { return false }
-        let controls = [toolbarRevealButton, toolbarHotspot] + toolbar.arrangedSubviews.compactMap { $0 as? UIButton }
+        let controls = [toolbarRevealButton, toolbarHotspot, toolbarEdge] + toolbar.arrangedSubviews.compactMap { $0 as? UIButton }
         guard let hit = view.hitTest(point, with: nil),
               let button = controls.first(where: { hit === $0 || hit.isDescendant(of: $0) }),
               !button.isHidden, button.isEnabled else { return false }
-        if button === toolbarRevealButton || button === toolbarHotspot {
+        if button === toolbarRevealButton || button === toolbarHotspot || button === toolbarEdge {
             button.sendActions(for: .primaryActionTriggered)
         } else {
             button.sendActions(for: .touchUpInside)
@@ -674,6 +684,7 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
         let hidden = toolbarCollapsed || videoFullscreen
         toolbar.isHidden = hidden
         toolbarHotspot.isHidden = !hidden || videoFullscreen
+        toolbarEdge.isHidden = !hidden || videoFullscreen
         NSLayoutConstraint.deactivate([contentTopToToolbar, contentTopToSafe])
         NSLayoutConstraint.activate([hidden ? contentTopToSafe : contentTopToToolbar])
         view.bringSubviewToFront(scrollControls)

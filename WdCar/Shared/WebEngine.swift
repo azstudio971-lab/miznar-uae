@@ -21,12 +21,32 @@ enum WebEngine {
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
 
         configuration.defaultWebpagePreferences.preferredContentMode = (side == .car ? WDSettings.carDesktopMode : WDSettings.phoneDesktopMode) ? .desktop : .mobile
+        // YouTube's desktop response currently omits viewport metadata. WebKit then
+        // uses its legacy 980-CSS-pixel layout, independent of our native fitted bounds.
+        // Supply only missing standard metadata on YouTube, never rewrite site CSS
+        // or an author-supplied viewport, and only for our desktop user agent.
+        configuration.userContentController.addUserScript(WKUserScript(
+            source: desktopViewportScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         if side == .car {
             let script = WKUserScript(source: carScript, injectionTime: .atDocumentStart, forMainFrameOnly: false)
             configuration.userContentController.addUserScript(script)
         }
         return configuration
     }
+
+    static let desktopViewportScript = #"""
+    (() => {
+      const host = location.hostname.toLowerCase();
+      if (!['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(host)) return;
+      if (!navigator.userAgent.includes('Macintosh')) return;
+      if (!document.head || document.querySelector('meta[name="viewport" i]')) return;
+      const viewport = document.createElement('meta');
+      viewport.name = 'viewport';
+      viewport.content = 'width=device-width, initial-scale=1';
+      viewport.dataset.wudcar = 'desktop-fallback';
+      document.head.appendChild(viewport);
+    })();
+    """#
 
     /// يحوّل نص Swift إلى نص JavaScript آمن
     static func jsLiteral(_ text: String) -> String {
