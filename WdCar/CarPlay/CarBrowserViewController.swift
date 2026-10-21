@@ -143,6 +143,7 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
     }
 
     private func buildContent() {
+        (view as? BrowserChromeView)?.browserContent = contentView
         contentView.backgroundColor = .black
         contentView.clipsToBounds = true
         contentView.translatesAutoresizingMaskIntoConstraints = false
@@ -364,7 +365,7 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
             progressView.isHidden = true
             updateMouseCursorFrame()
             updateMouseCursorFrame()
-            CarUI.setTitle(urlButton, "أدخل عنوان URL أو ابحث", size: 14)
+            CarUI.setTitle(urlButton, "أدخل عنوان URL أو ابحث", size: 11)
             backButton.isEnabled = tab.url != nil
             return
         }

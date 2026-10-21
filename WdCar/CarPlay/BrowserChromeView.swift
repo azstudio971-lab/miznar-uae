@@ -4,12 +4,16 @@ import UIKit
 /// The extra 24 points overlap the page only while the bar is shown (six seconds).
 final class BrowserChromeView: UIView {
     weak var toolbar: UIStackView?
+    weak var browserContent: UIView?
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let normal = super.hitTest(point, with: event)
         guard let toolbar, !toolbar.isHidden, !isHidden, isUserInteractionEnabled else { return normal }
         // Panels/overlays above the browser must retain priority.
         if let normal, normal.isInsideControl { return normal }
+        if let normal, normal !== self, normal !== browserContent,
+           !(browserContent.map { normal.isDescendant(of: $0) } ?? false),
+           !normal.isDescendant(of: toolbar) { return normal }
         let bar = toolbar.convert(toolbar.bounds, to: self)
         guard point.y >= bar.minY, point.y < bar.minY + 44 else { return normal }
         for case let button as UIButton in toolbar.arrangedSubviews where button.isEnabled && !button.isHidden {

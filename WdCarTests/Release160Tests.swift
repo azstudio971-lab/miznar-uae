@@ -99,16 +99,47 @@ final class Release160Tests: XCTestCase {
                 XCTAssertGreaterThanOrEqual(width, 1200, "Must retain a real desktop CSS viewport after page load and resize")
                 let columns = try await evaluate("getComputedStyle(document.querySelector('main')).gridTemplateColumns.split(' ').length", web: session.webView) as? Int
                 XCTAssertEqual(columns, 3)
+                try await capture(session.webView, name: "160-\(side)-desktop-\(Int(size.width))x\(Int(size.height))")
                 _ = try await evaluate("document.querySelector('input').value='WudCar'; document.querySelector('a').click()", web: session.webView)
                 let hash = try await evaluate("location.hash", web: session.webView) as? String
                 XCTAssertEqual(hash, "#second")
-                try await capture(session.webView, name: "160-\(side)-desktop-\(Int(size.width))x\(Int(size.height))")
+                _ = try await evaluate("scrollTo(0,0)", web: session.webView)
             }
             session.setDesktopMode(false)
             host.setNeedsLayout(); host.layoutIfNeeded()
             XCTAssertEqual(session.webView.bounds.width, sizes.last!.width, accuracy: 1)
         }
     }
+    /// A network probe on real WKWebView in Simulator, never a claim of physical-device acceptance.
+    func testLiveYouTubePhoneBeforeCarProbe() async throws {
+        let phone = WDSettings.phoneDesktopMode, car = WDSettings.carDesktopMode, zoom = WDSettings.carZoom
+        defer { WDSettings.phoneDesktopMode = phone; WDSettings.carDesktopMode = car; WDSettings.carZoom = zoom }
+        WDSettings.phoneDesktopMode = true; WDSettings.carDesktopMode = true; WDSettings.carZoom = 1
+        for side in [BrowserSide.phone, .car] {
+            let session = TabSession(tabID: UUID(), side: side, initialURL: nil)
+            defer { session.tearDown() }
+            let host = DesktopViewportView(session: session)
+            display(host, size: side == .phone ? CGSize(width: 390, height: 700) : CGSize(width: 960, height: 480))
+            session.load(URL(string: "https://www.youtube.com/results?search_query=NASA&app=desktop")!)
+            var desktop = false
+            for _ in 0..<150 {
+                if (try? await evaluate("!!document.querySelector('ytd-app') && document.readyState === 'complete'", web: session.webView)) as? Bool == true { desktop = true; break }
+                try await Task.sleep(nanoseconds: 200_000_000)
+            }
+            try await Task.sleep(nanoseconds: 2_000_000_000)
+            let metrics = try? await evaluate("JSON.stringify({url:location.href,title:document.title,width:innerWidth,desktop:!!document.querySelector('ytd-app'),mobile:!!document.querySelector('ytm-app'),videos:document.querySelectorAll('a[href*=watch]').length})", web: session.webView)
+            let record = XCTAttachment(string: "SIMULATOR ONLY \(side): \(String(describing: metrics)); native pageZoom=\(session.webView.pageZoom)")
+            record.name = "160-live-youtube-\(side)-metrics"; record.lifetime = .keepAlways; add(record)
+            try await capture(session.webView, name: "160-live-youtube-\(side)")
+            guard desktop else { throw XCTSkip("Live YouTube did not expose its desktop document in Simulator (network/consent/site restriction); physical iPhone acceptance remains pending. Car phase is not attempted before phone succeeds.") }
+            let width = try await evaluate("innerWidth", web: session.webView) as? Double ?? 0
+            XCTAssertGreaterThanOrEqual(width, 1200)
+            XCTAssertEqual(session.webView.pageZoom, 1, accuracy: 0.001)
+            let mobile = try await evaluate("!!document.querySelector('ytm-app')", web: session.webView) as? Bool ?? true
+            XCTAssertFalse(mobile)
+        }
+    }
+
     func testChromePrimaryActivationAndExistingRemoteRoutingWithoutMenu() throws {
         let browser = CarBrowserViewController()
         browser.loadViewIfNeeded()

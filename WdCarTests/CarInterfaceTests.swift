@@ -136,7 +136,7 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(hotspot.bounds.width, 44)
         hotspot.sendActions(for: .primaryActionTriggered)
         XCTAssertFalse(reveal.isHidden)
-        XCTAssertEqual(reveal.menu?.children.count, 2)
+        XCTAssertNil(reveal.menu)
     }
 
     func test150StopReleasesStreamOnRepeatedPlayback() throws {
@@ -293,14 +293,14 @@ final class CarInterfaceTests: XCTestCase {
 
         browser.showToolbarRevealButton()
         XCTAssertFalse(reveal.isHidden)
-        reveal.sendActions(for: .touchUpInside)
+        reveal.sendActions(for: .primaryActionTriggered)
         XCTAssertFalse(toolbar.isHidden, "The overlay reveal button opens the toolbar")
         try await Task.sleep(nanoseconds: 6_200_000_000)
         XCTAssertTrue(toolbar.isHidden, "The toolbar stays open for six seconds after its last interaction")
 
         browser.showToolbarRevealButton()
         XCTAssertFalse(reveal.isHidden, "The reveal control is available again without leaving the browser")
-        reveal.sendActions(for: .touchUpInside)
+        reveal.sendActions(for: .primaryActionTriggered)
         XCTAssertFalse(toolbar.isHidden)
     }
 
