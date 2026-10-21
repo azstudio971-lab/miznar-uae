@@ -40,6 +40,7 @@ final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionVi
         addSubview(hint)
         semanticContentAttribute = .forceRightToLeft
 
+        titleLabel.accessibilityIdentifier = "car.browser.shortcuts.title"
         titleLabel.text = "المتصفح"
         titleLabel.font = .systemFont(ofSize: 15, weight: .bold)
         titleLabel.textColor = .white

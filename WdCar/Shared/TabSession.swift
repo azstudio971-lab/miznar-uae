@@ -30,7 +30,7 @@ final class TabSession: NSObject, ObservableObject {
         self._isDesktopMode = Published(initialValue: desktop)
 
         let configuration = WebEngine.makeConfiguration(for: side)
-        self.webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 800, height: 480), configuration: configuration)
+        self.webView = WKWebView(frame: CGRect(x: 0, y: 0, width: desktop ? DesktopViewportView.desktopWidth : 800, height: 480), configuration: configuration)
         super.init()
 
         webView.configuration.userContentController.add(WeakScriptHandler(self), name: WebEngine.messageName)
@@ -251,6 +251,7 @@ extension TabSession: WKNavigationDelegate, WKUIDelegate {
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        didTryYouTubeDesktopRedirect = false
         navigationError = nil
         if side == .car { applyCarLayout() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in

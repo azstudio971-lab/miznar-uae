@@ -1,6 +1,7 @@
 import XCTest
 import UIKit
 import WebKit
+import SwiftUI
 @testable import WdCar
 
 @MainActor
@@ -13,15 +14,18 @@ final class Release160Tests: XCTestCase {
         super.tearDown()
     }
     private func display(_ view: UIView, size: CGSize) {
-        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
-        let w = scene.map { UIWindow(windowScene: $0) } ?? UIWindow(frame: CGRect(origin: .zero, size: size))
         let vc = UIViewController()
         vc.view = view
-        w.rootViewController = vc
+        display(vc, size: size)
+    }
+    private func display(_ controller: UIViewController, size: CGSize) {
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        let w = scene.map { UIWindow(windowScene: $0) } ?? UIWindow(frame: CGRect(origin: .zero, size: size))
+        w.rootViewController = controller
         w.makeKeyAndVisible()
         window = w
-        view.frame = CGRect(origin: .zero, size: size)
-        view.layoutIfNeeded()
+        controller.view.frame = CGRect(origin: .zero, size: size)
+        controller.view.layoutIfNeeded()
     }
     private func find(_ id: String, in view: UIView) -> UIView? {
         if view.accessibilityIdentifier == id { return view }
@@ -116,21 +120,34 @@ final class Release160Tests: XCTestCase {
         defer { WDSettings.phoneDesktopMode = phone; WDSettings.carDesktopMode = car; WDSettings.carZoom = zoom }
         WDSettings.phoneDesktopMode = true; WDSettings.carDesktopMode = true; WDSettings.carZoom = 1
         for side in [BrowserSide.phone, .car] {
-            let session = TabSession(tabID: UUID(), side: side, initialURL: nil)
-            defer { session.tearDown() }
-            let host = DesktopViewportView(session: session)
-            display(host, size: side == .phone ? CGSize(width: 390, height: 700) : CGSize(width: 960, height: 480))
-            session.load(URL(string: "https://www.youtube.com/results?search_query=NASA&app=desktop")!)
+            let store = TabStore.of(side)
+            guard !store.isFull else { throw XCTSkip("No disposable tab slot in test installation") }
+            let previousID = store.activeID
+            let id = store.newTab(url: URL(string: "https://www.youtube.com/results?search_query=NASA&app=desktop")!)
+            defer { store.close(id); if let previousID { store.select(previousID) } }
+            let session = WebViewPool.of(side).session(for: id)
+            // Mount the shipping phone browser, including SwiftUI chrome and the real tab pool.
+            let controller: UIViewController = side == .phone
+                ? UIHostingController(rootView: PhoneBrowserScreen().environmentObject(AppState.shared))
+                : CarBrowserViewController()
+            display(controller, size: side == .phone ? CGSize(width: 390, height: 700) : CGSize(width: 960, height: 480))
+            controller.view.layoutIfNeeded()
             var desktop = false
             for _ in 0..<150 {
                 if (try? await evaluate("!!document.querySelector('ytd-app') && document.readyState === 'complete'", web: session.webView)) as? Bool == true { desktop = true; break }
                 try await Task.sleep(nanoseconds: 200_000_000)
             }
             try await Task.sleep(nanoseconds: 2_000_000_000)
-            let metrics = try? await evaluate("JSON.stringify({url:location.href,title:document.title,width:innerWidth,desktop:!!document.querySelector('ytd-app'),mobile:!!document.querySelector('ytm-app'),videos:document.querySelectorAll('a[href*=watch]').length})", web: session.webView)
+            let metrics = try? await evaluate("JSON.stringify({url:location.href,title:document.title,width:innerWidth,desktop:!!document.querySelector('ytd-app'),mobile:!!document.querySelector('ytm-app'),videos:document.querySelectorAll('a[href*=watch]').length,meta:document.querySelector('meta[name=viewport]')?.content,client:document.documentElement.clientWidth,visual:visualViewport.width})", web: session.webView)
             let record = XCTAttachment(string: "SIMULATOR ONLY \(side): \(String(describing: metrics)); native pageZoom=\(session.webView.pageZoom)")
+            print("WUDCAR160 LIVE \(side): \(String(describing: metrics)); native bounds=\(session.webView.bounds); fit=\(session.webView.transform); pageZoom=\(session.webView.pageZoom)")
             record.name = "160-live-youtube-\(side)-metrics"; record.lifetime = .keepAlways; add(record)
             try await capture(session.webView, name: "160-live-youtube-\(side)")
+            let screen = UIGraphicsImageRenderer(size: controller.view.bounds.size).image { _ in
+                controller.view.drawHierarchy(in: controller.view.bounds, afterScreenUpdates: true)
+            }
+            let screenRecord = XCTAttachment(image: screen)
+            screenRecord.name = "160-live-app-browser-\(side)"; screenRecord.lifetime = .keepAlways; add(screenRecord)
             guard desktop else { throw XCTSkip("Live YouTube did not expose its desktop document in Simulator (network/consent/site restriction); physical iPhone acceptance remains pending. Car phase is not attempted before phone succeeds.") }
             let width = try await evaluate("innerWidth", web: session.webView) as? Double ?? 0
             XCTAssertGreaterThanOrEqual(width, 1200)
@@ -143,10 +160,12 @@ final class Release160Tests: XCTestCase {
     func testChromePrimaryActivationAndExistingRemoteRoutingWithoutMenu() throws {
         let browser = CarBrowserViewController()
         browser.loadViewIfNeeded()
-        display(browser.view, size: CGSize(width: 960, height: 480))
+        display(browser, size: CGSize(width: 960, height: 480))
         let hotspot = try XCTUnwrap(find("car.browser.toolbar.hotspot", in: browser.view) as? UIButton)
         let reveal = try XCTUnwrap(find("car.browser.toolbar.reveal", in: browser.view) as? UIButton)
         let toolbar = try XCTUnwrap(find("car.browser.toolbar", in: browser.view))
+        let title = try XCTUnwrap(find("car.browser.shortcuts.title", in: browser.view) as? UILabel)
+        XCTAssertEqual(title.font.pointSize, 15)
         XCTAssertTrue(toolbar.isHidden)
         XCTAssertTrue(browser.activateBrowserChrome(at: hotspot.convert(CGPoint(x: 1, y: 10), to: browser.view)))
         XCTAssertFalse(reveal.isHidden)

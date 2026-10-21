@@ -119,6 +119,8 @@ workflows:
         script: |
           mkdir -p build/150-test-screenshots
           xcrun xcresulttool export attachments --path /tmp/WudCar150Interface.xcresult --output-path build/150-test-screenshots || true
+      - name: Require real-app YouTube desktop verification
+        script: python3 scripts/verify_browser_test_gate.py /tmp/wudcar-150-interface-tests.log
       - name: تجهيز التوقيع
         script: |
           xcode-project use-profiles
@@ -163,7 +165,7 @@ workflows:
         auth: integration
         submit_to_testflight: false
 
-  # Manual internal-device build. Simulator results remain separate and are not represented as passing.
+  # Manual internal-device build. Live app-browser verification must pass before IPA; physical CarPlay remains separate.
   wudcar-device-validation:
     name: WudCar 1.6.0 → Device validation (internal TestFlight)
     max_build_duration: 60
@@ -205,6 +207,12 @@ workflows:
       script: "set -euo pipefail\nxcodebuild -project \"$XCODE_PROJECT\" -scheme \"$XCODE_SCHEME\" \\\n  -sdk iphonesimulator\
         \ -destination 'generic/platform=iOS Simulator' \\\n  -configuration Debug CODE_SIGNING_ALLOWED=NO build |\
         \ xcpretty\n"
+    - name: Require real-app YouTube desktop verification before IPA
+      script: |
+        set -euo pipefail
+        DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); ids=[v["udid"] for k,a in d["devices"].items() for v in a if "iOS" in k and "iPhone" in v["name"]]; print(ids[0])')
+        xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -only-testing:WdCarTests/Release160Tests -resultBundlePath /tmp/WudCar160ReleaseGate.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-160-release-gate.log
+        python3 scripts/verify_browser_test_gate.py /tmp/wudcar-160-release-gate.log
     - name: تجهيز التوقيع
       script: 'xcode-project use-profiles
 
@@ -263,11 +271,15 @@ workflows:
         script: |
           set -euo pipefail
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); ids=[v["udid"] for k,a in d["devices"].items() for v in a if "iOS" in k and "iPhone" in v["name"]]; print(ids[0])')
-          xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -only-testing:WdCarTests/Release150Tests -only-testing:WdCarTests/Release160Tests -resultBundlePath /tmp/WudCar160.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test
+          TEST_STATUS=0
+          xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -only-testing:WdCarTests/Release150Tests -only-testing:WdCarTests/Release160Tests -resultBundlePath /tmp/WudCar160.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test || TEST_STATUS=$?
+          mkdir -p build/160-verification
+          xcrun xcresulttool export attachments --path /tmp/WudCar160.xcresult --output-path build/160-verification || true
+          exit "$TEST_STATUS"
       - name: Export actual simulator screenshots
         script: |
           mkdir -p build/160-verification
           xcrun xcresulttool export attachments --path /tmp/WudCar160.xcresult --output-path build/160-verification
     artifacts:
       - build/160-verification/**/*
-      - /tmp/WudCar160.xcresult
+      - /tmp/WudCar160.xcresult/**/*
