@@ -41,7 +41,7 @@ final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionVi
         semanticContentAttribute = .forceRightToLeft
 
         titleLabel.text = "المتصفح"
-        titleLabel.font = .systemFont(ofSize: 24, weight: .bold)
+        titleLabel.font = .systemFont(ofSize: 15, weight: .bold)
         titleLabel.textColor = .white
         titleLabel.textAlignment = .right
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -59,7 +59,7 @@ final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionVi
             titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8),
             titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
             titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
-            collection.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
+            collection.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 3),
             collection.leadingAnchor.constraint(equalTo: leadingAnchor),
             collection.trailingAnchor.constraint(equalTo: trailingAnchor),
             collection.bottomAnchor.constraint(equalTo: hint.topAnchor, constant: -6),

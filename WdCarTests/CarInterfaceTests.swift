@@ -230,7 +230,7 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertNotNil(find("car.home", in: dashboard.view))
     }
 
-    func testDefaultCarZoomIs50PercentAndPreferencePersists() {
+    func testDefaultCarZoomIs100PercentAndPreferencePersists() {
         let defaults = UserDefaults.standard
         let prior = defaults.object(forKey: WDKeys.carZoom)
         defer {
@@ -238,7 +238,7 @@ final class CarInterfaceTests: XCTestCase {
             else { defaults.removeObject(forKey: WDKeys.carZoom) }
         }
         defaults.removeObject(forKey: WDKeys.carZoom)
-        XCTAssertEqual(WDSettings.carZoom, 0.5)
+        XCTAssertEqual(WDSettings.carZoom, 1.0)
         WDSettings.carZoom = 0.85
         XCTAssertEqual(defaults.double(forKey: WDKeys.carZoom), 0.85, accuracy: 0.001)
     }

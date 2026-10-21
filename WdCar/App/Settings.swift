@@ -30,10 +30,23 @@ enum WDSettings {
     /// حجم النص في متصفح السيارة
     static var carZoom: Double {
         get {
-            let stored = defaults.object(forKey: WDKeys.carZoom) as? Double ?? 0.5
+            migrateBrowserZoom(in: defaults)
+            let stored = defaults.object(forKey: WDKeys.carZoom) as? Double ?? 1.0
             return min(1.5, max(0.5, stored))
         }
-        set { defaults.set(min(1.5, max(0.5, newValue)), forKey: WDKeys.carZoom) }
+        set {
+            migrateBrowserZoom(in: defaults)
+            defaults.set(min(1.5, max(0.5, newValue)), forKey: WDKeys.carZoom)
+        }
+    }
+
+    static func migrateBrowserZoom(in storage: UserDefaults) {
+        let migration = "wd.browserZoom160Migrated"
+        guard !storage.bool(forKey: migration) else { return }
+        if storage.object(forKey: WDKeys.carZoom) == nil || storage.double(forKey: WDKeys.carZoom) == 0.5 {
+            storage.set(1.0, forKey: WDKeys.carZoom)
+        }
+        storage.set(true, forKey: migration)
     }
 
     /// لغة واجهة CarPlay: "ar" أو "en"

@@ -98,7 +98,9 @@ final class Release150Tests: XCTestCase {
         XCTAssertGreaterThanOrEqual(hotspot.bounds.width, 44)
         hotspot.sendActions(for: .primaryActionTriggered)
         XCTAssertFalse(reveal.isHidden)
-        XCTAssertEqual(reveal.menu?.children.count, 2)
+        XCTAssertNil(reveal.menu)
+        reveal.sendActions(for: .primaryActionTriggered)
+        XCTAssertTrue(reveal.isHidden)
     }
 
 }

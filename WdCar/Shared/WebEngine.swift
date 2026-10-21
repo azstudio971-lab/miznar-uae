@@ -48,8 +48,8 @@ enum WebEngine {
         try { window.webkit.messageHandlers.wd.postMessage(msg); } catch (e) {}
       }
 
-      // Reflow the document to the visual viewport after native pageZoom.
-      // The WKWebView frame is never scaled. Website-specific fixed containers are left alone.
+      // Size only the app-owned video overlay in document coordinates.
+      // DesktopViewportView fits the native view; site viewport/CSS stay untouched.
       var layoutQueued = false;
       function applyCarLayout() {
         if (window !== window.top || !document.documentElement) { return; }

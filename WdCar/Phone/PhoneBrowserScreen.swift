@@ -242,39 +242,21 @@ struct PhoneWebPage: View {
     @ObservedObject var session: TabSession
 
     var body: some View {
-        WebViewHost(webView: session.webView)
+        WebViewHost(session: session)
+            .id(session.tabID)
             .background(Color.black)
     }
 }
 
 /// يعرض WKWebView موجود مسبقاً داخل SwiftUI (الجلسات تبقى حيّة عند تبديل التبويبات)
 struct WebViewHost: UIViewRepresentable {
-    let webView: WKWebView
+    let session: TabSession
 
-    func makeUIView(context: Context) -> UIView {
-        let container = UIView()
-        container.backgroundColor = .black
-        attach(to: container)
-        return container
+    func makeUIView(context: Context) -> DesktopViewportView {
+        DesktopViewportView(session: session)
     }
-
-    func updateUIView(_ container: UIView, context: Context) {
-        if webView.superview !== container {
-            container.subviews.forEach { $0.removeFromSuperview() }
-            attach(to: container)
-        }
-    }
-
-    private func attach(to container: UIView) {
-        webView.removeFromSuperview()
-        webView.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(webView)
-        NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: container.topAnchor),
-            webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            webView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: container.trailingAnchor)
-        ])
+    func updateUIView(_ container: DesktopViewportView, context: Context) {
+        container.setNeedsLayout()
     }
 }
 

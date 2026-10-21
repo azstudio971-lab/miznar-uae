@@ -233,7 +233,7 @@ extension TabSession: WKNavigationDelegate, WKUIDelegate {
             decisionHandler(.allow, preferences)
             return
         }
-        if isDesktopMode, url.host?.lowercased() == "m.youtube.com",
+        if isDesktopMode, navigationAction.targetFrame?.isMainFrame == true, url.host?.lowercased() == "m.youtube.com",
            !didTryYouTubeDesktopRedirect {
             didTryYouTubeDesktopRedirect = true
             decisionHandler(.cancel, preferences)
