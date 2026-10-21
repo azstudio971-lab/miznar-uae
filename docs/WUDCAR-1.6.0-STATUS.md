@@ -70,3 +70,12 @@
 ## Authorized internal TestFlight test
 
 The owner explicitly requested a TestFlight upload for personal testing on 2026-10-21. Only the manual `wudcar-device-validation` workflow may use `--internal-testflight` after the live simulator YouTube probe passes. Both physical-device acceptance records remain false. Production release retains its original gate and is not authorized. No App Store submission or production merge is included.
+
+
+### Signed build upload — 2026-10-21
+
+- Codemagic build `6ad897b2454d2506f7abc6c5` finished successfully in 6m 18s, source `86f2b3c78f1de270eff72f711c14d81e2c44dec7`.
+- Five Release160 tests passed, zero failures. The live YouTube probe passed in 53.398s, phone and car-controller simulator widths 1280, pageZoom 1.0, stable channel navigation and back. This is simulator evidence only.
+- Latest TestFlight build was 15; signed archive is marketing 1.6.0, build 16, bundle `com.azstudio.wudcar`. CarPlay entitlement checks passed.
+- Apple upload succeeded without errors at 10:52 UTC; delivery UUID `c113deae-a8f2-4fb3-9371-1c02205bfebe`. Apple processing completed. App Store Connect lists 1.6.0 (16) in the existing WudCar Internal group (1 tester), status Testing, expiring in 90 days. The owner can now install the update from TestFlight.
+- No App Store submission or production merge. Physical iPhone/CarPlay acceptance remains pending owner testing.
