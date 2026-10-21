@@ -47,7 +47,10 @@ final class Release150Tests: XCTestCase {
         let ok = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "image/png"])
         let missing = HTTPURLResponse(url: url, statusCode: 404, httpVersion: nil, headerFields: ["Content-Type": "image/png"])
         let html = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "text/html"])
-        let png = UIGraphicsImageRenderer(size: CGSize(width: 512, height: 512)).image { _ in UIColor.red.setFill(); UIRectFill(CGRect(x: 0, y: 0, width: 512, height: 512)) }.pngData()
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let png = UIGraphicsImageRenderer(size: CGSize(width: 512, height: 512), format: format).image { _ in UIColor.red.setFill(); UIRectFill(CGRect(x: 0, y: 0, width: 512, height: 512)) }.pngData()
+        XCTAssertEqual(try XCTUnwrap(png.flatMap { UIImage(data: $0) }?.cgImage).width, 512, "Fixture must be 512 pixels, not 512 Retina points")
         XCTAssertNotNil(SeasonalLogo.validatedImage(data: png, response: ok))
         XCTAssertNil(SeasonalLogo.validatedImage(data: png, response: missing))
         XCTAssertNil(SeasonalLogo.validatedImage(data: png, response: html))
