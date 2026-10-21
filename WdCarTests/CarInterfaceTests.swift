@@ -67,6 +67,35 @@ final class CarInterfaceTests: XCTestCase {
         return false
     }
 
+    func test150SeasonalArtworkValidation() throws {
+        let url = SeasonalLogo.url
+        let ok = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "image/png"])
+        let missing = HTTPURLResponse(url: url, statusCode: 404, httpVersion: nil, headerFields: ["Content-Type": "image/png"])
+        let html = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "text/html"])
+        let png = UIGraphicsImageRenderer(size: CGSize(width: 512, height: 512)).image { _ in UIColor.red.setFill(); UIRectFill(CGRect(x: 0, y: 0, width: 512, height: 512)) }.pngData()
+        XCTAssertNotNil(SeasonalLogo.validatedImage(data: png, response: ok))
+        XCTAssertNil(SeasonalLogo.validatedImage(data: png, response: missing))
+        XCTAssertNil(SeasonalLogo.validatedImage(data: png, response: html))
+        XCTAssertNil(SeasonalLogo.validatedImage(data: nil, response: nil))
+        XCTAssertNil(SeasonalLogo.validatedImage(data: Data("broken".utf8), response: ok))
+    }
+
+    func test150EntertainmentLayoutSnapshots() throws {
+        for size in [CGSize(width: 640, height: 360), CGSize(width: 960, height: 480), CGSize(width: 1280, height: 480)] {
+            let controller = UIViewController()
+            let shortcuts = CarShortcutsView(frame: .zero)
+            controller.view = shortcuts
+            display(controller)
+            controller.view.frame = CGRect(origin: .zero, size: size)
+            controller.view.setNeedsLayout(); controller.view.layoutIfNeeded()
+            let image = UIGraphicsImageRenderer(size: size).image { context in shortcuts.layer.render(in: context.cgContext) }
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "wudcar150-entertainment-\(Int(size.width))x\(Int(size.height))"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+    }
+
     func test150DesktopPreferenceAppliesToBothBrowsers() {
         let phone = WDSettings.phoneDesktopMode
         let car = WDSettings.carDesktopMode
