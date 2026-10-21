@@ -66,6 +66,7 @@ struct HomeView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 120, height: 120)
+                    .overlay { SeasonalLogoOverlay() }
                     .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                 Text("WudCar").font(.system(size: 34, weight: .heavy))
                 Text("وُد كار").font(.title3.weight(.semibold)).foregroundStyle(.secondary)

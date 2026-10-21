@@ -19,5 +19,6 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 scripts/generate_xcode.py
-      - run: xcodebuild -project ios/WudCar.xcodeproj -scheme WudCar -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+      - run: brew install xcodegen
+      - run: xcodegen generate
+      - run: xcodebuild -project WdCar.xcodeproj -scheme WdCar -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build

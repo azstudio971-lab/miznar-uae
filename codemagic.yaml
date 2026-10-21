@@ -10,7 +10,7 @@
 
 workflows:
   wudcar-preview:
-    name: WudCar → Preview Update 14
+    name: WudCar → Preview 1.5.0
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
@@ -44,16 +44,16 @@ workflows:
             -parallel-testing-enabled NO -test-timeouts-enabled YES \
             -default-test-execution-time-allowance 180 \
             -maximum-test-execution-time-allowance 180 \
-            -resultBundlePath /tmp/WudCarUpdate14Preview.xcresult \
-            CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-update14-preview.log
+            -resultBundlePath /tmp/WudCar150Preview.xcresult \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-150-preview.log
       - name: تصدير صور المعاينة
         script: |
-          mkdir -p build/update14-preview
-          xcrun xcresulttool export attachments --path /tmp/WudCarUpdate14Preview.xcresult --output-path build/update14-preview
+          mkdir -p build/150-preview
+          xcrun xcresulttool export attachments --path /tmp/WudCar150Preview.xcresult --output-path build/150-preview
     artifacts:
-      - build/update14-preview/**/*
-      - /tmp/WudCarUpdate14Preview.xcresult
-      - /tmp/wudcar-update14-preview.log
+      - build/150-preview/**/*
+      - /tmp/WudCar150Preview.xcresult
+      - /tmp/wudcar-150-preview.log
 
   wudcar-testflight:
     name: WudCar → TestFlight
@@ -114,19 +114,19 @@ workflows:
             DEVICE=$(xcrun simctl create WudCarStoreKitTest com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro com.apple.CoreSimulator.SimRuntime.iOS-18-5)
           fi
           echo "STOREKIT_TEST_DEVICE: $DEVICE"
-          xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 180 -resultBundlePath /tmp/WudCarUpdate14Interface.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-update14-interface-tests.log
+          xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 180 -resultBundlePath /tmp/WudCar150Interface.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-150-interface-tests.log
       - name: صور التحقق من عرض المتصفح
         script: |
-          mkdir -p build/update14-test-screenshots
-          xcrun xcresulttool export attachments --path /tmp/WudCarUpdate14Interface.xcresult --output-path build/update14-test-screenshots || true
+          mkdir -p build/150-test-screenshots
+          xcrun xcresulttool export attachments --path /tmp/WudCar150Interface.xcresult --output-path build/150-test-screenshots || true
       - name: تجهيز التوقيع
         script: |
           xcode-project use-profiles
       - name: رقم البناء
         script: |
           LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_ID" || echo 0)
-          NEXT=14
-          if [ "$LATEST" -ge 14 ]; then echo "Build 14 already exists; refusing an unintended build number"; exit 1; fi
+          NEXT=$((LATEST + 1))
+          if [ "$NEXT" -lt 15 ]; then NEXT=15; fi
           echo "Build number: $NEXT"
           agvtool new-version -all $NEXT
       - name: بناء IPA (Release)
@@ -152,9 +152,9 @@ workflows:
           echo "== Scene roles in Info.plist =="
           plutil -p "$APP/Info.plist" | grep -E "ExternalDisplay|CPTemplateApplication" || { echo "External display scenes missing"; exit 1; }
     artifacts:
-      - build/update14-test-screenshots/**/*
-      - /tmp/WudCarUpdate14Interface.xcresult
-      - /tmp/wudcar-update14-interface-tests.log
+      - build/150-test-screenshots/**/*
+      - /tmp/WudCar150Interface.xcresult
+      - /tmp/wudcar-150-interface-tests.log
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM

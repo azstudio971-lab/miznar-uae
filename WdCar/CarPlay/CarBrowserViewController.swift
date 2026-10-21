@@ -46,6 +46,7 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
     private let siteErrorLabel = PaddingLabel()
     private let scrollUpButton = CarUI.iconButton("arrow.up", size: 17, background: UIColor(white: 0.08, alpha: 0.82))
     private let scrollDownButton = CarUI.iconButton("arrow.down", size: 17, background: UIColor(white: 0.08, alpha: 0.82))
+    private let toolbarHotspot = UIButton(type: .custom)
     private let toolbarRevealButton = CarUI.iconButton("ellipsis", size: 17, background: UIColor(white: 0.05, alpha: 0.82))
     private var scrollControls: UIStackView!
     private var textPanel: CarTextInputView?
@@ -213,6 +214,22 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
             self.setToolbarCollapsed(false)
         }, for: .touchUpInside)
         view.addSubview(toolbarRevealButton)
+        toolbarHotspot.accessibilityLabel = carTr("إظهار خيارات المتصفح", "Show browser options")
+        toolbarHotspot.accessibilityIdentifier = "car.browser.toolbar.hotspot"
+        toolbarHotspot.translatesAutoresizingMaskIntoConstraints = false
+        toolbarHotspot.addAction(UIAction { [weak self] _ in self?.showToolbarRevealButton() }, for: .primaryActionTriggered)
+        view.addSubview(toolbarHotspot)
+        NSLayoutConstraint.activate([
+            toolbarHotspot.leftAnchor.constraint(equalTo: view.leftAnchor),
+            toolbarHotspot.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            toolbarHotspot.widthAnchor.constraint(equalToConstant: 44),
+            toolbarHotspot.heightAnchor.constraint(equalToConstant: 44)
+        ])
+        toolbarRevealButton.menu = UIMenu(children: [
+            UIAction(title: carTr("شريط المتصفح", "Browser toolbar"), image: UIImage(systemName: "slider.horizontal.3")) { [weak self] _ in self?.revealToolbar() },
+            UIAction(title: carTr("الصفحة الرئيسية", "Home"), image: UIImage(systemName: "house")) { [weak self] _ in self?.goHome() }
+        ])
+        toolbarRevealButton.showsMenuAsPrimaryAction = true
 
         videoOverlay.isHidden = true
         videoOverlay.onExit = { [weak self] in self?.currentSession?.exitVideoFullscreen() }
@@ -627,6 +644,7 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
     private func applyToolbarVisibility() {
         let hidden = toolbarCollapsed || videoFullscreen
         toolbar.isHidden = hidden
+        toolbarHotspot.isHidden = !hidden || videoFullscreen
         NSLayoutConstraint.deactivate([contentTopToToolbar, contentTopToSafe])
         NSLayoutConstraint.activate([hidden ? contentTopToSafe : contentTopToToolbar])
         view.bringSubviewToFront(scrollControls)

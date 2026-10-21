@@ -2,9 +2,12 @@ import UIKit
 import Combine
 
 /// شبكة الاختصارات في السيارة (صفحة "المتصفح" الرئيسية)
-final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionViewDelegate {
+final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     var onSelect: ((SiteShortcut) -> Void)?
 
+    private let gradient = CAGradientLayer()
+    private let hint = UILabel()
+    private let pattern = CAShapeLayer()
     private var items: [SiteShortcut] = []
     private let titleLabel = UILabel()
     private let collection: UICollectionView
@@ -19,7 +22,22 @@ final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionVi
         collection = UICollectionView(frame: .zero, collectionViewLayout: layout)
         super.init(frame: frame)
 
-        backgroundColor = .black
+        backgroundColor = CarUI.navy
+        gradient.colors = [CarUI.navy.cgColor, UIColor.black.cgColor]
+        gradient.startPoint = .zero
+        gradient.endPoint = CGPoint(x: 1, y: 1)
+        layer.insertSublayer(gradient, at: 0)
+        pattern.strokeColor = UIColor.white.withAlphaComponent(0.035).cgColor
+        pattern.fillColor = UIColor.clear.cgColor
+        pattern.lineWidth = 0.7
+        layer.insertSublayer(pattern, above: gradient)
+        hint.text = "لإظهار شريط التحكم العلوي أو العودة إلى الصفحة الرئيسية، اضغط على أقصى يسار الشاشة لإظهار زر (•••)، ثم اختر الإجراء المطلوب."
+        hint.textColor = UIColor(white: 0.85, alpha: 1)
+        hint.font = .systemFont(ofSize: 12)
+        hint.numberOfLines = 0
+        hint.textAlignment = .center
+        hint.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hint)
         semanticContentAttribute = .forceRightToLeft
 
         titleLabel.text = "المتصفح"
@@ -44,7 +62,10 @@ final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionVi
             collection.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
             collection.leadingAnchor.constraint(equalTo: leadingAnchor),
             collection.trailingAnchor.constraint(equalTo: trailingAnchor),
-            collection.bottomAnchor.constraint(equalTo: bottomAnchor)
+            collection.bottomAnchor.constraint(equalTo: hint.topAnchor, constant: -6),
+            hint.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 18),
+            hint.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -18),
+            hint.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -8)
         ])
 
         ShortcutStore.shared.$shortcuts
@@ -54,6 +75,34 @@ final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionVi
                 self?.collection.reloadData()
             }
             .store(in: &bag)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        gradient.frame = bounds
+        pattern.frame = bounds
+        let path = UIBezierPath()
+        for offset in stride(from: -bounds.height, through: bounds.width, by: 36) {
+            path.move(to: CGPoint(x: offset, y: 0))
+            path.addLine(to: CGPoint(x: offset + bounds.height, y: bounds.height))
+        }
+        pattern.path = path.cgPath
+        collection.collectionViewLayout.invalidateLayout()
+    }
+
+    func collectionView(_ collectionView: UICollectionView, layout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        let available = max(1, collectionView.bounds.width - 32)
+        let columns = max(1, min(5, Int((available + 10) / 160)))
+        let width = (available - CGFloat(columns - 1) * 10) / CGFloat(columns)
+        return CGSize(width: width, height: max(100, min(145, width * 0.64)))
+    }
+
+    func collectionView(_ collectionView: UICollectionView, layout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
+        let size = self.collectionView(collectionView, layout: layout, sizeForItemAt: IndexPath(item: 0, section: 0))
+        let columns = max(1, min(5, Int((max(1, collectionView.bounds.width - 32) + 10) / 160)))
+        let rows = Int(ceil(Double(items.count) / Double(columns)))
+        let height = CGFloat(rows) * size.height + CGFloat(max(0, rows - 1)) * 14
+        return UIEdgeInsets(top: max(8, (collectionView.bounds.height - height) / 2), left: 16, bottom: 16, right: 16)
     }
 
     /// Activate an app-owned shortcut from the phone touchpad without synthetic UIKit touches.
@@ -92,6 +141,7 @@ private final class CarShortcutCell: UICollectionViewCell {
     static let id = "CarShortcutCell"
 
     private let tile = UIView()
+    private let sheen = CAGradientLayer()
     private let iconView = UIImageView()
     private let letterLabel = UILabel()
     private let nameLabel = UILabel()
@@ -102,12 +152,19 @@ private final class CarShortcutCell: UICollectionViewCell {
         tile.layer.cornerRadius = 16
         tile.layer.cornerCurve = .continuous
         tile.clipsToBounds = true
+        sheen.colors = [UIColor.white.withAlphaComponent(0.12).cgColor, UIColor.clear.cgColor, UIColor.white.withAlphaComponent(0.025).cgColor]
+        sheen.startPoint = .zero
+        sheen.endPoint = CGPoint(x: 1, y: 1)
+        tile.layer.addSublayer(sheen)
+        tile.backgroundColor = UIColor.white.withAlphaComponent(0.07)
+        tile.layer.borderWidth = 1
+        tile.layer.borderColor = UIColor.white.withAlphaComponent(0.22).cgColor
         tile.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(tile)
 
         iconView.contentMode = .scaleAspectFit
         tile.addSubview(iconView)
-        CarUI.pin(iconView, to: tile, insets: UIEdgeInsets(top: 13, left: 13, bottom: 13, right: 13))
+        CarUI.pin(iconView, to: tile, insets: UIEdgeInsets(top: 12, left: 24, bottom: 38, right: 24))
 
         letterLabel.font = .systemFont(ofSize: 28, weight: .bold)
         letterLabel.textColor = .white
@@ -126,9 +183,10 @@ private final class CarShortcutCell: UICollectionViewCell {
         NSLayoutConstraint.activate([
             tile.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
             tile.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            tile.widthAnchor.constraint(equalToConstant: 64),
-            tile.heightAnchor.constraint(equalToConstant: 64),
-            nameLabel.topAnchor.constraint(equalTo: tile.bottomAnchor, constant: 6),
+            tile.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            tile.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            tile.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            nameLabel.bottomAnchor.constraint(equalTo: tile.bottomAnchor, constant: -12),
             nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor)
         ])
@@ -136,18 +194,31 @@ private final class CarShortcutCell: UICollectionViewCell {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        sheen.frame = tile.bounds
+    }
+
     func configure(_ item: SiteShortcut) {
         currentID = item.id
-        tile.backgroundColor = UIColor(hex: item.colorHex)
-        nameLabel.text = item.name
+        tile.backgroundColor = UIColor(hex: item.colorHex).withAlphaComponent(0.12)
+        nameLabel.text = item.url.host?.contains("rain.ae") == true ? "طقس الإمارات · Rain.ae" : item.name
         letterLabel.text = String(item.name.prefix(1))
         letterLabel.isHidden = false
-        iconView.image = nil
+        iconView.image = item.url.host?.contains("rain.ae") == true ? UIImage(systemName: "cloud.sun.fill") : nil
+        iconView.tintColor = .systemYellow
+        if iconView.image != nil { letterLabel.isHidden = true; return }
         ImageLoader.shared.load(Favicon.url(for: item.url)) { [weak self] image in
             guard let self, self.currentID == item.id else { return }
             self.iconView.image = image
             self.letterLabel.isHidden = image != nil
         }
+    }
+
+    override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
+        super.didUpdateFocus(in: context, with: coordinator)
+        tile.layer.borderColor = (isFocused ? UIColor.systemCyan : UIColor.white.withAlphaComponent(0.22)).cgColor
+        tile.layer.borderWidth = isFocused ? 3 : 1
     }
 
     override var isHighlighted: Bool {

@@ -62,8 +62,7 @@ final class TabSession: NSObject, ObservableObject {
     }
 
     private func requestedURL(_ url: URL) -> URL {
-        guard side == .car,
-              let host = url.host?.lowercased(),
+        guard let host = url.host?.lowercased(),
               ["youtube.com", "www.youtube.com", "m.youtube.com"].contains(host),
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
         components.host = isDesktopMode ? "www.youtube.com" : "m.youtube.com"
@@ -100,7 +99,7 @@ final class TabSession: NSObject, ObservableObject {
         isDesktopMode = on
         webView.customUserAgent = on ? WebEngine.desktopUserAgent : nil
         webView.configuration.defaultWebpagePreferences.preferredContentMode = on ? .desktop : .mobile
-        if let url = webView.url, side == .car { load(url) } else { webView.reload() }
+        if let url = webView.url { load(url) } else { webView.reload() }
     }
 
     // MARK: جسر الكتابة (السيارة)
@@ -234,7 +233,7 @@ extension TabSession: WKNavigationDelegate, WKUIDelegate {
             decisionHandler(.allow, preferences)
             return
         }
-        if side == .car, isDesktopMode, url.host?.lowercased() == "m.youtube.com",
+        if isDesktopMode, url.host?.lowercased() == "m.youtube.com",
            !didTryYouTubeDesktopRedirect {
             didTryYouTubeDesktopRedirect = true
             decisionHandler(.cancel, preferences)
@@ -253,7 +252,7 @@ extension TabSession: WKNavigationDelegate, WKUIDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         navigationError = nil
-        if side == .car { applyCarZoom(WDSettings.carZoom) }
+        if side == .car { applyCarLayout() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
             self?.takeSnapshot()
         }

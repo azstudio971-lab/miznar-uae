@@ -79,6 +79,7 @@ final class ShortcutStore: ObservableObject {
 
     private static var defaults: [SiteShortcut] {
         let list: [(String, String, String)] = [
+            ("طقس الإمارات", "https://www.rain.ae/", "#187DA6"),
             ("YouTube", "https://www.youtube.com", "#FF0000"),
             ("TikTok", "https://www.tiktok.com", "#111111"),
             ("Google", "https://www.google.com", "#FFFFFF"),

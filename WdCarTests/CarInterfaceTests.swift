@@ -67,6 +67,42 @@ final class CarInterfaceTests: XCTestCase {
         return false
     }
 
+    func test150DesktopPreferenceAppliesToBothBrowsers() {
+        let phone = WDSettings.phoneDesktopMode
+        let car = WDSettings.carDesktopMode
+        defer { WDSettings.phoneDesktopMode = phone; WDSettings.carDesktopMode = car }
+        WDSettings.phoneDesktopMode = true
+        WDSettings.carDesktopMode = true
+        for side in [BrowserSide.phone, .car] {
+            XCTAssertEqual(WebEngine.makeConfiguration(for: side).defaultWebpagePreferences.preferredContentMode, .desktop)
+        }
+    }
+
+    func test150NativeToolbarHotspotAndMenu() throws {
+        let browser = CarBrowserViewController()
+        display(browser)
+        let hotspot = try XCTUnwrap(find("car.browser.toolbar.hotspot", in: browser.view) as? UIButton)
+        let reveal = try XCTUnwrap(find("car.browser.toolbar.reveal", in: browser.view) as? UIButton)
+        XCTAssertGreaterThanOrEqual(hotspot.bounds.width, 44)
+        hotspot.sendActions(for: .primaryActionTriggered)
+        XCTAssertFalse(reveal.isHidden)
+        XCTAssertEqual(reveal.menu?.children.count, 2)
+    }
+
+    func test150StopReleasesStreamOnRepeatedPlayback() throws {
+        let manager = PlaybackManager.shared
+        let url = try XCTUnwrap(Bundle.main.url(forResource: "intro_night", withExtension: "mp4"))
+        for name in ["M3U", "Xtream", "M3U", "Xtream"] {
+            manager.play(.init(title: name, subtitle: "Regression", url: url, isLive: true, artworkURL: nil), presentOnPhone: false)
+            XCTAssertNotNil(manager.player.currentItem)
+            manager.stop()
+            XCTAssertNil(manager.player.currentItem)
+            XCTAssertNil(manager.current)
+            XCTAssertFalse(manager.isPlaying)
+            XCTAssertFalse(manager.isPlayerPresented)
+        }
+    }
+
     func testDaytimePhoneLogoAtCompactRegularAndLargeSizes() throws {
         let image = try XCTUnwrap(UIImage(named: "LogoDay"))
         XCTAssertEqual(image.size.width / image.size.height, 1145.0 / 1373.0, accuracy: 0.001)
