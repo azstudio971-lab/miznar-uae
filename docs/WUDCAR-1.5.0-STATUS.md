@@ -6,12 +6,12 @@ This is an incomplete development checkpoint, not a verified release or a claim 
 
 - Existing repository: azstudio971-lab/miznar-uae.
 - Base: wudcar-update14 at 6112677634c7da15be257e6082c04344cb6ed6e3.
-- Local branch: develop/wudcar-1.5.0.
+- Development branch: develop/wudcar-1.5.0, now published with user authorization.
 - Reviewed branch inventory and PRs 1–6. PRs 4–6 remain separate drafts and were not merged.
 - Actual existing native identity is com.azstudio.wudcar; it was preserved, including the entitlement and signing files. Historical notes naming com.azpixel.wudcar were not applied.
 - Marketing version: 1.5.0. Initial build: 15; Codemagic chooses max(15, latest TestFlight build + 1). In-app Settings displays only the marketing version.
 - No production merge, production Netlify deploy, App Store review submission, or TestFlight upload was completed.
-- Automatic approval review rejected the GitHub push. Do not retry through another transport without resolving authorization. Local commits preserve the work.
+- User authorized development-branch publication in the follow-up. Git transport lacked credentials; the connected GitHub API published the verified repository branch. Production was not changed.
 
 ## Requested changes
 
@@ -35,7 +35,7 @@ https://wudcar.netlify.app/branding/occasion.png
 - File source for an eventual full Netlify deploy: web/public/branding/occasion.png.
 - Replace this file at the same path in the existing site's deployment to activate/change; omit/remove it in the next full site deployment to disable. Deploy the complete site, not a folder containing only this image.
 - No image is included by default. Explicit missing-resource route prevents the SPA HTML fallback from posing as image content.
-- App refreshes every five minutes while running and on foreground (minimum 30 seconds between requests). HTTP/image/network failure clears the overlay at completion and leaves the bundled base visible. A disconnected device may retain an already displayed image until that refresh fails; immediate offline switching is not implemented.
+- App refreshes every five minutes while running and on foreground (minimum 30 seconds between requests). HTTP/image/network failure clears the overlay at completion and leaves the bundled base visible. NWPathMonitor clears the overlay when it reports loss of network connectivity. Failed refreshes also clear it.
 - Netlify header requires revalidation. These config changes must be deployed before treating the URL as active.
 
 ## Tests and evidence
@@ -53,7 +53,7 @@ Added, NOT executed:
 - Native hotspot/menu test.
 - Repeated shared player release test using bundled video, without claiming provider connectivity.
 
-Unavailable locally: Xcode, iOS Simulator, attached iPhone and vehicle. The existing GitHub validation workflow incorrectly built the historical ios/WudCar project; it now targets the actual WdCar source via XcodeGen. Codemagic preview configuration now labels and retains 1.5.0 artifacts. Neither cloud native job was run. The development branch is not configured for automatic Codemagic publication.
+Unavailable locally: Xcode, iOS Simulator, attached iPhone and vehicle. The existing GitHub validation workflow incorrectly built the historical ios/WudCar project; it now targets the actual WdCar source via XcodeGen. Codemagic preview configuration now labels and retains 1.5.0 artifacts. GitHub Actions run 39567596212 passed both native iOS build and web checks/UI tests at 624f0d6. Run 39568223138 also passed both jobs at 77e32ea. Codemagic preview run 6ad874d2454d2506f7abbb3f started for the earlier checkpoint and is preparing an iOS 18.5 simulator; no test success is claimed yet. The development branch is not configured for automatic Codemagic publication.
 
 ## Official capability findings and release blockers
 
@@ -68,4 +68,4 @@ Official sources reviewed:
 - https://help.netflix.com/en/node/30081
 - https://help.netflix.com/en/node/2090
 
-Decision needed: authorize publishing this DEVELOPMENT branch only so native CI/Codemagic preview can run. This is separate from production merge, production deployment and App Store submission. Before TestFlight, resolve official CarPlay-path scope and run native tests; then perform the required iPhone-first device tests before CarPlay. Do not call this release complete until these blockers and visual/provider tests are resolved.
+Development-branch publication was authorized and completed. Production merge, production deployment and App Store submission remain separate. Before TestFlight, resolve official CarPlay-path scope and run native tests; then perform the required iPhone-first device tests before CarPlay. Do not call this release complete until these blockers and visual/provider tests are resolved.

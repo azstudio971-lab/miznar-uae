@@ -52,6 +52,7 @@ final class SeasonalLogo: ObservableObject {
 }
 
 final class SeasonalLogoView: UIView {
+    override var intrinsicContentSize: CGSize { CGSize(width: 512, height: 512) }
     private var subscription: AnyCancellable?
     init(base: UIImage?) {
         super.init(frame: .zero)
