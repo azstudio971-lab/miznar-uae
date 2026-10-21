@@ -162,3 +162,87 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: false
+
+  # Manual internal-device build. Simulator results remain separate and are not represented as passing.
+  wudcar-device-validation:
+    name: WudCar 1.5.0 → Device validation (internal TestFlight)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: WudCar ASC Key
+    environment:
+      xcode: latest
+      groups:
+      - wudcar
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.azstudio.wudcar
+      vars:
+        XCODE_PROJECT: WdCar.xcodeproj
+        XCODE_SCHEME: WdCar
+        BUNDLE_ID: com.azstudio.wudcar
+    scripts:
+    - name: التحقق من المصدر والشعار الكامل
+      script: 'echo "SOURCE_COMMIT: $(git rev-parse HEAD)"
+
+        python3 scripts/verify_logo.py
+
+        '
+    - name: تثبيت XcodeGen
+      script: 'brew install xcodegen
+
+        '
+    - name: إنشاء مشروع Xcode
+      script: 'xcodegen generate
+
+        '
+    - name: ضبط Team ID
+      script: 'sed -i '''' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $TEAM_ID;/g" "$XCODE_PROJECT/project.pbxproj"
+        || true
+
+        '
+    - name: التحقق من المشروع (بناء Debug للمحاكي)
+      script: "set -euo pipefail\nxcodebuild -project \"$XCODE_PROJECT\" -scheme \"$XCODE_SCHEME\" \\\n  -sdk iphonesimulator\
+        \ -destination 'generic/platform=iOS Simulator' \\\n  -configuration Debug CODE_SIGNING_ALLOWED=NO build |\
+        \ xcpretty\n"
+    - name: تجهيز التوقيع
+      script: 'xcode-project use-profiles
+
+        '
+    - name: رقم البناء
+      script: 'set -euo pipefail
+
+        LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_ID")
+
+        [[ "$LATEST" =~ ^[0-9]+$ ]] || { echo "Cannot verify latest build number"; exit 1; }
+
+        NEXT=$((LATEST + 1))
+
+        if [ "$NEXT" -lt 15 ]; then NEXT=15; fi
+
+        agvtool new-version -all "$NEXT"
+
+        '
+    - name: بناء IPA (Release)
+      script: 'xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+
+        '
+    - name: التحقق من صلاحيات CarPlay (فيديو + صوت) داخل IPA
+      script: "set -e\nIPA=$(ls build/ios/ipa/*.ipa | head -1)\nrm -rf /tmp/ipa_check && mkdir -p /tmp/ipa_check\n\
+        unzip -q \"$IPA\" -d /tmp/ipa_check\nAPP=$(ls -d /tmp/ipa_check/Payload/*.app | head -1)\necho \"== Entitlements\
+        \ in signed app ==\"\ncodesign -d --entitlements :- \"$APP\" 2>/dev/null | tee /tmp/ipa_check/ents.plist\n\
+        echo \"== Provisioning profile ==\"\nsecurity cms -D -i \"$APP/embedded.mobileprovision\" > /tmp/ipa_check/profile.plist\n\
+        grep -A1 -i \"carplay\" /tmp/ipa_check/profile.plist || true\nfor KEY in com.apple.developer.carplay-video\
+        \ com.apple.developer.carplay-audio; do\n  grep -q \"$KEY\" /tmp/ipa_check/ents.plist || { echo \"MISSING\
+        \ in app: $KEY\"; exit 1; }\n  grep -q \"$KEY\" /tmp/ipa_check/profile.plist || { echo \"MISSING in profile:\
+        \ $KEY\"; exit 1; }\n  echo \"OK: $KEY\"\ndone\necho \"== Scene roles in Info.plist ==\"\nplutil -p \"$APP/Info.plist\"\
+        \ | grep -E \"ExternalDisplay|CPTemplateApplication\" || { echo \"External display scenes missing\"; exit\
+        \ 1; }\n"
+    artifacts:
+    - build/ios/ipa/*.ipa
+    - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
+        submit_to_app_store: false
