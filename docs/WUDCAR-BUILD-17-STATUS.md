@@ -15,7 +15,11 @@ Only entertainment shortcut presentation/catalog and top toolbar icon presentati
 
 ## Verification
 
-Native verification and screenshots: pending final CI results. Tests cover catalog order, lossless migration and customized paths, card proportions/columns/no horizontal overflow, favorite addition/activation, toolbar symbol containment and both layout directions, plus existing 1.5/1.6 regressions and live YouTube desktop navigation.
+Codemagic signed build `6ad9c9818a524d15d6a5f13d`, source `7f6b180c971a371485929f12c84c04ebddc736ac`: 8 tests passed, 0 failures, 0 skips, 90.704s. Release17 tests passed in 17.284s; live YouTube desktop phone-before-car-controller probe passed in 60.478s, both viewport widths 1280 and pageZoom 1.0, stable channel navigation/back. Screenshots reviewed at 1280×480, 960×480 and 640×640, plus automated geometry assertions at 640×360 and 320×240.
+
+The first verification run failed only the test's square-glyph assumption: SF Symbol alignment rects naturally give different rendered heights (6.67–13pt) despite a uniform layout box. The production code did not need to stretch symbols. The corrected test retains the actual containment/padding/centering checks, verifies bounds at most 14pt and tests actual Arabic/English settings; all pass.
+
+Signed 1.6.0 (17) archive built successfully with existing identity and CarPlay entitlements. Apple upload succeeded with no errors, delivery UUID `db5595f1-0756-49a5-9a68-36342143c9e5`. Processing/availability verification pending. Tests cover catalog order, lossless migration and customized paths, card proportions/columns/no horizontal overflow, favorite addition/activation, toolbar symbol containment and both layout directions, plus existing 1.5/1.6 regressions and live YouTube desktop navigation.
 
 The environment uses an iPhone simulator and a car controller hosted at car-sized dimensions. Physical CarPlay inputs and authenticated/DRM playback for every service cannot be certified here. Opening a page or loading a site icon is not proof of video playback. No DRM bypass or browser behavior changes are included.
 
