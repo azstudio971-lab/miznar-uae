@@ -21,3 +21,11 @@ Authorization: internal TestFlight upload for owner testing only. No App Store r
 - Independent GitHub run `39852289811` initially passed 12 of 13 tests; the local fixture document-readiness wait in `testDesktopViewportZoomNavigationAndResizeOnPhoneThenCar` exceeded its timeout on that runner. The same test passed on Codemagic, and live YouTube passed on both runners. Failed GitHub jobs were retried without code changes; retry outcome is recorded below when available. No application code was changed to address a test-runner wait.
 
 Physical acceptance remains pending owner testing: install build 18, confirm CarPlay app visibility, browser controls and desktop layout, parked video/audio playback, exit and reopen. App Store resubmission requires subsequent owner approval.
+
+## BLOCKED — owner physical CarPlay test failed (2026-10-23)
+
+Owner reports build 18 is unsuitable for CarPlay: all features appear blocked and nothing can be opened. This supersedes pending physical acceptance: build 18 FAILED owner CarPlay acceptance and MUST NOT be submitted to App Store or promoted. Build 17 remains the previously owner-tested reference.
+
+Comparison against the build 17 branch shows no WdCar source/UI/browser/player changes; only app entitlement, build configuration, verification script and delivery documentation/evidence changed. The existing car browser depends on a connected external-display scene; if absent, shortcuts fall back to the phone. Entitlement-dependent scene availability is a hypothesis, not a verified device trace. Subscription access guards are another existing path that must be distinguished by the actual screen/message before diagnosing.
+
+Simulator tests host car controllers directly and do not establish real entitlement-dependent CarPlay scene activation. Do not treat those passes as physical acceptance. Obtain the actual screen/message or device logs, compare with build 17 on the same setup, and report the observed regression to App Review for supported guidance before further entitlement experiments. No Apple message was sent and no TestFlight build expired or user data changed.
