@@ -1,0 +1,11 @@
+2026-10-22T21:41:16.2208260Z 	 Executed 5 tests, with 0 failures (0 unexpected) in 7.443 (7.447) seconds
+2026-10-22T21:41:52.2452530Z WUDCAR160 LIVE phone: Optional({"url":"https://www.youtube.com/results?search_query=NASA&app=desktop&persist_app=1","title":"NASA - YouTube","width":1280,"desktop":true,"mobile":false,"videos":78,"meta":"width=device-width, initial-scale=1","client":1280,"visual":1280}); native bounds=(0.0, 0.0, 1280.0, 1686.974358974359); fit=CGAffineTransform(a: 0.3046875, b: 0.0, c: 0.0, d: 0.3046875, tx: 0.0, ty: 0.0); pageZoom=1.0
+2026-10-22T21:42:12.1282410Z WUDCAR160 STABLE phone: channelWidth=1280.0, channelStable=true, backStable=true, pageZoom=1.0
+2026-10-22T21:42:35.3979990Z WUDCAR160 LIVE car: Optional({"url":"https://www.youtube.com/results?search_query=NASA&app=desktop&persist_app=1","title":"NASA - YouTube","width":1280,"desktop":true,"mobile":false,"videos":79,"meta":"width=device-width, initial-scale=1","client":1280,"visual":1280}); native bounds=(0.0, 0.0, 1280.0, 557.3333333333334); fit=CGAffineTransform(a: 0.75, b: 0.0, c: 0.0, d: 0.75, tx: 0.0, ty: 0.0); pageZoom=1.0
+2026-10-22T21:42:53.2535480Z WUDCAR160 STABLE car: channelWidth=1280.0, channelStable=true, backStable=true, pageZoom=1.0
+2026-10-22T21:42:53.5200160Z Test Case '-[WdCarTests.Release160Tests testLiveYouTubePhoneBeforeCarProbe]' passed (78.355 seconds).
+2026-10-22T21:42:55.6668490Z 	 Executed 5 tests, with 0 failures (0 unexpected) in 101.201 (101.208) seconds
+2026-10-22T21:43:22.1539360Z 	 Executed 3 tests, with 0 failures (0 unexpected) in 26.097 (26.102) seconds
+2026-10-22T21:43:22.2503960Z 	 Executed 13 tests, with 0 failures (0 unexpected) in 134.741 (134.760) seconds
+2026-10-22T21:43:22.2716150Z 	 Executed 13 tests, with 0 failures (0 unexpected) in 134.741 (134.763) seconds
+2026-10-22T21:44:01.9179230Z ** TEST SUCCEEDED **
