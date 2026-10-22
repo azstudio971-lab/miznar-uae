@@ -54,12 +54,12 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
     private var textPanel: CarTextInputView?
     private var tabsPanel: CarTabsPanel?
 
-    private let collapseButton = CarUI.iconButton("chevron.up")
-    private let tabsButton = CarUI.iconButton("square.on.square")
-    private let urlButton = CarUI.textButton("أدخل عنوان URL أو ابحث", size: 16)
-    private let homeButton = CarUI.iconButton("house")
-    private let backButton = CarUI.iconButton("chevron.left")
-    private let closeButton = CarUI.iconButton("line.3.horizontal")
+    private let collapseButton = CompactToolbarButton("chevron.up")
+    private let tabsButton = CompactToolbarButton("square.on.square")
+    private let urlButton = CarUI.textButton("أدخل عنوان URL أو ابحث", size: 11)
+    private let homeButton = CompactToolbarButton("house")
+    private let backButton = CompactToolbarButton("chevron.left")
+    private let closeButton = CompactToolbarButton("line.3.horizontal")
 
     private var contentTopToToolbar: NSLayoutConstraint!
     private var contentTopToSafe: NSLayoutConstraint!
@@ -644,12 +644,7 @@ final class CarBrowserViewController: UIViewController, UIGestureRecognizerDeleg
     }
 
     private func updateTabsButton() {
-        var config = tabsButton.configuration
-        config?.attributedTitle = AttributedString("\(store.tabs.count)", attributes: AttributeContainer([
-            .font: UIFont.systemFont(ofSize: 10, weight: .bold)
-        ]))
-        config?.imagePadding = 4
-        tabsButton.configuration = config
+        tabsButton.count = store.tabs.count
     }
 
     // MARK: الشريط وملء الشاشة

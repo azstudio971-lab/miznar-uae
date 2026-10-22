@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); ids=[v["udid"] for k,a in d["devices"].items() for v in a if "iOS" in k and "iPhone" in v["name"]]; print(ids[0])')
-          xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -only-testing:WdCarTests/Release150Tests -only-testing:WdCarTests/Release160Tests -resultBundlePath /tmp/WudCar160.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test
+          xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -only-testing:WdCarTests/Release150Tests -only-testing:WdCarTests/Release160Tests -only-testing:WdCarTests/Release17Tests -resultBundlePath /tmp/WudCar160.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test
       - name: Export native verification images
         if: always()
         run: |

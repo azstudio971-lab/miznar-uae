@@ -10,18 +10,14 @@ final class ShortcutStore: ObservableObject {
     private let storageKey = "wd.shortcuts.v1"
 
     private init() {
-        if let data = UserDefaults.standard.data(forKey: storageKey),
-           let saved = try? JSONDecoder().decode([SiteShortcut].self, from: data) {
-            shortcuts = saved
-            let additions = Self.defaults.filter { candidate in
-                !saved.contains { Self.identity($0.url) == Self.identity(candidate.url) }
-            }
-            if !additions.isEmpty {
-                shortcuts.append(contentsOf: additions)
-                save()
-            }
+        let saved = UserDefaults.standard.data(forKey: storageKey)
+            .flatMap { try? JSONDecoder().decode([SiteShortcut].self, from: $0) }
+        if UserDefaults.standard.bool(forKey: "wd.shortcuts.catalog17") {
+            shortcuts = saved ?? ShortcutCatalog.defaults
         } else {
-            shortcuts = Self.defaults
+            shortcuts = ShortcutCatalog.upgrade(saved ?? [])
+            save()
+            UserDefaults.standard.set(true, forKey: "wd.shortcuts.catalog17")
         }
     }
 
@@ -77,35 +73,5 @@ final class ShortcutStore: ObservableObject {
 
     static let palette = ["#2E7D32", "#1565C0", "#6A1B9A", "#C62828", "#EF6C00", "#00838F", "#37474F", "#AD1457"]
 
-    private static var defaults: [SiteShortcut] {
-        let list: [(String, String, String)] = [
-            ("طقس الإمارات", "https://www.rain.ae/", "#187DA6"),
-            ("YouTube", "https://www.youtube.com", "#FF0000"),
-            ("TikTok", "https://www.tiktok.com", "#111111"),
-            ("Google", "https://www.google.com", "#FFFFFF"),
-            ("شاهد", "https://shahid.mbc.net", "#1E1E1E"),
-            ("Instagram", "https://www.instagram.com", "#E1306C"),
-            ("Twitch", "https://www.twitch.tv", "#9146FF"),
-            ("Vimeo", "https://vimeo.com", "#1AB7EA"),
-            ("Dailymotion", "https://www.dailymotion.com", "#0066DC"),
-            ("Pluto TV", "https://pluto.tv", "#2D2D8F"),
-            ("Tubi", "https://tubitv.com", "#7408FF"),
-            ("Plex", "https://app.plex.tv", "#E5A00D"),
-            ("Crunchyroll", "https://www.crunchyroll.com", "#F47521"),
-            ("القرآن الكريم – MP3Quran", "https://www.mp3quran.net/", "#168A65"),
-            ("SoundCloud – ساوند كلاود", "https://m.soundcloud.com/", "#FF5500"),
-            ("Netflix – نتفليكس", "https://www.netflix.com/", "#E50914"),
-            ("Windows XP – محاكي ويندوز XP", "https://pranx.com/windows-xp-simulator/", "#1683D8"),
-            ("علوي TV – Alawi TV", "https://tv2tv.com/login", "#134A72"),
-            ("Prime Video – برايم فيديو", "https://www.primevideo.com/", "#00A8E1"),
-            ("TOD – منصة تود", "https://www.tod.tv/ar", "#F4A900"),
-            ("CrazyGames – كريزي جيمز", "https://www.crazygames.com/", "#1C1C1C"),
-            ("Gmail", "https://mail.google.com/", "#EA4335"),
-            ("Outlook", "https://outlook.live.com/mail/", "#0078D4"),
-            ("ChatGPT", "https://chatgpt.com/", "#10A37F")
-        ]
-        return list.compactMap { name, link, color in
-            URL(string: link).map { SiteShortcut(name: name, url: $0, colorHex: color) }
-        }
-    }
+    private static var defaults: [SiteShortcut] { ShortcutCatalog.defaults }
 }

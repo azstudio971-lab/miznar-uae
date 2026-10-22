@@ -23,7 +23,7 @@ final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionVi
         super.init(frame: frame)
 
         backgroundColor = CarUI.navy
-        gradient.colors = [CarUI.navy.cgColor, UIColor.black.cgColor]
+        gradient.colors = [UIColor(hex: "#071526").cgColor, UIColor(hex: "#020711").cgColor]
         gradient.startPoint = .zero
         gradient.endPoint = CGPoint(x: 1, y: 1)
         layer.insertSublayer(gradient, at: 0)
@@ -49,7 +49,7 @@ final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionVi
         addSubview(titleLabel)
 
         collection.backgroundColor = .clear
-        collection.semanticContentAttribute = .forceRightToLeft
+        collection.semanticContentAttribute = .forceLeftToRight
         collection.dataSource = self
         collection.delegate = self
         collection.register(CarShortcutCell.self, forCellWithReuseIdentifier: CarShortcutCell.id)
@@ -91,19 +91,24 @@ final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionVi
         collection.collectionViewLayout.invalidateLayout()
     }
 
+    static func gridMetrics(for size: CGSize) -> (columns: Int, item: CGSize, sideInset: CGFloat) {
+        let available = max(1, size.width - 32)
+        let capacity = max(1, Int((available + 10) / 114))
+        let wide = size.width / max(1, size.height) >= 1.65
+        let desired = wide ? 8 : 5
+        let columns = min(desired, capacity)
+        let width = min(156, (available - CGFloat(columns - 1) * 10) / CGFloat(columns))
+        let totalWidth = CGFloat(columns) * width + CGFloat(columns - 1) * 10
+        return (columns, CGSize(width: width, height: width / 1.55), max(16, (size.width - totalWidth) / 2))
+    }
+
     func collectionView(_ collectionView: UICollectionView, layout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        let available = max(1, collectionView.bounds.width - 32)
-        let columns = max(1, min(5, Int((available + 10) / 160)))
-        let width = (available - CGFloat(columns - 1) * 10) / CGFloat(columns)
-        return CGSize(width: width, height: max(100, min(145, width * 0.64)))
+        Self.gridMetrics(for: bounds.size).item
     }
 
     func collectionView(_ collectionView: UICollectionView, layout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
-        let size = self.collectionView(collectionView, layout: layout, sizeForItemAt: IndexPath(item: 0, section: 0))
-        let columns = max(1, min(5, Int((max(1, collectionView.bounds.width - 32) + 10) / 160)))
-        let rows = Int(ceil(Double(items.count) / Double(columns)))
-        let height = CGFloat(rows) * size.height + CGFloat(max(0, rows - 1)) * 14
-        return UIEdgeInsets(top: max(8, (collectionView.bounds.height - height) / 2), left: 16, bottom: 16, right: 16)
+        let metrics = Self.gridMetrics(for: bounds.size)
+        return UIEdgeInsets(top: 8, left: metrics.sideInset, bottom: 16, right: metrics.sideInset)
     }
 
     /// Activate an app-owned shortcut from the phone touchpad without synthetic UIKit touches.
@@ -138,7 +143,7 @@ final class CarShortcutsView: UIView, UICollectionViewDataSource, UICollectionVi
     }
 }
 
-private final class CarShortcutCell: UICollectionViewCell {
+final class CarShortcutCell: UICollectionViewCell {
     static let id = "CarShortcutCell"
 
     private let tile = UIView()
@@ -150,7 +155,11 @@ private final class CarShortcutCell: UICollectionViewCell {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        tile.layer.cornerRadius = 16
+        tile.layer.cornerRadius = 14
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.22
+        layer.shadowRadius = 4
+        layer.shadowOffset = CGSize(width: 0, height: 3)
         tile.layer.cornerCurve = .continuous
         tile.clipsToBounds = true
         sheen.colors = [UIColor.white.withAlphaComponent(0.12).cgColor, UIColor.clear.cgColor, UIColor.white.withAlphaComponent(0.025).cgColor]
@@ -165,31 +174,33 @@ private final class CarShortcutCell: UICollectionViewCell {
 
         iconView.contentMode = .scaleAspectFit
         tile.addSubview(iconView)
-        CarUI.pin(iconView, to: tile, insets: UIEdgeInsets(top: 12, left: 24, bottom: 38, right: 24))
+        CarUI.pin(iconView, to: tile, insets: UIEdgeInsets(top: 10, left: 22, bottom: 29, right: 22))
 
         letterLabel.font = .systemFont(ofSize: 28, weight: .bold)
         letterLabel.textColor = .white
         letterLabel.textAlignment = .center
         tile.addSubview(letterLabel)
-        CarUI.pin(letterLabel, to: tile)
+        CarUI.pin(letterLabel, to: tile, insets: UIEdgeInsets(top: 8, left: 8, bottom: 28, right: 8))
 
-        nameLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        nameLabel.font = .systemFont(ofSize: 11, weight: .semibold)
+        nameLabel.numberOfLines = 2
         nameLabel.textColor = .white
         nameLabel.textAlignment = .center
         nameLabel.adjustsFontSizeToFitWidth = true
-        nameLabel.minimumScaleFactor = 0.7
+        nameLabel.minimumScaleFactor = 0.85
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(nameLabel)
 
         NSLayoutConstraint.activate([
-            tile.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
+            tile.topAnchor.constraint(equalTo: contentView.topAnchor),
             tile.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             tile.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             tile.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             tile.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            nameLabel.bottomAnchor.constraint(equalTo: tile.bottomAnchor, constant: -12),
-            nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor)
+            nameLabel.bottomAnchor.constraint(equalTo: tile.bottomAnchor, constant: -5),
+            nameLabel.heightAnchor.constraint(equalToConstant: 24),
+            nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 4),
+            nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -4)
         ])
     }
 
@@ -202,11 +213,21 @@ private final class CarShortcutCell: UICollectionViewCell {
 
     func configure(_ item: SiteShortcut) {
         currentID = item.id
-        tile.backgroundColor = UIColor(hex: item.colorHex).withAlphaComponent(0.12)
-        nameLabel.text = item.url.host?.contains("rain.ae") == true ? "طقس الإمارات · Rain.ae" : item.name
-        letterLabel.text = String(item.name.prefix(1))
+        tile.backgroundColor = UIColor(hex: item.colorHex)
+        let host = item.url.host ?? ""
+        let light = ["www.google.com", "www.youtubekids.com", "mail.google.com"].contains(host)
+        nameLabel.textColor = light ? UIColor(hex: "#101724") : .white
+        letterLabel.textColor = nameLabel.textColor
+        sheen.colors = host.contains("instagram.com")
+            ? [UIColor(hex: "#6621D8").cgColor, UIColor.clear.cgColor, UIColor(hex: "#FF8C1C").cgColor]
+            : [UIColor.white.withAlphaComponent(0.12).cgColor, UIColor.clear.cgColor, UIColor.black.withAlphaComponent(0.25).cgColor]
+        nameLabel.text = item.url.host?.contains("rain.ae") == true ? "UAE Weather" : item.name
+        letterLabel.text = ["TOD", "STARZPLAY"].contains(item.name) ? item.name : String(item.name.prefix(1))
+        letterLabel.font = .systemFont(ofSize: item.name == "STARZPLAY" ? 14 : 24, weight: .bold)
         letterLabel.isHidden = false
-        iconView.image = item.iconURL == nil && item.url.host?.contains("rain.ae") == true ? UIImage(systemName: "cloud.sun.fill") : nil
+        accessibilityLabel = item.name
+        accessibilityIdentifier = "shortcut.\(ShortcutCatalog.identity(item.url))"
+        iconView.image = ShortcutArtwork.bundled(for: item) ?? (item.iconURL == nil && item.url.host?.contains("rain.ae") == true ? UIImage(systemName: "cloud.sun.fill") : nil)
         iconView.tintColor = .systemYellow
         if iconView.image != nil { letterLabel.isHidden = true; return }
         ImageLoader.shared.load(item.iconURL ?? Favicon.url(for: item.url)) { [weak self] image in

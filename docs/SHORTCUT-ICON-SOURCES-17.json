@@ -1,0 +1,272 @@
+[
+  {
+    "name": "YouTube",
+    "host": "www.youtube.com",
+    "asset": "Site17youtube",
+    "source": "https://www.youtube.com/s/desktop/71381699/img/favicon_144x144.png",
+    "size": [
+      144,
+      144
+    ]
+  },
+  {
+    "name": "YouTube Music",
+    "host": "music.youtube.com",
+    "asset": "Site17youtubemusic",
+    "source": "https://music.youtube.com/img/favicon_144.png",
+    "size": [
+      144,
+      144
+    ]
+  },
+  {
+    "name": "YouTube Kids",
+    "host": "www.youtubekids.com",
+    "asset": "Site17youtubekids",
+    "source": "https://www.gstatic.com/ytkids/web/favicons/ytkids_favicon_2.ico",
+    "size": [
+      16,
+      16
+    ]
+  },
+  {
+    "name": "Google Search",
+    "host": "www.google.com",
+    "asset": "Site17googlesearch",
+    "source": "https://www.google.com/favicon.ico",
+    "size": [
+      32,
+      32
+    ]
+  },
+  {
+    "name": "Alawi TV",
+    "host": "tv2tv.com",
+    "asset": "Site17alawitv",
+    "source": "https://tv2tv.com/storage/favicons/tv2tv-icon-192.png",
+    "size": [
+      192,
+      192
+    ]
+  },
+  {
+    "name": "MP3Quran",
+    "host": "www.mp3quran.net",
+    "asset": "Site17mp3quran",
+    "source": "https://www.mp3quran.net/favicon.ico",
+    "size": [
+      256,
+      256
+    ]
+  },
+  {
+    "name": "Shahid",
+    "host": "shahid.mbc.net",
+    "asset": "Site17shahid",
+    "source": "https://shahid.mbc.net/staticFiles/production/apple-touch-icon-192x192.png",
+    "size": [
+      192,
+      192
+    ]
+  },
+  {
+    "name": "TikTok",
+    "host": "www.tiktok.com",
+    "asset": "Site17tiktok",
+    "source": "https://www.tiktok.com/favicon.ico",
+    "size": [
+      32,
+      32
+    ]
+  },
+  {
+    "name": "Instagram",
+    "host": "www.instagram.com",
+    "asset": "Site17instagram",
+    "source": "https://static.cdninstagram.com/rsrc.php/yw/r/icwX0xAk0pz.webp",
+    "size": [
+      180,
+      180
+    ]
+  },
+  {
+    "name": "TOD",
+    "host": "www.tod.tv",
+    "asset": null
+  },
+  {
+    "name": "SoundCloud",
+    "host": "m.soundcloud.com",
+    "asset": "Site17soundcloud",
+    "source": "https://m.sndcdn.com/_next/static/images/apple-touch-icon-180-dd8465ef631c16f24df540ad961c3d12.png",
+    "size": [
+      180,
+      180
+    ]
+  },
+  {
+    "name": "UAE Weather",
+    "host": "www.rain.ae",
+    "asset": null
+  },
+  {
+    "name": "Spotify",
+    "host": "open.spotify.com",
+    "asset": "Site17spotify",
+    "source": "https://open.spotifycdn.com/cdn/images/favicon.0f31d2ea.ico",
+    "size": [
+      48,
+      48
+    ]
+  },
+  {
+    "name": "Apple TV",
+    "host": "tv.apple.com",
+    "asset": "Site17appletv",
+    "source": "https://tv.apple.com/assets/favicon/favicon-180.png",
+    "size": [
+      180,
+      180
+    ]
+  },
+  {
+    "name": "Radio Garden",
+    "host": "radio.garden",
+    "asset": "Site17radiogarden",
+    "source": "https://radio.garden/icons/favicon.png",
+    "size": [
+      96,
+      96
+    ]
+  },
+  {
+    "name": "Dailymotion",
+    "host": "www.dailymotion.com",
+    "asset": "Site17dailymotion",
+    "source": "https://static.neon-ssr.dailymotion.com/neon-seo-ssr/static/favicons/apple-icon-precomposed.12ce02f3a914dc2f3d6d.png",
+    "size": [
+      192,
+      192
+    ]
+  },
+  {
+    "name": "Vimeo",
+    "host": "vimeo.com",
+    "asset": "Site17vimeo",
+    "source": "https://f.vimeocdn.com/cms/images/apple-icon.png",
+    "size": [
+      180,
+      180
+    ]
+  },
+  {
+    "name": "Twitch",
+    "host": "www.twitch.tv",
+    "asset": "Site17twitch",
+    "source": "https://assets.twitch.tv/assets/favicon-32-5c61aa63605bca4f740d.png",
+    "size": [
+      32,
+      32
+    ]
+  },
+  {
+    "name": "STARZPLAY",
+    "host": "www.starzplay.com",
+    "asset": null
+  },
+  {
+    "name": "Dubai+",
+    "host": "www.dubaiplus.net",
+    "asset": "Site17dubai",
+    "source": "https://www.dubaiplus.net/favicon-96x96.png",
+    "size": [
+      96,
+      96
+    ]
+  },
+  {
+    "name": "Awaan",
+    "host": "www.awaan.ae",
+    "asset": "Site17awaan",
+    "source": "https://www.awaan.ae/favicon-96x96.png",
+    "size": [
+      96,
+      96
+    ]
+  },
+  {
+    "name": "Filmzie",
+    "host": "filmzie.com",
+    "asset": "Site17filmzie",
+    "source": "https://filmzie.com/assets/images/common/favicon-a3ea3628.png",
+    "size": [
+      196,
+      196
+    ]
+  },
+  {
+    "name": "Spacetoon GO",
+    "host": "spacetoongo.com",
+    "asset": "Site17spacetoongo",
+    "source": "https://spacetoongo.com/favicon.ico",
+    "size": [
+      256,
+      256
+    ]
+  },
+  {
+    "name": "PBS Kids",
+    "host": "pbskids.org",
+    "asset": "Site17pbskids",
+    "source": "https://pbskids.org/_next/image?url=%2Fpuma%2Fimages%2Fpwa%2FPBSKidsLogo.png&w=1024&q=75",
+    "size": [
+      256,
+      256
+    ]
+  },
+  {
+    "name": "CrazyGames",
+    "host": "www.crazygames.com",
+    "asset": "Site17crazygames",
+    "source": "https://imgs.crazygames.com/favicons/apple-touch-icon-3.png?metadata=none&amp;quality=60&amp;width=120&amp;height=120&amp;fit=crop&amp;format=png",
+    "size": [
+      180,
+      180
+    ]
+  },
+  {
+    "name": "Windows XP Simulator",
+    "host": "pranx.com",
+    "asset": "Site17windowsxpsimulator",
+    "source": "https://pranx.com/favicon.ico",
+    "size": [
+      32,
+      32
+    ]
+  },
+  {
+    "name": "Outlook",
+    "host": "outlook.live.com",
+    "asset": null
+  },
+  {
+    "name": "Gmail",
+    "host": "mail.google.com",
+    "asset": "Site17gmail",
+    "source": "https://mail.google.com/favicon.ico",
+    "size": [
+      256,
+      256
+    ]
+  },
+  {
+    "name": "ChatGPT",
+    "host": "chatgpt.com",
+    "asset": "Site17chatgpt",
+    "source": "https://chatgpt.com/cdn/assets/favicon-180x180-od45eci6.webp",
+    "size": [
+      180,
+      180
+    ]
+  }
+]
