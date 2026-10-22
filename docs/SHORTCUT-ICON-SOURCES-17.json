@@ -23,21 +23,24 @@
     "name": "YouTube Kids",
     "host": "www.youtubekids.com",
     "asset": "Site17youtubekids",
-    "source": "https://www.gstatic.com/ytkids/web/favicons/ytkids_favicon_2.ico",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/e5/8e/bc/e58ebc14-0d54-94b9-6ae0-7fa7204263ee/logo_youtube_kids_2024_q4_color-0-0-1x_U007emarketing-0-0-0-7-0-0-0-85-220.png/512x512bb.jpg",
     "size": [
-      16,
-      16
-    ]
+      256,
+      256
+    ],
+    "provider": "Official developer artwork via Apple App Store",
+    "appBundle": "com.google.ios.youtubekids"
   },
   {
     "name": "Google Search",
     "host": "www.google.com",
     "asset": "Site17googlesearch",
-    "source": "https://www.google.com/favicon.ico",
+    "source": "https://www.google.com/s2/favicons?sz=256&domain=www.google.com",
     "size": [
-      32,
-      32
-    ]
+      144,
+      144
+    ],
+    "provider": "Google favicon cache of official website"
   },
   {
     "name": "Alawi TV",
@@ -73,11 +76,13 @@
     "name": "TikTok",
     "host": "www.tiktok.com",
     "asset": "Site17tiktok",
-    "source": "https://www.tiktok.com/favicon.ico",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/99/33/74/99337468-d03a-5efc-d436-67c0f4d918e1/TikTok_AppIcon26-0-0-1x_U007epad-0-1-0-85-220.png/512x512bb.jpg",
     "size": [
-      32,
-      32
-    ]
+      256,
+      256
+    ],
+    "provider": "Official developer artwork via Apple App Store",
+    "appBundle": "com.zhiliaoapp.musically"
   },
   {
     "name": "Instagram",
@@ -113,10 +118,10 @@
     "name": "Spotify",
     "host": "open.spotify.com",
     "asset": "Site17spotify",
-    "source": "https://open.spotifycdn.com/cdn/images/favicon.0f31d2ea.ico",
+    "source": "https://open.spotifycdn.com/cdn/images/icons/Spotify_MWP_512.50dd387d.png",
     "size": [
-      48,
-      48
+      256,
+      256
     ]
   },
   {
@@ -163,11 +168,13 @@
     "name": "Twitch",
     "host": "www.twitch.tv",
     "asset": "Site17twitch",
-    "source": "https://assets.twitch.tv/assets/favicon-32-5c61aa63605bca4f740d.png",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/3a/c6/71/3ac671dd-d53c-7fcc-8c26-d4c7f1b325f9/TwitchAppIcon-0-0-1x_U007epad-0-1-0-0-sRGB-0-0-0-85-220.png/512x512bb.jpg",
     "size": [
-      32,
-      32
-    ]
+      256,
+      256
+    ],
+    "provider": "Official developer artwork via Apple App Store",
+    "appBundle": "tv.twitch"
   },
   {
     "name": "STARZPLAY",
