@@ -6,7 +6,7 @@
 # 2) Codemagic → المشروع → Environment variables، مجموعة باسم wudcar:
 #      TEAM_ID       = معرّف فريقك في Apple (10 أحرف)
 #      APP_STORE_ID  = رقم Apple ID للتطبيق من App Store Connect (بعد إنشاء سجل التطبيق)
-# 3) تأكد أن App ID للمعرّف أدناه مفعّل عليه CarPlay (Video) في Apple Developer.
+# 3) تأكد أن App ID للمعرّف أدناه مفعّل عليه CarPlay Audio في Apple Developer؛ لا تطلب صلاحية Video داخل التطبيق.
 
 workflows:
   wudcar-preview:
@@ -128,30 +128,25 @@ workflows:
         script: |
           LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_ID" || echo 0)
           NEXT=$((LATEST + 1))
-          if [ "$NEXT" -lt 17 ]; then NEXT=17; fi
+          if [ "$NEXT" -lt 18 ]; then NEXT=18; fi
           echo "Build number: $NEXT"
           agvtool new-version -all $NEXT
       - name: بناء IPA (Release)
         script: |
           xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
-      - name: التحقق من صلاحيات CarPlay (فيديو + صوت) داخل IPA
+      - name: التحقق من صلاحية CarPlay Audio فقط داخل IPA
         script: |
-          set -e
+          set -euo pipefail
           IPA=$(ls build/ios/ipa/*.ipa | head -1)
           rm -rf /tmp/ipa_check && mkdir -p /tmp/ipa_check
           unzip -q "$IPA" -d /tmp/ipa_check
           APP=$(ls -d /tmp/ipa_check/Payload/*.app | head -1)
-          echo "== Entitlements in signed app =="
-          codesign -d --entitlements :- "$APP" 2>/dev/null | tee /tmp/ipa_check/ents.plist
-          echo "== Provisioning profile =="
+          codesign -d --entitlements :- "$APP" 2>/dev/null > /tmp/ipa_check/ents.plist
           security cms -D -i "$APP/embedded.mobileprovision" > /tmp/ipa_check/profile.plist
-          grep -A1 -i "carplay" /tmp/ipa_check/profile.plist || true
-          for KEY in com.apple.developer.carplay-video com.apple.developer.carplay-audio; do
-            grep -q "$KEY" /tmp/ipa_check/ents.plist || { echo "MISSING in app: $KEY"; exit 1; }
-            grep -q "$KEY" /tmp/ipa_check/profile.plist || { echo "MISSING in profile: $KEY"; exit 1; }
-            echo "OK: $KEY"
-          done
-          echo "== Scene roles in Info.plist =="
+          python3 scripts/verify_carplay_entitlements.py /tmp/ipa_check/ents.plist /tmp/ipa_check/profile.plist
+          echo "== App version and scene roles =="
+          /usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$APP/Info.plist"
           plutil -p "$APP/Info.plist" | grep -E "ExternalDisplay|CPTemplateApplication" || { echo "External display scenes missing"; exit 1; }
     artifacts:
       - build/150-test-screenshots/**/*
@@ -226,7 +221,7 @@ workflows:
 
         NEXT=$((LATEST + 1))
 
-        if [ "$NEXT" -lt 17 ]; then NEXT=17; fi
+        if [ "$NEXT" -lt 18 ]; then NEXT=18; fi
 
         agvtool new-version -all "$NEXT"
 
@@ -235,17 +230,20 @@ workflows:
       script: 'xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
 
         '
-    - name: التحقق من صلاحيات CarPlay (فيديو + صوت) داخل IPA
-      script: "set -e\nIPA=$(ls build/ios/ipa/*.ipa | head -1)\nrm -rf /tmp/ipa_check && mkdir -p /tmp/ipa_check\n\
-        unzip -q \"$IPA\" -d /tmp/ipa_check\nAPP=$(ls -d /tmp/ipa_check/Payload/*.app | head -1)\necho \"== Entitlements\
-        \ in signed app ==\"\ncodesign -d --entitlements :- \"$APP\" 2>/dev/null | tee /tmp/ipa_check/ents.plist\n\
-        echo \"== Provisioning profile ==\"\nsecurity cms -D -i \"$APP/embedded.mobileprovision\" > /tmp/ipa_check/profile.plist\n\
-        grep -A1 -i \"carplay\" /tmp/ipa_check/profile.plist || true\nfor KEY in com.apple.developer.carplay-video\
-        \ com.apple.developer.carplay-audio; do\n  grep -q \"$KEY\" /tmp/ipa_check/ents.plist || { echo \"MISSING\
-        \ in app: $KEY\"; exit 1; }\n  grep -q \"$KEY\" /tmp/ipa_check/profile.plist || { echo \"MISSING in profile:\
-        \ $KEY\"; exit 1; }\n  echo \"OK: $KEY\"\ndone\necho \"== Scene roles in Info.plist ==\"\nplutil -p \"$APP/Info.plist\"\
-        \ | grep -E \"ExternalDisplay|CPTemplateApplication\" || { echo \"External display scenes missing\"; exit\
-        \ 1; }\n"
+    - name: التحقق من صلاحية CarPlay Audio فقط داخل IPA
+      script: |
+        set -euo pipefail
+        IPA=$(ls build/ios/ipa/*.ipa | head -1)
+        rm -rf /tmp/ipa_check && mkdir -p /tmp/ipa_check
+        unzip -q "$IPA" -d /tmp/ipa_check
+        APP=$(ls -d /tmp/ipa_check/Payload/*.app | head -1)
+        codesign -d --entitlements :- "$APP" 2>/dev/null > /tmp/ipa_check/ents.plist
+        security cms -D -i "$APP/embedded.mobileprovision" > /tmp/ipa_check/profile.plist
+        python3 scripts/verify_carplay_entitlements.py /tmp/ipa_check/ents.plist /tmp/ipa_check/profile.plist
+        echo "== App version and scene roles =="
+        /usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Info.plist"
+        /usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$APP/Info.plist"
+        plutil -p "$APP/Info.plist" | grep -E "ExternalDisplay|CPTemplateApplication" || { echo "External display scenes missing"; exit 1; }
     artifacts:
     - build/ios/ipa/*.ipa
     - /tmp/xcodebuild_logs/*.log
