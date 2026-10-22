@@ -15,6 +15,9 @@ final class ShortcutStore: ObservableObject {
         if UserDefaults.standard.bool(forKey: "wd.shortcuts.catalog17") {
             shortcuts = saved ?? ShortcutCatalog.defaults
         } else {
+            if let data = UserDefaults.standard.data(forKey: storageKey) {
+                UserDefaults.standard.set(data, forKey: "wd.shortcuts.pre17")
+            }
             shortcuts = ShortcutCatalog.upgrade(saved ?? [])
             save()
             UserDefaults.standard.set(true, forKey: "wd.shortcuts.catalog17")

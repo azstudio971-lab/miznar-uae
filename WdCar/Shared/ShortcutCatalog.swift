@@ -47,6 +47,12 @@ enum ShortcutCatalog {
         return host + (url.path == "/" ? "" : url.path.lowercased())
     }
 
+    private static func siteHost(_ url: URL) -> String {
+        var host = (url.host ?? "").lowercased()
+        for prefix in ["www.", "m."] where host.hasPrefix(prefix) { host.removeFirst(prefix.count) }
+        return host
+    }
+
     static func isLegacySeed(_ item: SiteShortcut) -> Bool {
         item.iconURL == nil && legacy.contains {
             item.name == $0.0 && item.colorHex == $0.2 && identity(item.url) == identity(URL(string: $0.1)!)
@@ -57,10 +63,10 @@ enum ShortcutCatalog {
         let custom = saved.filter { !isLegacySeed($0) }
         var result: [SiteShortcut] = []
         for seed in defaults {
-            let key = identity(seed.url)
-            if let userItem = custom.first(where: { identity($0.url) == key }) {
+            let key = siteHost(seed.url)
+            if let userItem = custom.first(where: { siteHost($0.url) == key }) {
                 result.append(userItem)
-            } else if let old = saved.first(where: { identity($0.url) == key }) {
+            } else if let old = saved.first(where: { siteHost($0.url) == key }) {
                 var updated = seed
                 updated.id = old.id
                 updated.url = old.url

@@ -36,6 +36,10 @@ final class Release17Tests: XCTestCase {
             XCTAssertEqual(upgraded[index].id, previous.id)
             XCTAssertEqual(upgraded[index].url, previous.url)
         }
+        let specialLink = SiteShortcut(name: "My channel", url: URL(string: "https://www.tod.tv/ar/custom")!, colorHex: "#123456")
+        let preserved = ShortcutCatalog.upgrade([specialLink])
+        XCTAssertEqual(preserved[9], specialLink)
+        XCTAssertEqual(preserved.count, 29)
         XCTAssertEqual(try JSONDecoder().decode([SiteShortcut].self, from: JSONEncoder().encode(upgraded)), upgraded)
     }
     func testGridCardsScrollAndCustomCardMatchesAtAllSizes() async throws {
