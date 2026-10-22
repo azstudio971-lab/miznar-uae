@@ -19,10 +19,23 @@ Codemagic signed build `6ad9c9818a524d15d6a5f13d`, source `7f6b180c971a371485929
 
 The first verification run failed only the test's square-glyph assumption: SF Symbol alignment rects naturally give different rendered heights (6.67–13pt) despite a uniform layout box. The production code did not need to stretch symbols. The corrected test retains the actual containment/padding/centering checks, verifies bounds at most 14pt and tests actual Arabic/English settings; all pass.
 
-Signed 1.6.0 (17) archive built successfully with existing identity and CarPlay entitlements. Apple upload succeeded with no errors, delivery UUID `db5595f1-0756-49a5-9a68-36342143c9e5`. Processing/availability verification pending. Tests cover catalog order, lossless migration and customized paths, card proportions/columns/no horizontal overflow, favorite addition/activation, toolbar symbol containment and both layout directions, plus existing 1.5/1.6 regressions and live YouTube desktop navigation.
+Signed 1.6.0 (17) archive built successfully with existing identity and CarPlay entitlements. Apple upload succeeded with no errors, delivery UUID `db5595f1-0756-49a5-9a68-36342143c9e5`. Apple processing completed. Internal group WudCar Internal now contains 1.6.0 (17), status Testing, 1 tester, 90-day expiry. Owner can install the update through TestFlight. No What to Test or change description was added. GitHub run `39748131261` also passed: all 13 native tests, 0 failures, in 155.026s; web checks/build/UI tests passed. Final native screenshots were downloaded and reviewed from artifact `12412364893`, source `7f6b180c971a371485929f12c84c04ebddc736ac`.
+
+Tests cover catalog order, lossless migration and customized paths, card proportions/columns/no horizontal overflow, favorite addition/activation, toolbar symbol containment and both layout directions, plus existing 1.5/1.6 regressions and live YouTube desktop navigation.
 
 The environment uses an iPhone simulator and a car controller hosted at car-sized dimensions. Physical CarPlay inputs and authenticated/DRM playback for every service cannot be certified here. Opening a page or loading a site icon is not proof of video playback. No DRM bypass or browser behavior changes are included.
 
 ## Delivery authorization
 
 Owner explicitly requested complete testing and TestFlight upload for personal testing, and asked that no change description be added there. Upload via manual Codemagic device-validation workflow only, no App Store submission and no production merge. TestFlight What to Test/release notes are left untouched.
+
+
+## Final evidence
+
+- Native wide grid: `verification/17/17-grid-1280x480.png`.
+- Native square grid: `verification/17/17-grid-640x640.png`.
+- Native compact toolbar: `verification/17/17-toolbar-3-960x480.png`.
+- TestFlight availability: `verification/17/testflight-1.6.0-17-testing.jpg`.
+- Filtered final test log: `verification/17/RESULTS.txt`.
+
+The native screenshots are simulator output, not physical CarPlay photographs. The black upper safe area in the car-controller capture comes from hosting in an iPhone simulator. All app changes are confined to the requested catalog/card presentation and toolbar symbol containment. Production branches and release approval remain untouched.
