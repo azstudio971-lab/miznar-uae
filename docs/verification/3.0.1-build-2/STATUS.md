@@ -14,7 +14,9 @@ Base: 5da7464918de8deb885606b57d68d2dff8b0ea91, the source branch of installed3.
 - 24 protected browser/core/input/catalog files remain byte-identical to build17. Original three browser template launch/configuration methods remain verbatim.
 - Two scene-routing adapters are explicitly excluded from that gate for this requested correction: CarExternalDisplaySceneDelegate.swift and CarScreenLauncher.swift. This is not a claim that the full original26-file diff is empty.
 - Six targeted native tests cover real external-scene connection without an old window, explicit browser activation/return, preserved connection state, mandatory car safety independent of the phone toggle, native tab order, Cast with no selected media, and native phone UI image captures.
-- Tests/build/signing/upload pending at implementation checkpoint.
+- Source commit: 29785bf991e8f9d508034d73a31a1ec73ad004ef.
+- Codemagic job: https://codemagic.io/app/6ad1db1b951fcdf1e4f45860/build/6adb82f74a72334e32e472d4 (still queued at 2026-10-23 16:08 UTC, approximately15 minutes after submission; no second job requested).
+- Local frozen-core gate and workflow YAML parsing passed. Native tests/build/signing/upload pending the build machine.
 - No claim of physical CarPlay, AirPlay receiver discovery or successful vehicle video output. The owner performs that acceptance.
 
 ## Changed files
@@ -35,3 +37,7 @@ Base: 5da7464918de8deb885606b57d68d2dff8b0ea91, the source branch of installed3.
 - scripts/verify_frozen_browser.py — Explicit two-adapter exception; strict24-file core and three-method protection.
 - codemagic.yaml — Dedicated gated build2 workflow; internal upload only, no What to Test or review submission.
 - docs/verification/3.0.1-build-2/ — Scoped verification evidence and status.
+
+## Latest external blocker
+
+Codemagic has not allocated a build machine. No test, archive, signing or publishing step has started. The personal account has152 free macOS minutes remaining and no other active build was shown. The queued job is configured to run the six targeted native tests, then sign and upload the same app to App Store Connect only if all gates pass. Availability in TestFlight and the physical vehicle result remain unverified. The existing3.0.1(1) is unchanged. Screenshot: codemagic-queued.jpg.
