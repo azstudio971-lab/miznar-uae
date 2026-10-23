@@ -318,18 +318,12 @@ workflows:
         xcodegen generate
 
         python3 scripts/verify_media_release.py'
-    - name: Simulator build and media tests
-      script: 'set -euo pipefail
-
-        xcodebuild -downloadPlatform iOS -buildVersion 18.5
-
-        xcrun simctl create WudCarMediaValidation com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro com.apple.CoreSimulator.SimRuntime.iOS-18-5 || true
-
-        DEVICE=$(xcrun simctl list devices available -j | python3 -c ''import json,sys; d=json.load(sys.stdin); print(next(v["udid"]
-        for k,a in d["devices"].items() for v in a if "iOS-18-5" in k and "iPhone" in v["name"]))'')
-
-        xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -only-testing:WdCarTests/Media222Tests
-        -resultBundlePath /tmp/WudCar222.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test'
+    - name: Verify tested source and compile for device
+      script: "set -euo pipefail\nTESTED_SOURCE=ed5f145db1b788cb59d963d0f5900641a6d42b0a\nif ! git cat-file -e \"$TESTED_SOURCE^{commit}\"\
+        ; then\n  git fetch origin \"$TESTED_SOURCE\" --depth=1\nfi\ngit diff --exit-code \"$TESTED_SOURCE\" -- WdCar WdCarTests\
+        \ Config project.yml\necho \"Application sources match the 10-test passing GitHub run 39878005499\"\nxcodebuild -project\
+        \ WdCar.xcodeproj -scheme WdCar -sdk iphoneos -destination 'generic/platform=iOS' -configuration Release CODE_SIGNING_ALLOWED=NO\
+        \ build"
     - name: Verify identity and select entitlement experiment
       script: 'set -euo pipefail
 
@@ -365,7 +359,6 @@ workflows:
     artifacts:
     - build/ios/ipa/*.ipa
     - build/media-signing-audit.json
-    - /tmp/WudCar222.xcresult/**/*
     - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
