@@ -295,7 +295,7 @@ workflows:
     - build/160-verification/**/*
     - /tmp/WudCar160.xcresult/**/*
   wudcar-222-media-validation:
-    name: WudCar 2.2.2 - internal Audio + Video
+    name: WudCar 2.2.2 (224) - media CarPlay Audio + Video
     max_build_duration: 90
     instance_type: mac_mini_m2
     integrations:
@@ -323,10 +323,10 @@ workflows:
 
         python3 scripts/verify_media_release.py'
     - name: Verify tested source and compile for device
-      script: "set -euo pipefail\nTESTED_SOURCE=ed5f145db1b788cb59d963d0f5900641a6d42b0a\nif ! git cat-file -e \"$TESTED_SOURCE^{commit}\"\
+      script: "set -euo pipefail\nTESTED_SOURCE=b52a096d7062c5e9d8398c46d5b96b16d2fb7c6e\nif ! git cat-file -e \"$TESTED_SOURCE^{commit}\"\
         ; then\n  git fetch origin \"$TESTED_SOURCE\" --depth=1\nfi\ngit diff --exit-code \"$TESTED_SOURCE\" -- WdCar WdCarTests\
-        \ Config project.yml ':(exclude)Config/WdCar.entitlements'\necho \"Application sources match the 10-test passing GitHub\
-        \ run 39878005499\"\nxcodebuild -project WdCar.xcodeproj -scheme WdCar -sdk iphoneos -destination 'generic/platform=iOS'\
+        \ Config project.yml ':(exclude)Config/WdCar.entitlements'\necho \"Application sources match the passing media and CarPlay GitHub\
+        \ run 39911897630\"\nxcodebuild -project WdCar.xcodeproj -scheme WdCar -sdk iphoneos -destination 'generic/platform=iOS'\
         \ -configuration Release CODE_SIGNING_ALLOWED=NO build"
     - name: Verify identity and select entitlement experiment
       script: 'set -euo pipefail
@@ -347,7 +347,7 @@ workflows:
 
         NEXT=$((LATEST + 1))
 
-        if [ "$NEXT" -lt 223 ]; then NEXT=223; fi
+        if [ "$NEXT" -lt 224 ]; then NEXT=224; fi
 
         agvtool new-version -all "$NEXT"
 
