@@ -67,6 +67,12 @@ import VLCKit
         let server = try await HLSTestServer.start()
         defer { server.stop() }
         let player = AVPlayer(url: server.url)
+        player.isMuted = true
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: scene)
+        let controller = UIViewController(); window.rootViewController = controller; window.makeKeyAndVisible()
+        let layer = AVPlayerLayer(player: player); layer.frame = controller.view.bounds; controller.view.layer.addSublayer(layer)
+        defer { layer.player = nil; layer.removeFromSuperlayer(); window.isHidden = true; window.rootViewController = nil }
         defer { player.pause(); player.replaceCurrentItem(with: nil) }
         player.play()
         for _ in 0..<450 where player.currentTime().seconds < 0.2 && player.currentItem?.status != .failed { try await Task.sleep(for: .milliseconds(100)) }

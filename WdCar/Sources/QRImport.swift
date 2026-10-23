@@ -65,11 +65,23 @@ struct QRPhotoPicker: UIViewControllerRepresentable {
             provider.loadObject(ofClass: UIImage.self) { image, _ in
                 var value: String?
                 if let data = (image as? UIImage)?.pngData() {
-                    let request = VNDetectBarcodesRequest(); request.symbologies = [.qr]
+                    let request = QRImageDecoder.request()
                     if (try? VNImageRequestHandler(data: data).perform([request])) != nil { value = request.results?.first?.payloadStringValue }
                 }
                 DispatchQueue.main.async { self.completion(value) }
             }
         }
+    }
+}
+
+/// Vision's simulator model compiler needs CPU inference in a virtual machine.
+enum QRImageDecoder {
+    static func request() -> VNDetectBarcodesRequest {
+        let request = VNDetectBarcodesRequest()
+        request.symbologies = [.qr]
+        #if targetEnvironment(simulator)
+        request.usesCPUOnly = true
+        #endif
+        return request
     }
 }

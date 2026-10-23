@@ -167,7 +167,7 @@ final class SourceTestProtocol: URLProtocol {
         let background = CIImage(color: CIColor.white).cropped(to: bounds)
         let bordered = image.composited(over: background)
         let cg = try XCTUnwrap(CIContext().createCGImage(bordered, from: bounds))
-        let request = VNDetectBarcodesRequest(); request.symbologies = [.qr]
+        let request = QRImageDecoder.request()
         try VNImageRequestHandler(cgImage: cg).perform([request])
         XCTAssertEqual(request.results?.first?.payloadStringValue, "https://example.test/list.m3u")
         XCTAssertEqual(CarTemplateUI.tabOrder, ["library", "tv", "favorites", "cast"])
