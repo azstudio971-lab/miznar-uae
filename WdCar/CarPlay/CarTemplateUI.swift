@@ -61,25 +61,11 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         settings.tabTitle = carTr("الإعدادات", "Settings")
         settings.tabImage = UIImage(systemName: "gearshape.fill")
 
-        let templates: [CPTemplate] = [home, television, entertainment, settings]
-        let tabs = CPTabBarTemplate(templates: Array(templates.prefix(CPTabBarTemplate.maximumTabCount)))
-        tabs.delegate = self
-        tabBar = tabs
         rebuildHome()
         rebuildEntertainment(ShortcutStore.shared.shortcuts)
         rebuildTelevision()
         rebuildSettings()
-        interfaceController?.setRootTemplate(tabs, animated: false) { [weak self] success, error in
-            WDLog.car("root template installed=\(success) error=\(String(describing: error))")
-            guard !success, let self else { return }
-            let retry = CPListItem(text: carTr("إعادة فتح ود كار", "Open WudCar"), detailText: error?.localizedDescription)
-            retry.handler = { [weak self] _, completion in
-                self?.interfaceController?.setRootTemplate(tabs, animated: false, completion: nil)
-                completion()
-            }
-            let fallback = CPListTemplate(title: "WudCar", sections: [CPListSection(items: [retry])])
-            self.interfaceController?.setRootTemplate(fallback, animated: false, completion: nil)
-        }
+        installRoot()
 
         SubscriptionStore.shared.$state.removeDuplicates().receive(on: RunLoop.main)
             .sink { [weak self] _ in
@@ -157,6 +143,31 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         // Selecting a tab must not start unrelated media or bootstrap an external display.
     }
 
+    private func installRoot() {
+        let templates: [CPTemplate] = [home, television, entertainment, settings]
+        let root: CPTemplate
+        if CPTabBarTemplate.maximumTabCount >= templates.count {
+            let tabs = CPTabBarTemplate(templates: templates)
+            tabs.delegate = self
+            tabBar = tabs
+            root = tabs
+        } else {
+            tabBar = nil
+            let rows = [home, television, entertainment, settings].map { template -> CPListItem in
+                let row = CPListItem(text: template.tabTitle, detailText: nil)
+                row.handler = { [weak self] _, completion in
+                    self?.interfaceController?.pushTemplate(template, animated: true, completion: nil)
+                    completion()
+                }
+                return row
+            }
+            root = CPListTemplate(title: "WudCar", sections: [CPListSection(items: rows)])
+        }
+        interfaceController?.setRootTemplate(root, animated: false) { success, error in
+            WDLog.car("root template installed=\(success) error=\(String(describing: error))")
+        }
+    }
+
     private func rebuildHome() {
         home.tabTitle = carTr("المكتبة", "Library")
         let media = MediaLibrary.shared.items
@@ -201,7 +212,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             self.entertainment.tabTitle = carTr("الترفيه", "Entertainment")
             self.television.tabTitle = carTr("التلفزيون TV", "TV")
             self.settings.tabTitle = carTr("الإعدادات", "Settings")
-            self.tabBar?.updateTemplates([self.home, self.television, self.entertainment, self.settings])
+            self.installRoot()
             self.rebuildHome()
             self.rebuildSettings()
         }

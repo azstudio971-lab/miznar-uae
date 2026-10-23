@@ -1,4 +1,5 @@
 import UIKit
+import Combine
 
 /// التحديث 3 — نفس آلية CarTV:
 /// مع ميزة الفيديو في CarPlay (iOS 26.4+) تظهر شاشة السيارة للتطبيق كـ «شاشة خارجية» عبر AirPlay.
@@ -10,6 +11,7 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
     static let roles: Set<String> = [interactiveRole, nonInteractiveRole]
 
     var window: UIWindow?
+    private var mediaObservation: AnyCancellable?
 
     func scene(_ scene: UIScene,
                willConnectTo session: UISceneSession,
@@ -29,6 +31,11 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
         window.isHidden = false
         window.makeKeyAndVisible()
         self.window = window
+        // Native media uses the system-managed external video presentation.
+        // Never paint a browser/dashboard over that output.
+        mediaObservation = PlaybackManager.shared.$current
+            .receive(on: RunLoop.main)
+            .sink { [weak window] media in window?.isHidden = media != nil }
 
         AppState.shared.carScreenConnected(interactive: role == Self.interactiveRole)
         // مقطع التشغيل الذي فتح وضع الفيديو لم يعد مطلوباً بعد ظهور الشاشة
@@ -46,8 +53,10 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
     func sceneDidDisconnect(_ scene: UIScene) {
         WDLog.car("external display DISCONNECTED")
         WebViewPool.car.pauseAllMedia()
+        mediaObservation = nil
         window?.rootViewController = nil
         window = nil
         AppState.shared.carScreenDisconnected()
     }
 }
+

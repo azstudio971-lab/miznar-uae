@@ -125,6 +125,9 @@ private struct PlayerContainer: View {
                     Button(tr("التالي", "Next")) { playback.next() }
                     Button(tr("تأخير", "Skip backward")) { playback.seek(by: -Double(PlayerPreferences.skip)) }
                     Button(tr("تقديم", "Skip forward")) { playback.seek(by: Double(PlayerPreferences.skip)) }
+                    ForEach(playback.supportedRates, id: \.self) { rate in
+                        Button(String(format: "%.1f×", rate)) { playback.setRate(rate) }
+                    }
                     Button(tr("استيراد SRT/VTT للهاتف", "Import SRT/VTT for iPhone")) { importSubtitle = true }
                     ForEach(Array(playback.queue.enumerated()), id: \.offset) { _, item in
                         Button(item.title) { playback.play(item, presentOnPhone: true) }

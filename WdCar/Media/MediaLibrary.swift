@@ -77,6 +77,7 @@ final class MediaLibrary: ObservableObject {
     }
 
     @MainActor func importFile(_ url: URL) async throws {
+        guard writable else { throw CocoaError(.fileWriteNoPermission) }
         let access = url.startAccessingSecurityScopedResource()
         defer { if access { url.stopAccessingSecurityScopedResource() } }
         var item = LibraryMedia(title: url.deletingPathExtension().lastPathComponent)
@@ -126,6 +127,7 @@ final class MediaLibrary: ObservableObject {
     func remove(_ id: UUID) {
         guard writable, let item = items.first(where: { $0.id == id }) else { return }
         do {
+            if PlaybackManager.shared.current?.url == item.url { PlaybackManager.shared.stop() }
             if let filename = item.localFilename {
                 let url = Self.directory.appendingPathComponent(filename)
                 if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }

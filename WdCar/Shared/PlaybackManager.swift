@@ -71,6 +71,9 @@ final class PlaybackManager: ObservableObject {
                 self.savePosition(completed: true)
                 if PlayerPreferences.autoNext { self.next() }
             }.store(in: &bag)
+        NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.savePosition() }.store(in: &bag)
         setupRemoteCommands()
     }
 
@@ -135,6 +138,20 @@ final class PlaybackManager: ObservableObject {
         play(first, presentOnPhone: presentOnPhone)
     }
 
+    var supportedRates: [Float] {
+        guard current?.isLive == false, let item = player.currentItem, item.status == .readyToPlay else { return [1] }
+        var rates: [Float] = [1]
+        if item.canPlaySlowForward { rates.insert(0.5, at: 0) }
+        if item.canPlayFastForward { rates += [1.5, 2] }
+        return rates
+    }
+
+    func setRate(_ rate: Float) {
+        guard supportedRates.contains(rate) else { return }
+        player.defaultRate = rate
+        if isPlaying { player.rate = rate }
+    }
+
     func next() { moveQueue(by: 1) }
     func previous() { moveQueue(by: -1) }
     private func moveQueue(by offset: Int) {
@@ -144,7 +161,9 @@ final class PlaybackManager: ObservableObject {
 
     func savePosition(completed: Bool = false) {
         guard let current, !current.isLive else { return }
-        let position = completed ? 0 : player.currentTime().seconds
+        let total = player.currentItem?.duration.seconds ?? 0
+        let atEnd = total.isFinite && total > 0 && player.currentTime().seconds >= total - 1
+        let position = (completed || atEnd) ? 0 : player.currentTime().seconds
         guard position.isFinite else { return }
         MediaLibrary.shared.record(url: current.url, position: position)
         lastSaved = position
@@ -157,6 +176,9 @@ final class PlaybackManager: ObservableObject {
         player.replaceCurrentItem(with: nil)
         artwork = nil
         isPlaying = false
+        isLoading = false
+        elapsed = 0
+        duration = 0
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         current = nil
         isExternalDisplayPlayback = false
@@ -217,6 +239,20 @@ final class PlaybackManager: ObservableObject {
             MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.video.rawValue,
             MPNowPlayingInfoPropertyPlaybackRate: Double(player.rate)
         ]
+        let center = MPRemoteCommandCenter.shared()
+        let canSeek = player.currentItem?.seekableTimeRanges.isEmpty == false
+        center.skipForwardCommand.isEnabled = canSeek
+        center.skipBackwardCommand.isEnabled = canSeek
+        center.changePlaybackPositionCommand.isEnabled = canSeek && !current.isLive
+        center.skipForwardCommand.preferredIntervals = [NSNumber(value: PlayerPreferences.skip)]
+        center.skipBackwardCommand.preferredIntervals = [NSNumber(value: PlayerPreferences.skip)]
+        if let index = queue.firstIndex(of: current) {
+            center.nextTrackCommand.isEnabled = index + 1 < queue.count
+            center.previousTrackCommand.isEnabled = index > 0
+        } else {
+            center.nextTrackCommand.isEnabled = false
+            center.previousTrackCommand.isEnabled = false
+        }
         let elapsed = player.currentTime().seconds
         if elapsed.isFinite { info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsed }
         if let duration = player.currentItem?.duration.seconds, duration.isFinite, !current.isLive {
@@ -233,6 +269,7 @@ final class PlaybackManager: ObservableObject {
         center.nextTrackCommand.addTarget { [weak self] _ in self?.next(); return .success }
         center.previousTrackCommand.addTarget { [weak self] _ in self?.previous(); return .success }
         center.playCommand.addTarget { [weak self] _ in
+            guard SubscriptionStore.shared.hasAccess else { return .commandFailed }
             self?.player.play(); return .success
         }
         center.pauseCommand.addTarget { [weak self] _ in

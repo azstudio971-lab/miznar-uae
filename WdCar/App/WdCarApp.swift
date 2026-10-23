@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import AVFoundation
 import CarPlay
+import Combine
 
 /// Explicit UIKit scene ownership for the phone, CarPlay and external displays.
 @main
@@ -41,6 +42,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     private var externalDisplay = false
+    private var mediaObservation: AnyCancellable?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
                options connectionOptions: UIScene.ConnectionOptions) {
@@ -60,6 +62,9 @@ final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.makeKeyAndVisible()
         WDLog.car("application scene visible external=\(externalDisplay)")
         if externalDisplay {
+            mediaObservation = PlaybackManager.shared.$current
+                .receive(on: RunLoop.main)
+                .sink { [weak window] media in window?.isHidden = media != nil }
             AppState.shared.carScreenConnected(interactive: true)
             CarScreenLauncher.shared.externalDisplayDidConnect()
         }
@@ -70,6 +75,8 @@ final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
             WebViewPool.car.pauseAllMedia()
             AppState.shared.carScreenDisconnected()
         }
+        mediaObservation = nil
         window = nil
     }
 }
+
