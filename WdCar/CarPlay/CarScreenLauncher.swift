@@ -1,53 +1,35 @@
-import AVFoundation
 import Foundation
+import Combine
+import UIKit
 
-/// يحاول فتح «وضع الفيديو» في السيارة من قوالب CarPlay:
-/// يشغّل مقطعاً قصيراً من التطبيق (مقطع المقدمة) كعنصر فيديو، فيعرض CarPlay شاشة الفيديو
-/// ويتصل مشهد الشاشة الخارجية، وعندها نوقف المقطع ونعرض المتصفح.
-/// كل خطوة تُسجَّل في Console بكلمة WUDCAR لنعرف من أول تجربة أي مسار يعمل في سيارتك.
-final class CarScreenLauncher {
+/// Explicit browser presentation only. Connecting a display must never mount the
+/// legacy dashboard over CarPlay's media-library templates.
+final class CarScreenLauncher: ObservableObject {
     static let shared = CarScreenLauncher()
-
-    private(set) var isLaunching = false
-    private var timeout: DispatchWorkItem?
-
+    @Published private(set) var browserRequested = false
+    var isLaunching: Bool { false }
+    private var requestedDisplay: CarExternalDisplaySceneDelegate?
     private init() {}
 
     func launch() {
-        guard !AppState.shared.carScreenActive else {
-            WDLog.car("launcher: car screen already active")
-            return
+        guard SubscriptionStore.shared.hasAccess else { return }
+        PlaybackManager.shared.stop()
+        browserRequested = true
+        // Use an app-owned external scene only if the system has supplied one.
+        // Never draw a WebView into CPWindow or create a video to acquire a route.
+        if let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first(where: { $0.screen !== UIScreen.main }) {
+            let display = CarExternalDisplaySceneDelegate()
+            requestedDisplay = display
+            display.connect(to: scene, interactive: scene.session.role.rawValue != CarExternalDisplaySceneDelegate.nonInteractiveRole)
         }
-        guard let url = Bundle.main.url(forResource: "intro_night", withExtension: "mp4") else {
-            WDLog.car("launcher: intro clip missing")
-            return
-        }
-        isLaunching = true
-        WDLog.car("launcher: starting video mode with bootstrap clip")
-        PlaybackManager.shared.play(.init(title: "WudCar",
-                                          subtitle: tr("المتصفح", "Browser"),
-                                          url: url,
-                                          isLive: false,
-                                          artworkURL: nil),
-                                    presentOnPhone: false)
-
-        timeout?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            guard let self, self.isLaunching else { return }
-            self.isLaunching = false
-            let external = PlaybackManager.shared.player.isExternalPlaybackActive
-            WDLog.car("launcher: no external display after 12s (externalPlaybackActive=\(external))")
-        }
-        timeout = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 12, execute: work)
+        AppState.shared.showCarScreenHelp = true
+        WDLog.car("Explicit browser request; no bootstrap video is played")
     }
 
-    func externalDisplayDidConnect() {
-        guard isLaunching else { return }
-        isLaunching = false
-        timeout?.cancel()
-        // إيقاف مؤقت فقط (وليس إزالة) حتى لا ينهي CarPlay وضع الفيديو. السجل يوضح إن انقطعت الشاشة بعده.
-        WDLog.car("launcher: external display connected — pausing bootstrap clip")
-        PlaybackManager.shared.player.pause()
+    func closeBrowser() {
+        browserRequested = false
+        requestedDisplay?.closeBrowserPresentation()
+        requestedDisplay = nil
     }
+    func externalDisplayDidConnect() {}
 }

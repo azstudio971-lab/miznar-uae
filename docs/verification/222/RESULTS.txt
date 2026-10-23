@@ -1,0 +1,22 @@
+Source: ed5f145db1b788cb59d963d0f5900641a6d42b0a
+Run: https://github.com/azstudio971-lab/miznar-uae/actions/runs/39878005499
+Simulator verification only. No physical CarPlay/AirPlay or signed-IPA result is implied.
+2026-10-23T00:25:25.6543860Z Xcode 26.6
+2026-10-23T00:30:59.7828220Z { platform:iOS Simulator, arch:arm64, id:87CDCFB0-89E6-4516-908C-0CB903EE7532, OS:18.5, name:iPhone 16 Pro }
+2026-10-23T00:30:59.7829960Z { platform:iOS Simulator, arch:x86_64, id:87CDCFB0-89E6-4516-908C-0CB903EE7532, OS:18.5, name:iPhone 16 Pro }
+2026-10-23T00:35:50.6424840Z Test Case '-[WdCarTests.Media222Tests testExistingM3UParserKeepsGroupsAndRejectsNonHTTPEntries]' passed (0.009 seconds).
+2026-10-23T00:40:07.1791940Z Test Case '-[WdCarTests.Media222Tests testImportOfflinePlaybackQueueAndRemovalKeepsOriginal]' passed (257.579 seconds).
+2026-10-23T00:40:13.5778850Z Test Case '-[WdCarTests.Media222Tests testLibraryAndSettingsRender]' passed (6.510 seconds).
+2026-10-23T00:40:13.6139200Z Test Case '-[WdCarTests.Media222Tests testLibraryMetadataDoesNotPersistNetworkSecrets]' passed (0.003 seconds).
+2026-10-23T00:40:13.6166600Z Test Case '-[WdCarTests.Media222Tests testSRTMultilineAndCommaTimes]' passed (0.003 seconds).
+2026-10-23T00:40:13.6168690Z Test Case '-[WdCarTests.Media222Tests testVTTSettingsAndInvalidCues]' passed (0.001 seconds).
+2026-10-23T00:40:13.6170100Z 	 Executed 6 tests, with 0 failures (0 unexpected) in 264.104 (264.110) seconds
+2026-10-23T00:40:13.6388210Z Test Case '-[WdCarTests.Release17Tests testCatalogOrderAndLosslessLegacyUpgrade]' passed (0.011 seconds).
+2026-10-23T00:40:27.5615680Z Test Case '-[WdCarTests.Release17Tests testGridCardsScrollAndCustomCardMatchesAtAllSizes]' passed (13.907 seconds).
+2026-10-23T00:40:35.9058920Z Test Case '-[WdCarTests.Release17Tests testToolbarSymbolsFitInArabicAndEnglishAtAllSizes]' passed (8.406 seconds).
+2026-10-23T00:40:35.9102150Z 	 Executed 3 tests, with 0 failures (0 unexpected) in 22.324 (22.336) seconds
+2026-10-23T00:41:26.8152120Z Test Case '-[WdCarTests.SubscriptionTests testOfficialStoreKitTrialRenewalCancellationExpiryRestoreAndRefund]' passed (50.836 seconds).
+2026-10-23T00:41:26.8155790Z 	 Executed 1 test, with 0 failures (0 unexpected) in 50.836 (50.841) seconds
+2026-10-23T00:41:26.8159440Z 	 Executed 10 tests, with 0 failures (0 unexpected) in 337.264 (337.290) seconds
+2026-10-23T00:41:26.8163100Z 	 Executed 10 tests, with 0 failures (0 unexpected) in 337.264 (337.292) seconds
+2026-10-23T00:41:29.1483490Z ** TEST SUCCEEDED **

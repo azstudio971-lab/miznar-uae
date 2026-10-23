@@ -2,10 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- نفس صلاحيات CarTV بالضبط (تم التحقق من ملفه): فيديو + صوت -->
-	<key>com.apple.developer.carplay-video</key>
-	<true/>
 	<key>com.apple.developer.carplay-audio</key>
+	<true/>
+	<key>com.apple.developer.carplay-video</key>
 	<true/>
 </dict>
 </plist>

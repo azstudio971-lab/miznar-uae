@@ -104,6 +104,7 @@ final class M3UStore: ObservableObject {
     }
 
     func remove(_ id: UUID) {
+        MediaLibrary.shared.removeCachedSource("m3u-\(id.uuidString)")
         KeychainStore.delete("m3u-\(id.uuidString)")
         UserDefaults.standard.removeObject(forKey: favoriteKey(id))
         playlists.removeAll { $0.id == id }
@@ -152,3 +153,4 @@ final class M3UStore: ObservableObject {
         }
     }
 }
+

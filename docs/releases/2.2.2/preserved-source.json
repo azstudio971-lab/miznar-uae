@@ -1,0 +1,10 @@
+{
+  "WdCar/CarPlay/BrowserChromeView.swift": "3d26ed5894fd8bf36ee14a11036eda5daad9c428",
+  "WdCar/CarPlay/CarBrowserViewController.swift": "6d7841c1428bd40c7462c6bf723a110f789fa439",
+  "WdCar/Phone/CarMousePadView.swift": "99dd7332c31154c78f9a2c79d12f363620d0b3d1",
+  "WdCar/Phone/IntroView.swift": "9d946f89003f0dea1d7918e839ea1c15388f366e",
+  "WdCar/Phone/PhoneBrowserScreen.swift": "c303c699b72e8ca81e3a693a79527e6ec50dba05",
+  "WdCar/Shared/ShortcutCatalog.swift": "cfba13516dd964760fa32e508e30064a1467c9ce",
+  "WdCar/Shared/ShortcutStore.swift": "e0fbc848f06da360b3639af644c75860e699003f",
+  "WdCar/Shared/SubscriptionStore.swift": "2281d660f8a36bb9ba97c38c2d5fec6509d3f3b4"
+}

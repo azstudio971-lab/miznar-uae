@@ -2,19 +2,17 @@ import SwiftUI
 import UIKit
 import AVFoundation
 import CarPlay
+import Combine
 
 /// Explicit UIKit scene ownership for the phone, CarPlay and external displays.
 @main
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        let audio = AVAudioSession.sharedInstance()
-        do {
-            try audio.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo, options: [])
-            try audio.setActive(true)
-        } catch {
-            WDLog.car("Audio session setup failed: \(error.localizedDescription)")
-        }
+        CarPlayLaunchDiagnostics.shared.record("app-launched")
+        // A media audio session is activated by PlaybackManager only when the
+        // user starts real content. Launching the browser/library must not claim
+        // a long-form video route with an empty player.
         _ = PlaybackManager.shared
         return true
     }
@@ -22,6 +20,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      configurationForConnecting session: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        CarPlayLaunchDiagnostics.shared.record("scene-request: \(session.role.rawValue)")
         WDLog.car("scene connecting role=\(session.role.rawValue)")
         if session.role == .carTemplateApplication {
             let configuration = UISceneConfiguration(name: "CarPlay", sessionRole: session.role)
@@ -29,47 +28,35 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             configuration.delegateClass = CarSceneDelegate.self
             return configuration
         }
-        let external = CarExternalDisplaySceneDelegate.roles.contains(session.role.rawValue)
-        let configuration = UISceneConfiguration(name: external ? "External Display" : "Default Configuration",
-                                                 sessionRole: session.role)
+        if CarScreenLauncher.shared.browserRequested,
+           CarExternalDisplaySceneDelegate.roles.contains(session.role.rawValue) {
+            let configuration = UISceneConfiguration(name: "Requested Browser Display", sessionRole: session.role)
+            configuration.sceneClass = UIWindowScene.self
+            configuration.delegateClass = CarExternalDisplaySceneDelegate.self
+            return configuration
+        }
+        let configuration = UISceneConfiguration(name: "Default Configuration", sessionRole: session.role)
         configuration.sceneClass = UIWindowScene.self
-        configuration.delegateClass = external ? CarExternalDisplaySceneDelegate.self : PhoneSceneDelegate.self
+        configuration.delegateClass = PhoneSceneDelegate.self
         return configuration
     }
 }
 
 final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
-    private var externalDisplay = false
-
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
                options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
-        // Some interactive external screens arrive with the application role.
-        externalDisplay = windowScene.screen !== UIScreen.main
         let window = UIWindow(windowScene: windowScene)
         window.backgroundColor = .black
-        if externalDisplay {
-            window.overrideUserInterfaceStyle = .dark
-            window.rootViewController = CarDashboardViewController()
-        } else {
-            window.rootViewController = UIHostingController(
-                rootView: RootView().environmentObject(AppState.shared).tint(.wdAccent))
-        }
+        window.rootViewController = UIHostingController(
+            rootView: RootView().environmentObject(AppState.shared).tint(.wdAccent))
         self.window = window
         window.makeKeyAndVisible()
-        WDLog.car("application scene visible external=\(externalDisplay)")
-        if externalDisplay {
-            AppState.shared.carScreenConnected(interactive: true)
-            CarScreenLauncher.shared.externalDisplayDidConnect()
-        }
+        WDLog.car("phone application scene visible")
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
-        if externalDisplay {
-            WebViewPool.car.pauseAllMedia()
-            AppState.shared.carScreenDisconnected()
-        }
         window = nil
     }
 }

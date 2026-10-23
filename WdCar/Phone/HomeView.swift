@@ -27,10 +27,9 @@ struct HomeView: View {
 
                     carStatus
 
-                    HomeCard(symbol: "cursorarrow.rays",
-                             title: tr("الماوس", "Mouse"),
-                             subtitle: tr("الماوس يعمل بالمتصفح فقط أثناء توقف السيارة.",
-                                          "Mouse works in the browser only while the car is stopped.")) {
+                    HomeCard(symbol: "play.rectangle.on.rectangle",
+                             title: tr("مكتبة الوسائط", "Media library"),
+                             subtitle: tr("فيديوهاتك ومفضلاتك ومتابعة المشاهدة", "Your videos, favorites and continue watching")) {
                         selectTab(3)
                     }
 
@@ -145,3 +144,4 @@ private struct HomeCard: View {
         .buttonStyle(.plain)
     }
 }
+

@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+"""Static release invariants. This is not an iOS compile or device test."""
+from pathlib import Path
+import plistlib, hashlib, json, os
+
+root = Path(__file__).resolve().parents[1]
+project = (root / 'project.yml').read_text()
+assert 'MARKETING_VERSION: "2.2.2"' in project
+assert 'PRODUCT_BUNDLE_IDENTIFIER: com.azstudio.wudcar' in project
+assert 'DEVELOPMENT_TEAM: "QS29RVJPUT"' in project
+mode = os.environ.get('CARPLAY_MODE', 'Combined')
+expected = {
+    'Audio': {'com.apple.developer.carplay-audio': True},
+    'Video': {'com.apple.developer.carplay-video': True},
+    'Combined': {'com.apple.developer.carplay-audio': True, 'com.apple.developer.carplay-video': True},
+}[mode]
+assert plistlib.loads((root / 'Config/WdCar.entitlements').read_bytes()) == expected
+print(f'CarPlay entitlement configuration verified: {mode}')
+launcher = (root / 'WdCar/CarPlay/CarScreenLauncher.swift').read_text()
+assert 'intro_night' not in launcher
+assert 'PlaybackManager.shared.play' not in launcher
+for path in (root / 'Config').glob('*.plist'):
+    plistlib.loads(path.read_bytes())
+print('Static identity, entitlement, plist and bootstrap checks passed; device tests remain separate.')
+
+for name, expected in json.loads((root / 'docs/releases/2.2.2/preserved-source.json').read_text()).items():
+    content = (root / name).read_bytes()
+    actual = hashlib.sha1(b'blob ' + str(len(content)).encode() + b'\0' + content).hexdigest()
+    assert actual == expected, f'Protected browser/subscription/branding source changed: {name}'
+print('Protected browser, shortcuts, subscription, intro and mouse sources match build 17.')
+
+# The old custom dashboard must not be installed through either scene role.
+for path in ['WdCar/App/WdCarApp.swift', 'WdCar/CarPlay/CarExternalDisplaySceneDelegate.swift']:
+    assert 'CarDashboardViewController()' not in (root / path).read_text(), f'Legacy dashboard mounted: {path}'
+print('Both external-scene routes preserve native CarPlay navigation.')
+
+manifest = plistlib.loads((root / 'Config/Info.plist').read_bytes())['UIApplicationSceneManifest']['UISceneConfigurations']
+assert set(manifest) == {'UIWindowSceneSessionRoleApplication', 'CPTemplateApplicationSceneSessionRoleApplication'}
+assert 'if CarScreenLauncher.shared.browserRequested,' in (root / 'WdCar/App/WdCarApp.swift').read_text()
+print('Only phone and native CarPlay scene routes are declared; no empty external scene is registered.')
+
+assert '.setActive(true)' not in (root / 'WdCar/App/WdCarApp.swift').read_text()
+print('Startup does not activate an empty long-form video session.')

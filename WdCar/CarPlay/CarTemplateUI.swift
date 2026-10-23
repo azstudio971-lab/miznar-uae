@@ -3,21 +3,18 @@ import Combine
 import CoreMedia
 import UIKit
 
-/// واجهة CarPlay الرسمية لصلاحية CarPlay Video (قوالب فقط، بدون WebView على شاشة السيارة):
-///
-/// • تبويب «الترفيه»: اختصارات المواقع. القوالب لا تعرض صفحات الويب، لذلك يُفتح الموقع على iPhone
-///   ويُبث الفيديو لشاشة السيارة عبر AirPlay.
-/// • تبويب «Xtream Codes»: الحسابات ← الأقسام ← القنوات/الأفلام. كل عنصر يحمل
-///   CPPlaybackConfiguration(preferredPresentation: .video) (iOS 26.4+)، فيعرض CarPlay الفيديو
-///   على شاشة السيارة وهي متوقفة، ويحوّله لصوت فقط أثناء القيادة تلقائياً.
+/// Main CarPlay navigation uses Apple's list/tab/Now Playing templates.
+/// Native video presentation is selected only through CPPlaybackConfiguration.
 final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTemplateDelegate {
 
     private var interfaceController: CPInterfaceController?
     private var sessionConfiguration: CPSessionConfiguration?
-    private let home = CPListTemplate(title: carTr("الرئيسية", "Home"), sections: [])
-    private let entertainment = CPListTemplate(title: carTr("الترفيه", "Entertainment"), sections: [])
-    private let settings = CPListTemplate(title: carTr("الإعدادات", "Settings"), sections: [])
-    private let television = CPListTemplate(title: carTr("التلفزيون TV", "TV"), sections: [])
+    private var home = CPListTemplate(title: carTr("WudCar • مشغّل للفيديو والصوت", "WudCar • Video and audio player"), sections: [])
+    private var favorites = CPListTemplate(title: carTr("المفضلة", "Favorites"), sections: [])
+    private var filesAndCast = CPListTemplate(title: carTr("الملفات والبث", "Files & AirPlay"), sections: [])
+    private var entertainment = CPListTemplate(title: carTr("الترفيه", "Entertainment"), sections: [])
+    private var settings = CPListTemplate(title: carTr("الإعدادات", "Settings"), sections: [])
+    private var television = CPListTemplate(title: carTr("التلفزيون TV", "TV"), sections: [])
     private var bag = Set<AnyCancellable>()
     private var currentShortcuts: [SiteShortcut] = []
     private var lastReportedVideo: Bool?
@@ -25,7 +22,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     private var statusTimer: Timer?
     private var tabBar: CPTabBarTemplate?
 
-    init(interfaceController: CPInterfaceController) {
+    init(interfaceController: CPInterfaceController?) {
         self.interfaceController = interfaceController
         super.init()
     }
@@ -48,48 +45,35 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     }
 
     func start() {
-        sessionConfiguration = CPSessionConfiguration(delegate: self)
-
-        home.tabTitle = carTr("الرئيسية", "Home")
-        home.tabImage = UIImage(systemName: "house.fill")
-        entertainment.tabTitle = carTr("الترفيه", "Entertainment")
-        entertainment.tabImage = UIImage(systemName: "play.tv")
-        entertainment.emptyViewTitleVariants = [carTr("أضف مواقع من iPhone", "Add sites on iPhone")]
-        television.tabTitle = carTr("التلفزيون TV", "TV")
-        television.tabImage = UIImage(systemName: "tv")
-        television.emptyViewTitleVariants = [carTr("أضف حساب Xtream أو قائمة M3U من iPhone", "Add an Xtream account or M3U playlist on iPhone")]
-        settings.tabTitle = carTr("الإعدادات", "Settings")
-        settings.tabImage = UIImage(systemName: "gearshape.fill")
-
-        let tabs = CPTabBarTemplate(templates: [home, entertainment, television, settings])
-        tabs.delegate = self
-        tabBar = tabs
-        rebuildHome()
-        rebuildEntertainment(ShortcutStore.shared.shortcuts)
-        rebuildTelevision()
-        rebuildSettings()
-        interfaceController?.setRootTemplate(tabs, animated: false) { [weak self] success, error in
-            WDLog.car("root template installed=\(success) error=\(String(describing: error))")
-            guard !success, let self else { return }
-            let retry = CPListItem(text: carTr("إعادة فتح ود كار", "Open WudCar"), detailText: error?.localizedDescription)
-            retry.handler = { [weak self] _, completion in
-                self?.interfaceController?.setRootTemplate(tabs, animated: false, completion: nil)
-                completion()
-            }
-            let fallback = CPListTemplate(title: "WudCar", sections: [CPListSection(items: [retry])])
-            self.interfaceController?.setRootTemplate(fallback, animated: false, completion: nil)
+        // Complete the initial root installation before loading or replacing it.
+        let root = makeLaunchTemplate()
+        interfaceController?.setRootTemplate(root, animated: false) { [weak self] success, error in
+            CarPlayLaunchDiagnostics.shared.record(success ? "initial-root-installed" : "initial-root-failed: \(error?.localizedDescription ?? "unknown")")
+            if success { self?.startMediaInterface() }
         }
+    }
+
+    private func startMediaInterface() {
+        sessionConfiguration = CPSessionConfiguration(delegate: self)
+        prepareTemplates()
+        installRoot()
 
         SubscriptionStore.shared.$state.removeDuplicates().receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self else { return }
                 self.rebuildEntertainment(self.currentShortcuts)
                 self.rebuildTelevision()
+                self.rebuildMediaLists()
             }.store(in: &bag)
 
         ShortcutStore.shared.$shortcuts
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
             .sink { [weak self] shortcuts in self?.rebuildEntertainment(shortcuts) }
+            .store(in: &bag)
+
+        MediaLibrary.shared.$items
+            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildMediaLists() }
             .store(in: &bag)
 
         XtreamStore.shared.$accounts
@@ -125,7 +109,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                     case .television: template = self.television
                     case .settings: template = self.settings
                     }
-                    self.tabBar?.select(template)
+                    if section == .television {
+                        self.interfaceController?.pushTemplate(template, animated: true, completion: nil)
+                    } else { self.tabBar?.select(template) }
                 case .playPause:
                     if !AppState.shared.carScreenActive { PlaybackManager.shared.togglePlayPause() }
                 case .stopPlayback:
@@ -148,35 +134,144 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     }
 
     func tabBarTemplate(_ tabBarTemplate: CPTabBarTemplate, didSelect selectedTemplate: CPTemplate) {
-        guard selectedTemplate === entertainment, !AppState.shared.carScreenActive else { return }
-        startCarScreen()
+        // Selecting a tab must not start unrelated media or bootstrap an external display.
     }
 
-    private func rebuildHome() {
-        let greeting = CPListItem(
-            text: carTr("مرحباً بكم في وُد كار (WudCar)", "Welcome to WudCar"),
-            detailText: carTr("أهلاً بكم في تجربتكم الترفيهية مع وُد كار.",
-                              "Welcome to your entertainment experience with WudCar."),
-            image: UIImage(systemName: "sparkles")
-        )
-        let customize = CPListItem(
-            text: carTr("التخصيص والمواقع المفضلة", "Settings and favorites"),
-            detailText: carTr("يمكنكم تخصيص إعدادات التطبيق وإدارة خيارات الترفيه والمواقع المفضلة بسهولة من خلال تطبيق WudCar على هاتف iPhone.",
-                              "Customize app settings, entertainment options, and favorite websites in WudCar on your iPhone."),
-            image: UIImage(systemName: "iphone")
-        )
-        let safety = CPListItem(
-            text: carTr("سلامتكم أولويتنا", "Your safety comes first"),
-            detailText: carTr("نرجو الالتزام بقواعد السلامة المرورية وعدم الانشغال بالشاشة أثناء القيادة.",
-                              "Please follow traffic safety rules and avoid interacting with the screen while driving."),
-            image: UIImage(systemName: "hand.raised.fill")
-        )
-        let farewell = CPListItem(
-            text: carTr("رافقتكم السلامة ..", "Safe travels"),
-            detailText: nil,
-            image: UIImage(systemName: "heart.fill")
-        )
-        home.updateSections([CPListSection(items: [greeting, customize, safety, farewell])])
+    /// Also used by the native regression test to inspect the actual template tree.
+    func prepareTemplates() {
+        home = CPListTemplate(title: carTr("WudCar • مشغّل للفيديو والصوت", "WudCar • Video and audio player"), sections: [])
+        favorites = CPListTemplate(title: carTr("المفضلة", "Favorites"), sections: [])
+        filesAndCast = CPListTemplate(title: carTr("الملفات والبث", "Files & AirPlay"), sections: [])
+        television = CPListTemplate(title: carTr("القنوات والقوائم", "Channels & playlists"), sections: [])
+        entertainment = CPListTemplate(title: carTr("الترفيه / المتصفح", "Entertainment / Browser"), sections: [])
+        settings = CPListTemplate(title: carTr("الإعدادات", "Settings"), sections: [])
+        for (template, title, symbol) in [
+            (home, carTr("المكتبة", "Library"), "play.rectangle.on.rectangle"),
+            (favorites, carTr("المفضلة", "Favorites"), "star.fill"),
+            (filesAndCast, carTr("الملفات والبث", "Files & AirPlay"), "airplay.video"),
+            (entertainment, carTr("الترفيه", "Entertainment"), "safari"),
+            (settings, carTr("الإعدادات", "Settings"), "gearshape.fill")
+        ] {
+            template.tabTitle = title
+            template.tabImage = UIImage(systemName: symbol)
+        }
+        television.emptyViewTitleVariants = [carTr("أضف حساب Xtream أو قائمة M3U من iPhone", "Add an Xtream account or M3U playlist on iPhone")]
+        rebuildMediaLists()
+        rebuildEntertainment(ShortcutStore.shared.shortcuts)
+        rebuildTelevision()
+        rebuildSettings()
+    }
+
+    func makeRootTemplate(maximumTabCount: Int) -> CPTemplate {
+        let templates: [CPTemplate] = [home, favorites, filesAndCast, entertainment, settings]
+        if maximumTabCount >= templates.count {
+            let tabs = CPTabBarTemplate(templates: templates)
+            tabs.delegate = self
+            tabBar = tabs
+            return tabs
+        }
+        tabBar = nil
+        return CPListTemplate(title: carTr("WudCar • مشغّل للفيديو والصوت", "WudCar • Video and audio player"), sections: [
+            CPListSection(items: templates.map { template in
+                navigationItem(template.tabTitle ?? "WudCar", symbol: nil, template: template)
+            })
+        ])
+    }
+
+    func makeLaunchTemplate() -> CPListTemplate {
+        CPListTemplate(title: carTr("WudCar • مشغّل للفيديو والصوت", "WudCar • Video and audio player"), sections: [CPListSection(items: [
+            CPListItem(text: carTr("مشغّل للفيديو والصوت", "Video and audio player"), detailText: carTr("جارِ فتح المكتبة والمفضلة…", "Opening your library and favorites…"))
+        ])])
+    }
+
+    private func installRoot() {
+        // Keep one simple, nonempty CPListTemplate as the entry point. Each row
+        // opens a native destination; no external UIWindow or tab renderer owns it.
+        let root = makeRootTemplate(maximumTabCount: 0)
+        interfaceController?.setRootTemplate(root, animated: false) { [weak self] success, error in
+            CarPlayLaunchDiagnostics.shared.record(success ? "media-root-installed" : "media-root-failed: \(error?.localizedDescription ?? "unknown")")
+            if !success {
+                self?.interfaceController?.setRootTemplate(self?.makeLaunchTemplate() ?? CPListTemplate(title: "WudCar", sections: []), animated: false, completion: nil)
+            }
+        }
+    }
+
+    private func navigationItem(_ title: String, symbol: String?, template: CPTemplate) -> CPListItem {
+        let row = CPListItem(text: title, detailText: nil, image: symbol.flatMap { UIImage(systemName: $0) })
+        row.accessoryType = .disclosureIndicator
+        row.handler = { [weak self] _, completion in
+            self?.interfaceController?.pushTemplate(template, animated: true, completion: nil)
+            completion()
+        }
+        return row
+    }
+
+    private func mediaRows(_ entries: [LibraryMedia]) -> [CPListItem] {
+        entries.prefix(Self.maxItems).map { media in
+            let row = CPListItem(text: media.title, detailText: media.localFilename == nil ? carTr("مصدر إنترنت", "Internet source") : carTr("ملف مستورد • دون إنترنت", "Imported file • Offline"))
+            if let image = UIImage(contentsOfFile: MediaLibrary.shared.thumbnailURL(media.id).path) { row.setImage(image) }
+            applyPlaybackConfiguration(to: row)
+            row.handler = { [weak self] _, completion in
+                guard SubscriptionStore.shared.hasAccess else {
+                    self?.showAlert([carTr("فعّل الاشتراك من iPhone أثناء التوقف.", "Activate your subscription on iPhone while parked.")])
+                    completion(); return
+                }
+                CarScreenLauncher.shared.closeBrowser()
+                PlaybackManager.shared.playQueue(entries.compactMap(\.playbackItem), startingAt: media.url, presentOnPhone: false)
+                if self?.supportsVideo != true {
+                    self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+                }
+                completion()
+            }
+            return row
+        }
+    }
+
+    private func mediaTemplate(_ title: String, entries: [LibraryMedia]) -> CPListTemplate {
+        let template = CPListTemplate(title: title, sections: [CPListSection(items: mediaRows(entries))])
+        template.emptyViewTitleVariants = [carTr("أضف ملفات وروابط من مكتبة iPhone", "Add files and URLs from the iPhone library")]
+        return template
+    }
+
+    var favoriteTitles: [String] {
+        favorites.sections.flatMap(\.items).compactMap { ($0 as? CPListItem)?.text }
+    }
+
+    private func rebuildMediaLists() {
+        let media = MediaLibrary.shared.items
+        var sections = [CPListSection(items: [
+            CPListItem(text: carTr("مشغّل للفيديو والصوت", "Video and audio player"), detailText: carTr("محتواك من iPhone • لا نوفر قنوات أو اشتراكات محتوى", "Your media from iPhone • No channels or content subscriptions supplied")),
+            navigationItem(carTr("القنوات وقوائم M3U / Xtream", "Channels and M3U / Xtream playlists"), symbol: "tv", template: television)
+        ])]
+        let recent = media.filter { $0.position > 0 }.sorted { ($0.lastPlayed ?? $0.added) > ($1.lastPlayed ?? $1.added) }
+        if !recent.isEmpty { sections.append(CPListSection(items: mediaRows(Array(recent.prefix(20))), header: carTr("متابعة المشاهدة", "Continue watching"), sectionIndexTitle: nil)) }
+        if !media.isEmpty { sections.append(CPListSection(items: mediaRows(Array(media.prefix(max(0, Self.maxItems - 22)))), header: carTr("مكتبة المشغّل", "Player library"), sectionIndexTitle: nil)) }
+        else { sections.append(CPListSection(items: [CPListItem(text: carTr("المكتبة فارغة", "Your library is empty"), detailText: carTr("استورد فيديو أو أضف رابطًا من مكتبة الهاتف.", "Import a video or add a URL in the iPhone library."))])) }
+        home.updateSections(sections)
+        var favoriteSections = [CPListSection(items: [carScreenItem()])]
+        let favoriteMedia = media.filter(\.favorite)
+        if !favoriteMedia.isEmpty {
+            favoriteSections.append(CPListSection(items: mediaRows(favoriteMedia), header: carTr("وسائط مفضلة", "Favorite media"), sectionIndexTitle: nil))
+        } else {
+            favoriteSections.append(CPListSection(items: [CPListItem(text: carTr("لا توجد وسائط مفضلة", "No favorite media"), detailText: carTr("أضف الوسائط للمفضلة من مكتبة iPhone.", "Favorite media in the iPhone library."))]))
+        }
+        favorites.updateSections(favoriteSections)
+        favorites.emptyViewTitleVariants = [carTr("لا توجد وسائط مفضلة", "No favorite media")]
+        favorites.emptyViewSubtitleVariants = [carTr("أضف للمفضلة من مكتبة iPhone؛ مفضلة القنوات داخل قوائمها.", "Favorite media in the iPhone library; channel favorites are inside their playlists.")]
+        filesAndCast.updateSections([CPListSection(items: [
+            navigationItem(carTr("الفيديوهات المستوردة", "Imported videos"), symbol: "folder", template: mediaTemplate(carTr("الملفات المحلية", "Local files"), entries: media.filter { $0.localFilename != nil })),
+            navigationItem(carTr("روابط الوسائط والبث", "Media URLs & streams"), symbol: "network", template: mediaTemplate(carTr("روابط الوسائط", "Media URLs"), entries: media.filter { $0.localFilename == nil })),
+            navigationItem(carTr("البث إلى الشاشة • AirPlay", "Send media to a display • AirPlay"), symbol: "airplay.video", template: castingTemplate())
+        ])])
+    }
+
+    private func castingTemplate() -> CPListTemplate {
+        CPListTemplate(title: carTr("البث إلى الشاشة", "Send media to a display"), sections: [CPListSection(items: [
+            CPListItem(text: carTr("إرسال فيديو عبر AirPlay", "Send video with AirPlay"), detailText: carTr("من مكتبة WudCar على iPhone افتح «البث إلى الشاشة»، شغّل فيديو واختر جهازًا من زر AirPlay.", "On iPhone, open Library → Send to display, play a video and choose a device with AirPlay.")),
+            videoStatusItem(),
+            CPListItem(text: carTr("عرض الفيديو حسب سماح النظام والسيارة", "Video follows system and vehicle permission"), detailText: carTr("إذا حُجب الفيديو، يتحكم النظام بإخراج الصوت. استخدم الشاشة أثناء الوقوف فقط.", "If video is blocked, the system controls audio output. Use the display only while parked.")),
+            CPListItem(text: carTr("عكس شاشة iPhone بالكامل غير متاح", "Full iPhone screen mirroring is unavailable"), detailText: carTr("هذه الوظيفة ترسل الوسائط من المشغّل، ولا تستقبل AirPlay أو DLNA.", "This sends player media; it does not receive AirPlay or DLNA."))
+        ])])
     }
 
     private func rebuildSettings() {
@@ -187,13 +282,8 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         ) { [weak self] in
             WDSettings.carLanguage = WDSettings.carLanguage == "ar" ? "en" : "ar"
             guard let self else { return }
-            self.home.tabTitle = carTr("الرئيسية", "Home")
-            self.entertainment.tabTitle = carTr("الترفيه", "Entertainment")
-            self.television.tabTitle = carTr("التلفزيون TV", "TV")
-            self.settings.tabTitle = carTr("الإعدادات", "Settings")
-            self.tabBar?.updateTemplates([self.home, self.entertainment, self.television, self.settings])
-            self.rebuildHome()
-            self.rebuildSettings()
+            self.prepareTemplates()
+            self.installRoot()
         }
         let display = settingItem(
             carTr("عرض المواقع", "Website layout"),
@@ -226,7 +316,20 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             WebViewPool.car.applyZoom(1.0)
             self?.rebuildSettings()
         }
-        settings.updateSections([CPListSection(items: [language, display, zoomOut, zoom, zoomIn, reset])])
+        let skip = settingItem(carTr("التقديم والتأخير", "Skip interval"), detail: "\(PlayerPreferences.skip) " + carTr("ثانية", "seconds"), symbol: "goforward.15") { [weak self] in
+            let values = [10, 15, 30]
+            let index = values.firstIndex(of: PlayerPreferences.skip) ?? 1
+            UserDefaults.standard.set(values[(index + 1) % values.count], forKey: "wd.media.skip")
+            self?.rebuildSettings()
+        }
+        let resume = settingItem(carTr("الاستئناف من آخر موضع", "Resume from last position"), detail: PlayerPreferences.resume ? carTr("مفعّل", "On") : carTr("متوقف", "Off"), symbol: "play.circle") { [weak self] in
+            UserDefaults.standard.set(!PlayerPreferences.resume, forKey: "wd.media.resume")
+            self?.rebuildSettings()
+        }
+        settings.updateSections([
+            CPListSection(items: [CPListItem(text: carTr("WudCar • مشغّل فيديو ووسائط", "WudCar • Video & media player"), detailText: carTr("لا نوفر المحتوى. إدارة المصادر والخصوصية من إعدادات iPhone.", "No content supplied. Manage sources and read privacy terms in iPhone Settings.")), skip, resume, language], header: carTr("المشغّل", "Player"), sectionIndexTitle: nil),
+            CPListSection(items: [display, zoomOut, zoom, zoomIn, reset], header: carTr("المتصفح", "Browser"), sectionIndexTitle: nil)
+        ])
     }
 
     private func settingItem(_ title: String, detail: String?, symbol: String, action: @escaping () -> Void) -> CPListItem {
@@ -257,6 +360,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             lastReportedVideo = current
             WDLog.car("templates: supportsVideoPlayback=\(current)")
             rebuildEntertainment(currentShortcuts)
+            rebuildMediaLists()
         }
     }
 
@@ -280,7 +384,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             return item
         }
         entertainment.updateSections([
-            CPListSection(items: [carScreenItem(), videoStatusItem()]),
+            CPListSection(items: [videoStatusItem()]),
             CPListSection(items: Array(items))
         ])
     }
@@ -289,45 +393,17 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     /// العنصر الأول: يفتح متصفح ود كار على شاشة السيارة (كشاشة خارجية) مثل CarTV
     private func carScreenItem() -> CPListItem {
-        let active = AppState.shared.carScreenActive
-        let item = CPListItem(
-            text: carTr("المتصفح على شاشة السيارة", "Browser on car screen"),
-            detailText: active ? carTr("يعمل الآن", "Running now") : carTr("اضغط للتشغيل", "Tap to start")
-        )
-        item.setImage(UIImage(systemName: active ? "safari.fill" : "safari"))
-        applyPlaybackConfiguration(to: item)
-        item.handler = { [weak self] _, completion in
-            self?.startCarScreen()
+        let item = CPListItem(text: carTr("المتصفح", "Browser"), detailText: carTr("واجهة المتصفح السابقة • شاشة خارجية متوافقة أثناء الوقوف", "Previous browser interface • Compatible external display while parked"))
+        item.setImage(UIImage(systemName: "safari"))
+        item.accessoryType = .disclosureIndicator
+        item.handler = { _, completion in
+            CarScreenLauncher.shared.launch()
             completion()
         }
         return item
     }
 
-    private func startCarScreen() {
-        guard SubscriptionStore.shared.hasAccess else {
-            showAlert([carTr("فعّل اشتراك ود كار أو استعده من تطبيق iPhone أثناء التوقف.", "Activate or restore WudCar Premium on iPhone while parked.")]); return
-        }
-        WDLog.car("templates: browser item tapped active=\(AppState.shared.carScreenActive) supportsVideo=\(supportsVideo)")
-        if AppState.shared.carScreenActive {
-            showAlert([
-                carTr("المتصفح يعمل على شاشة السيارة. افتح المواقع من الهاتف أو من الاختصارات هنا.",
-                   "The browser is on the car screen. Open sites from iPhone or from shortcuts here."),
-                carTr("المتصفح يعمل", "Browser running")
-            ])
-            return
-        }
-        // المسار 1: فتح وضع الفيديو من CarPlay مباشرة
-        CarScreenLauncher.shared.launch()
-        // المسار 2: على الهاتف تظهر نافذة فيها زر AirPlay لاختيار شاشة السيارة
-        AppState.shared.showCarScreenHelp = true
-        if !supportsVideo {
-            showAlert([
-                carTr("إذا لم يظهر المتصفح، اختر شاشة السيارة من زر AirPlay في ود كار على iPhone.",
-                   "If the browser does not appear, choose the car display from AirPlay in WudCar on iPhone."),
-                carTr("اختر شاشة السيارة من AirPlay", "Choose the car display in AirPlay")
-            ])
-        }
-    }
+    private func startCarScreen() { CarScreenLauncher.shared.launch() }
 
     /// الاختصار يُفتح على شاشة السيارة إن كان المتصفح معروضاً، وإلا على الهاتف
     private func openShortcut(_ url: URL) {
@@ -459,7 +535,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                                                   subtitle: playlist.name,
                                                   url: entry.url,
                                                   isLive: true,
-                                                  artworkURL: entry.logo),
+                                                  artworkURL: entry.logo, sourceKey: "m3u-\(playlist.id.uuidString)"),
                                             presentOnPhone: false)
                 if !self.supportsVideo {
                     self.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
@@ -555,7 +631,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                                           subtitle: account.name,
                                           url: url,
                                           isLive: stream.kind == .live,
-                                          artworkURL: stream.icon),
+                                          artworkURL: stream.icon, sourceKey: "xtream-\(account.id.uuidString)"),
                                     presentOnPhone: false)
         // مع دعم الفيديو يعرض CarPlay المشغل تلقائياً. بدونه نعرض شاشة التشغيل الحالي (صوت).
         if !supportsVideo {
@@ -602,3 +678,4 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                                              animated: true, completion: nil)
     }
 }
+

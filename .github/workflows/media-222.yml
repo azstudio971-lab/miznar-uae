@@ -1,0 +1,47 @@
+name: WudCar 2.2.2 native validation
+on:
+  push:
+    branches: [develop/wudcar-2.2.2-media]
+  workflow_dispatch:
+concurrency:
+  group: media-native-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select newest installed Xcode
+        run: |
+          XCODE=$(find /Applications -maxdepth 1 -name 'Xcode_*.app' | sort -V | tail -1)
+          if [ -n "$XCODE" ]; then sudo xcode-select -s "$XCODE/Contents/Developer"; fi
+          xcodebuild -version
+          xcodebuild -showsdks
+      - name: Generate and validate configuration
+        run: |
+          brew install xcodegen
+          python3 scripts/verify_media_release.py
+          xcodegen generate
+      - name: Compile and test CarPlay startup changes
+        run: |
+          set -euo pipefail
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for k,a in sorted(d["devices"].items(), reverse=True) for v in a if "iOS" in k and "iPhone" in v["name"]))')
+          xcrun simctl list devices available
+          xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -only-testing:WdCarTests/Car225Tests -only-testing:WdCarTests/Car224Tests/testNativeNavigationIncludesAllMediaDestinationsInBothLanguages -only-testing:WdCarTests/Car224Tests/testCarPlayFavoritesUseTheSameMediaAsPhone -only-testing:WdCarTests/Car224Tests/testPolicyAndCastPageRenderInBothLanguages -resultBundlePath build/Media222.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test
+      - name: Export actual simulator screenshots
+        if: always()
+        run: |
+          mkdir -p build/media-screenshots
+          if [ -d build/Media222.xcresult ]; then
+            xcrun xcresulttool export attachments --path build/Media222.xcresult --output-path build/media-screenshots
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: media-222-test-results
+          path: |
+            build/Media222.xcresult
+            build/media-screenshots
