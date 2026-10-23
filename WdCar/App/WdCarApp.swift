@@ -28,6 +28,13 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             configuration.delegateClass = CarSceneDelegate.self
             return configuration
         }
+        if CarScreenLauncher.shared.browserRequested,
+           CarExternalDisplaySceneDelegate.roles.contains(session.role.rawValue) {
+            let configuration = UISceneConfiguration(name: "Requested Browser Display", sessionRole: session.role)
+            configuration.sceneClass = UIWindowScene.self
+            configuration.delegateClass = CarExternalDisplaySceneDelegate.self
+            return configuration
+        }
         let configuration = UISceneConfiguration(name: "Default Configuration", sessionRole: session.role)
         configuration.sceneClass = UIWindowScene.self
         configuration.delegateClass = PhoneSceneDelegate.self

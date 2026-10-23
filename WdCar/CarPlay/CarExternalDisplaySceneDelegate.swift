@@ -54,6 +54,8 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
         AppState.shared.carScreenConnected(interactive: interactive)
     }
 
+    func closeBrowserPresentation() { updateBrowser(visible: false) }
+
     func sceneDidDisconnect(_ scene: UIScene) {
         observations.removeAll()
         updateBrowser(visible: false)

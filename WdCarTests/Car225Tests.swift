@@ -28,6 +28,17 @@ final class Car225Tests: XCTestCase {
             XCTAssertTrue(rows.allSatisfy { $0.handler != nil })
         }
     }
+    @MainActor func testBrowserEntryIsInsideFavorites() throws {
+        let old = WDSettings.carLanguage
+        defer { WDSettings.carLanguage = old }
+        for language in ["ar", "en"] {
+            WDSettings.carLanguage = language
+            let ui = CarTemplateUI(interfaceController: nil)
+            ui.prepareTemplates()
+            XCTAssertTrue(ui.favoriteTitles.contains(language == "ar" ? "المتصفح" : "Browser"))
+        }
+        XCTAssertFalse(CarScreenLauncher.shared.browserRequested)
+    }
     @MainActor func testConnectionDiagnosticsAreLocalAndBounded() throws {
         let name = "wd.test.225.\(UUID().uuidString)"
         let storage = try XCTUnwrap(UserDefaults(suiteName: name))

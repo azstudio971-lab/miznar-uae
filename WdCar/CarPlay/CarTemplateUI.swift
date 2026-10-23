@@ -248,7 +248,14 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         if !media.isEmpty { sections.append(CPListSection(items: mediaRows(Array(media.prefix(max(0, Self.maxItems - 22)))), header: carTr("مكتبة المشغّل", "Player library"), sectionIndexTitle: nil)) }
         else { sections.append(CPListSection(items: [CPListItem(text: carTr("المكتبة فارغة", "Your library is empty"), detailText: carTr("استورد فيديو أو أضف رابطًا من مكتبة الهاتف.", "Import a video or add a URL in the iPhone library."))])) }
         home.updateSections(sections)
-        favorites.updateSections([CPListSection(items: mediaRows(media.filter(\.favorite)))])
+        var favoriteSections = [CPListSection(items: [carScreenItem()])]
+        let favoriteMedia = media.filter(\.favorite)
+        if !favoriteMedia.isEmpty {
+            favoriteSections.append(CPListSection(items: mediaRows(favoriteMedia), header: carTr("وسائط مفضلة", "Favorite media"), sectionIndexTitle: nil))
+        } else {
+            favoriteSections.append(CPListSection(items: [CPListItem(text: carTr("لا توجد وسائط مفضلة", "No favorite media"), detailText: carTr("أضف الوسائط للمفضلة من مكتبة iPhone.", "Favorite media in the iPhone library."))]))
+        }
+        favorites.updateSections(favoriteSections)
         favorites.emptyViewTitleVariants = [carTr("لا توجد وسائط مفضلة", "No favorite media")]
         favorites.emptyViewSubtitleVariants = [carTr("أضف للمفضلة من مكتبة iPhone؛ مفضلة القنوات داخل قوائمها.", "Favorite media in the iPhone library; channel favorites are inside their playlists.")]
         filesAndCast.updateSections([CPListSection(items: [
@@ -377,7 +384,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             return item
         }
         entertainment.updateSections([
-            CPListSection(items: [carScreenItem(), videoStatusItem()]),
+            CPListSection(items: [videoStatusItem()]),
             CPListSection(items: Array(items))
         ])
     }
@@ -386,19 +393,17 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     /// العنصر الأول: يفتح متصفح ود كار على شاشة السيارة (كشاشة خارجية) مثل CarTV
     private func carScreenItem() -> CPListItem {
-        let item = CPListItem(text: carTr("المتصفح على iPhone", "Browser on iPhone"), detailText: carTr("افتح المواقع من الهاتف؛ القوالب لا تعرض صفحات ويب.", "Open sites on iPhone; templates do not render web pages."))
+        let item = CPListItem(text: carTr("المتصفح", "Browser"), detailText: carTr("واجهة المتصفح السابقة • شاشة خارجية متوافقة أثناء الوقوف", "Previous browser interface • Compatible external display while parked"))
         item.setImage(UIImage(systemName: "safari"))
-        item.handler = { [weak self] _, completion in
-            self?.startCarScreen()
+        item.accessoryType = .disclosureIndicator
+        item.handler = { _, completion in
+            CarScreenLauncher.shared.launch()
             completion()
         }
         return item
     }
 
-    private func startCarScreen() {
-        AppState.shared.showCarScreenHelp = true
-        showAlert([carTr("المتصفح متاح على iPhone. لتشغيل محتوى متوافق على السيارة استخدم المشغّل وزر AirPlay أثناء الوقوف، وفق دعم النظام والسيارة.", "The browser is available on iPhone. For compatible in-car media, use the player and AirPlay while parked, subject to system and vehicle support.")])
-    }
+    private func startCarScreen() { CarScreenLauncher.shared.launch() }
 
     /// الاختصار يُفتح على شاشة السيارة إن كان المتصفح معروضاً، وإلا على الهاتف
     private func openShortcut(_ url: URL) {
