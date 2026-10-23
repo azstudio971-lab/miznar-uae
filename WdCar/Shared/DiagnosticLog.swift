@@ -162,8 +162,9 @@ enum DiagnosticProfile {
         let build = info["CFBundleVersion"] as? String ?? "?"
         var system = utsname()
         uname(&system)
+        let machineCapacity = MemoryLayout.size(ofValue: system.machine)
         let model = withUnsafePointer(to: &system.machine) { pointer in
-            pointer.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: system.machine)) { String(cString: $0) }
+            pointer.withMemoryRebound(to: CChar.self, capacity: machineCapacity) { String(cString: $0) }
         }
         let entitlements = carPlayEntitlements()
         DiagnosticLog.shared.setSummaryValue("الصلاحيات في profile", value: entitlements)
