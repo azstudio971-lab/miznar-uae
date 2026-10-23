@@ -169,21 +169,51 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     private func rebuildHome() {
         let library = MediaLibrary.shared
         let sections = [
-            CPListSection(items: library.items.filter { $0.position > 0 }.map(mediaItem), header: carTr("متابعة المشاهدة", "Continue watching"), sectionIndexTitle: nil),
+            mediaSection(carTr("متابعة المشاهدة", "Continue watching"), items: library.items.filter { $0.position > 0 }),
             CPListSection(items: library.playlists.map { list in
                 let item = CPListItem(text: list.name, detailText: "\(list.itemIDs.count)", image: UIImage(systemName: "list.bullet.rectangle"))
                 item.handler = { [weak self] _, done in
                     let members = library.members(list.id)
-                    let template = CPListTemplate(title: list.name, sections: [CPListSection(items: members.map { self?.mediaItem($0) ?? CPListItem(text: $0.title, detailText: nil) })])
+                    let rows = members.map { media -> CPListItem in
+                        let row = self?.mediaItem(media) ?? CPListItem(text: media.title, detailText: nil)
+                        row.handler = { _, finished in
+                            PlaybackManager.shared.playQueue(members.compactMap(\.playbackItem), startingAt: media.url, presentOnPhone: false)
+                            if self?.supportsVideo != true { self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil) }
+                            finished()
+                        }
+                        return row
+                    }
+                    let template = CPListTemplate(title: list.name, sections: [CPListSection(items: rows)])
                     self?.interfaceController?.pushTemplate(template, animated: true, completion: nil); done()
                 }
                 return item
             }, header: carTr("قوائم التشغيل", "Playlists"), sectionIndexTitle: nil),
-            CPListSection(items: library.items.filter { $0.localFilename != nil }.map(mediaItem), header: carTr("الفيديوهات والملفات المحلية", "Local video and audio"), sectionIndexTitle: nil),
-            CPListSection(items: library.items.filter { $0.localFilename == nil }.map(mediaItem), header: carTr("روابط الوسائط", "Media URLs"), sectionIndexTitle: nil)
+            mediaSection(carTr("الفيديوهات والملفات المحلية", "Local video and audio"), items: library.items.filter { $0.localFilename != nil }),
+            mediaSection(carTr("روابط الوسائط", "Media URLs"), items: library.items.filter { $0.localFilename == nil })
         ]
         home.updateSections(sections)
     }
+    private func mediaSection(_ title: String, items: [LibraryMedia]) -> CPListSection {
+        if #available(iOS 26.4, *), !items.isEmpty {
+            let visible = Array(items.prefix(12))
+            let cards = visible.map { media in
+                let image = UIImage(contentsOfFile: MediaLibrary.shared.thumbnailURL(media.id).path) ?? UIImage(systemName: "play.rectangle")!
+                let card = CPListImageRowItemCardElement(image: image, showsImageFullHeight: false, title: media.title, subtitle: media.isLive ? carTr("مباشر", "Live") : nil, tintColor: .darkGray)
+                card.playbackConfiguration = CPPlaybackConfiguration(preferredPresentation: supportsVideo ? .video : .audio, playbackAction: .play, elapsedTime: CMTime(seconds: media.position, preferredTimescale: 600), duration: CMTime(seconds: media.duration ?? 0, preferredTimescale: 600))
+                return card
+            }
+            let row = CPListImageRowItem(text: title, cardElements: cards, allowsMultipleLines: true)
+            row.listImageRowHandler = { [weak self] _, index, done in
+                guard visible.indices.contains(index) else { done(); return }
+                PlaybackManager.shared.playQueue(items.compactMap(\.playbackItem), startingAt: visible[index].url, presentOnPhone: false)
+                if self?.supportsVideo != true { self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil) }
+                done()
+            }
+            return CPListSection(items: [row] + (items.count > 12 ? Array(items.dropFirst(12)).map(mediaItem) : []))
+        }
+        return CPListSection(items: items.map(mediaItem), header: title, sectionIndexTitle: nil)
+    }
+
     private func mediaItem(_ media: LibraryMedia) -> CPListItem {
         let image = UIImage(contentsOfFile: MediaLibrary.shared.thumbnailURL(media.id).path) ?? UIImage(systemName: "play.rectangle")
         let item = CPListItem(text: media.title, detailText: media.isLive ? carTr("مباشر", "Live") : nil, image: image)
@@ -311,11 +341,11 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         }
         let browser = carScreenItem()
         browser.handler = { [weak self] _, done in self?.confirmBrowserLaunch(); done() }
-        let media = MediaLibrary.shared.items.filter { $0.favorite }.map(mediaItem)
+        let media = MediaLibrary.shared.items.filter { $0.favorite && !$0.isLive }.map(mediaItem)
         let channels = MediaLibrary.shared.items.filter { $0.favorite && $0.isLive }.map(mediaItem)
         entertainment.updateSections([
             CPListSection(items: channels, header: carTr("القنوات المفضلة", "Favorite channels"), sectionIndexTitle: nil),
-            CPListSection(items: media.filter { _ in true }, header: carTr("الوسائط المفضلة", "Favorite media"), sectionIndexTitle: nil),
+            CPListSection(items: media, header: carTr("الوسائط المفضلة", "Favorite media"), sectionIndexTitle: nil),
             CPListSection(items: [browser] + Array(items) + [videoStatusItem()], header: carTr("تشغيل من الويب", "Play from web"), sectionIndexTitle: nil)
         ])
     }

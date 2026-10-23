@@ -18,7 +18,7 @@ extension PlayerPreferences {
             kCMTextMarkupAttribute_RelativeFontSize as String: number("subtitleSize", 100),
             kCMTextMarkupAttribute_ForegroundColorARGB as String: [1.0, 1.0, 1.0, yellow ? 0.0 : 1.0],
             kCMTextMarkupAttribute_BackgroundColorARGB as String: [number("subtitleOpacity", 0.6), 0.0, 0.0, 0.0],
-            kCMTextMarkupAttribute_OrthogonalLinePositionPercentage as String: position
+            kCMTextMarkupAttribute_OrthogonalLinePositionPercentageRelativeToWritingDirection as String: position
         ]
         return AVTextStyleRule(textMarkupAttributes: attributes).map { [$0] } ?? []
     }
