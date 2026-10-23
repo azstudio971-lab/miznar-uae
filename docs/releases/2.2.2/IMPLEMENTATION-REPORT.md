@@ -22,7 +22,7 @@ Date: 23 October 2026 (Dubai). This candidate is not approved for App Review sub
 | Player | Existing AVPlayer/AVPlayerViewController extended with queue, previous/next, resume, source-bounded seeking including real live seekable windows, skip intervals, available rates, loading/errors, native audio/embedded subtitle tracks, fit/fill |
 | External captions | SRT/VTT parser and iPhone overlay; size/color/background/delay controls; explicitly not sent to AirPlay/CarPlay/PiP |
 | Storage | Imported-copy deletion preserves Photos/Files originals, storage usage, no overwrite of unreadable metadata |
-| CarPlay | Shared library, Favorites/Continue watching within lists; Library/TV/Entertainment/Settings order; group into a list when tab capacity is insufficient; native playback configuration, no intro bootstrap; pause app-initiated car media on disconnect |
+| CarPlay | Build 224 uses Library/Favorites/Files & AirPlay/Entertainment/Settings destinations, grouped into a native list when five tabs are unavailable; channels are inside Library; group into a list when tab capacity is insufficient; native playback configuration, no intro bootstrap; removes automatic legacy dashboard mounting through both external scene roles; pause app-initiated car media on disconnect |
 | Browser | Browser/chrome/shortcuts source unchanged; existing optional GPS pause setting defaults to true for unset values, existing saved preferences retained; no new override of system restrictions |
 | Mouse | Existing touchpad source unchanged; access moved from phone tab/Home card to Settings |
 | Entitlements | Combined Audio + Video default for owner-requested internal build 223; separate Audio, Video and Combined experiment files; signed IPA audit of exact entitlements, bundle/team and profile grants |
@@ -83,3 +83,16 @@ Codemagic run `6adaf76e8a524d15d6a645ae` compiled, archived, exported and audite
 This is an internal comparison build, not evidence that a media player requires both entitlements or that Apple's prior rejection has been resolved. Restoring entitlements does not prove the cause of the physical video failure. Native vehicle playback and the retained browser path still require separate physical verification. No beta-review or App Store submission is requested by this workflow.
 
 Apple processing completed. Build 2.2.2 (223) is **Testing** in WudCar Internal (21 builds, 1 tester), observed on 23 October 2026.
+
+
+## CarPlay root correction — build 224
+
+The owner found that 223 still displayed the old CarPlay dashboard. Both the dedicated external scene and the application-role external fallback automatically mounted CarDashboardViewController over the new template navigation. Build 224 removes that automatic mounting. The main interface stays with CPTemplateApplicationScene, with Library, Favorites, Files & AirPlay, Entertainment and Settings. Channel playlists are reached through Library. The external browser only opens on explicit request; it no longer owns the main media interface.
+
+An actual AirPlay sender page on iPhone offers the system route picker and library playback. It does not implement whole-screen mirroring, AirPlay receiving or DLNA receiving. In-app privacy/terms now describe the actual video/media player, local imported copies, internet sources, Keychain metadata, AirPlay and the separate app subscription.
+
+Final source `b52a096d7062c5e9d8398c46d5b96b16d2fb7c6e` passed **14 tests, 0 failures**, 164.016 seconds, Xcode 26.6 / iPhone 16 Pro simulator iOS 18.5. Run 39911897630 and both Validate WudCar runs 39911897642/39911905472 succeeded. Arabic AirPlay and privacy simulator captures were visually inspected. These are not car/display-output tests.
+
+Packaging source `7e748efb429cf0340f351ee00e97edf41eb535c5` is checked against the tested application source. Codemagic run `6adb02118a524d15d6a647d5` signed and audited 2.2.2 (224) with BOTH Audio and Video entitlements and the unchanged bundle/team. See BUILD-224-AR.md and docs/verification/224 for full evidence.
+
+Apple processing completed; 2.2.2 (224) is **Testing** in WudCar Internal. Delivery ID `c9b69313-c58d-407d-8359-9f139d2f9818`. No beta/App Store review request or public release was submitted.

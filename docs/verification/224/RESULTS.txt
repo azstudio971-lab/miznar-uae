@@ -1,0 +1,20 @@
+Source: b52a096d7062c5e9d8398c46d5b96b16d2fb7c6e
+Run: https://github.com/azstudio971-lab/miznar-uae/actions/runs/39911897630
+Xcode 26.6; iPhone 16 Pro simulator iOS 18.5
+2026-10-23T06:37:08.6009220Z Test Case '-[WdCarTests.Car224Tests testCarPlayFavoritesUseTheSameMediaAsPhone]' passed (0.180 seconds).
+2026-10-23T06:37:09.1995310Z Test Case '-[WdCarTests.Car224Tests testExternalSceneDoesNotMountLegacyDashboardOnConnection]' passed (0.107 seconds).
+2026-10-23T06:37:10.5083880Z Test Case '-[WdCarTests.Car224Tests testNativeNavigationIncludesAllMediaDestinationsInBothLanguages]' passed (0.011 seconds).
+2026-10-23T06:37:10.5302230Z Test Case '-[WdCarTests.Car224Tests testPolicyAndCastPageRenderInBothLanguages]' passed (2.043 seconds).
+2026-10-23T06:37:10.5460940Z Test Suite 'Car224Tests' passed at 2026-10-23 06:37:10.141.
+2026-10-23T06:37:10.5580590Z 	 Executed 4 tests, with 0 failures (0 unexpected) in 2.341 (3.222) seconds
+2026-10-23T06:38:52.6494560Z Test Suite 'Media222Tests' passed at 2026-10-23 06:38:52.475.
+2026-10-23T06:38:52.6495400Z 	 Executed 6 tests, with 0 failures (0 unexpected) in 102.330 (102.334) seconds
+2026-10-23T06:39:11.1349720Z Test Suite 'Release17Tests' passed at 2026-10-23 06:39:11.123.
+2026-10-23T06:39:11.1458490Z 	 Executed 3 tests, with 0 failures (0 unexpected) in 18.646 (18.647) seconds
+2026-10-23T06:39:50.9847700Z Test Suite 'SubscriptionTests' passed at 2026-10-23 06:39:50.932.
+2026-10-23T06:39:50.9999050Z Test Suite 'WdCarTests.xctest' passed at 2026-10-23 06:39:50.932.
+2026-10-23T06:39:50.9999650Z 	 Executed 14 tests, with 0 failures (0 unexpected) in 163.124 (164.014) seconds
+2026-10-23T06:39:51.0000430Z Test Suite 'Selected tests' passed at 2026-10-23 06:39:50.933.
+2026-10-23T06:39:51.0001520Z 	 Executed 14 tests, with 0 failures (0 unexpected) in 163.124 (164.016) seconds
+2026-10-23T06:39:52.4031540Z ** TEST SUCCEEDED **
+
