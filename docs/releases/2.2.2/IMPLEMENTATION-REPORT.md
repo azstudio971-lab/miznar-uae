@@ -8,7 +8,7 @@ Date: 23 October 2026 (Dubai). This candidate is not approved for App Review sub
 - Initial application-source commit: `03041a08fd9668ae16e2e75e33404bc1ae1288b0`. Latest build-17 head `6ca24bc877495dbaed55ff2aa833e687fa4e058f` is incorporated, including its icon fixes, evidence and corrected non-square SF Symbol test. Swift application sources were unchanged between these baseline commits.
 - Base `project.yml`: marketing version 1.6.0, build 17.
 - New branch: `develop/wudcar-2.2.2-media`; previous branches remain unchanged.
-- Target: 2.2.2, source build floor 222. Inspected active project branches contained builds through 19. The legacy project generator also contains build 111. The final signed build number must be allocated from verified App Store Connect data: max(222, latest TestFlight build + 1). No final signed build is claimed yet.
+- Target: 2.2.2, source build floor 222. Inspected active project branches contained builds through 19. The legacy project generator also contains build 111. The final signed build number must be allocated from verified App Store Connect data: max(223, latest TestFlight build + 1). Build 223 was signed and uploaded with both CarPlay entitlements at the owner’s explicit request.
 - Final identity confirmed by the user on 23 October 2026: `com.azstudio.wudcar`, team `QS29RVJPUT`. This matches the build-17 delivery report and existing App Store application rather than the `com.azpixel.wudcar` identifier initially requested. Configuration and signing audit now preserve that existing identity.
 - Existing StoreKit product ID `com.azstudio.wudcar.premium.monthly`, prices, access logic and subscription source are unchanged.
 
@@ -25,7 +25,7 @@ Date: 23 October 2026 (Dubai). This candidate is not approved for App Review sub
 | CarPlay | Shared library, Favorites/Continue watching within lists; Library/TV/Entertainment/Settings order; group into a list when tab capacity is insufficient; native playback configuration, no intro bootstrap; pause app-initiated car media on disconnect |
 | Browser | Browser/chrome/shortcuts source unchanged; existing optional GPS pause setting defaults to true for unset values, existing saved preferences retained; no new override of system restrictions |
 | Mouse | Existing touchpad source unchanged; access moved from phone tab/Home card to Settings |
-| Entitlements | Audio-only default; separate Audio, Video and Combined experiment files; signed IPA audit of exact entitlements, bundle/team and profile grants |
+| Entitlements | Combined Audio + Video default for owner-requested internal build 223; separate Audio, Video and Combined experiment files; signed IPA audit of exact entitlements, bundle/team and profile grants |
 | Build | Manual Codemagic workflow `wudcar-222-media-validation`, internal TestFlight publishing only, no App Store submission; GitHub macOS validation workflow |
 
 ## Limits and unresolved requirements
@@ -48,8 +48,8 @@ Date: 23 October 2026 (Dubai). This candidate is not approved for App Review sub
 - Final application-source validation passed: https://github.com/azstudio971-lab/miznar-uae/actions/runs/39878005499 , commit `ed5f145db1b788cb59d963d0f5900641a6d42b0a`. Xcode 26.6, iPhone 16 Pro simulator, iOS 18.5: **10 tests, 0 failures**, 337.264 seconds. Includes imported-copy readiness/queue/removal, SRT/VTT parsing, metadata credential isolation, 3 build-17 shortcut/toolbar regressions, and the complete existing StoreKit lifecycle test. This is not physical video-output or manual resume verification.
 - Corrected screenshot capture produced 8 nonblank library/player-settings images in Arabic/English and light/dark appearances. Arabic light library and English dark player settings were visually inspected. The library is shown empty after test cleanup; these are technical UI captures, not final App Store marketing or physical-car screenshots.
 - Download test results/screenshots: https://github.com/azstudio971-lab/miznar-uae/actions/runs/39878005499/artifacts/12469204404 . Artifact expires 21 January 2027. Filtered logs are preserved in `docs/verification/222/RESULTS.txt`.
-- Signed audit has not run: no candidate signed IPA supplied or generated in this session yet. Certificates and developer account are unchanged.
-- Codemagic/Apple credentials are not exposed through the available tools; preparing its workflow does not establish that TestFlight received a build.
+- Signed IPA audit subsequently PASSED for 2.2.2 (222), bundle com.azstudio.wudcar, team QS29RVJPUT, CarPlay Audio only. Certificates and developer account are unchanged.
+- The connected browser subsequently ran Codemagic and verified Apple processing and internal distribution. Build 2.2.2 (222) is Testing in WudCar Internal. See the delivery record below.
 
 ## Physical acceptance record required before submission
 
@@ -62,3 +62,24 @@ Do not submit this candidate to review or production merely because a simulator 
 - Apple CarPlay Developer Guide: https://developer.apple.com/download/files/CarPlay-Developer-Guide.pdf
 - Video capability is not current playback permission: https://developer.apple.com/documentation/carplay/cpsessionconfiguration/supportsvideoplayback
 - Native route picker: https://developer.apple.com/documentation/avkit/avroutepickerview
+
+## Internal TestFlight delivery
+
+Owner explicitly authorized upload for personal testing. Codemagic run `6adaf41e8a524d15d6a64516`, source `f8a19e5f5e205c03a4adfffc65292767fc81f609`, signed and uploaded 2.2.2 (222). The first attempt could not connect to the simulator; packaging was revised to fail closed unless app/config/test sources match the passing `ed5f145` commit, then compile for device and archive. No app-source changes were required.
+
+Upload delivery ID: `c7339ec8-a0e4-4803-89e8-c61c432e7b43`. Signed audit passed with Audio-only entitlement and correct bundle/team. App Store Connect shows the build as Testing in the existing WudCar Internal group (1 tester). Physical playback remains unverified.
+
+The initial `submit_to_testflight: true` setting automatically queued a TestFlight beta-review request. It was withdrawn through Remove from Review; future workflow configuration now uses false for both beta review and App Store review. Uploading the binary still makes it available for internal distribution. What to Test, existing subscriptions, external groups and production App Store submission were not changed.
+
+Build: https://appstoreconnect.apple.com/teams/083cc9d9-2d98-4c4d-bac0-b5c2846e2b50/apps/6823772404/testflight/ios/c7339ec8-a0e4-4803-89e8-c61c432e7b43
+
+
+## Owner-requested entitlement correction — build 223
+
+The owner reported that build 222 did not provide working CarPlay video and explicitly requested both entitlements. Commit `d5b1859d869a5442dc3f235988c5e25784d9da89` restores Audio + Video in the default entitlement file and selects Combined for internal packaging. No Swift application code changed from the tested source. Build allocation has a floor of 223.
+
+Codemagic run `6adaf76e8a524d15d6a645ae` compiled, archived, exported and audited **2.2.2 (223)** successfully. Both `com.apple.developer.carplay-audio` and `com.apple.developer.carplay-video` are present in the signed app and authorized by its profile. Bundle/team are unchanged. Upload succeeded without errors, delivery ID `2d125637-f83a-459a-8067-075fd19f5813`.
+
+This is an internal comparison build, not evidence that a media player requires both entitlements or that Apple's prior rejection has been resolved. Restoring entitlements does not prove the cause of the physical video failure. Native vehicle playback and the retained browser path still require separate physical verification. No beta-review or App Store submission is requested by this workflow.
+
+Apple processing completed. Build 2.2.2 (223) is **Testing** in WudCar Internal (21 builds, 1 tester), observed on 23 October 2026.

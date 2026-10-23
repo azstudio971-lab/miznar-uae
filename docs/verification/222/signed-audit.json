@@ -1,0 +1,16 @@
+{
+  "bundle": "com.azstudio.wudcar",
+  "version": "2.2.2",
+  "build": "222",
+  "team": "QS29RVJPUT",
+  "carplay_mode": "Audio",
+  "entitlements": [
+    "com.apple.developer.carplay-audio"
+  ],
+  "signed_audit": "passed",
+  "evidence": "Codemagic archive/audit log, run 6adaf41e8a524d15d6a64516",
+  "delivery_id": "c7339ec8-a0e4-4803-89e8-c61c432e7b43",
+  "internal_group": "WudCar Internal",
+  "observed_status": "Testing",
+  "physical_car_test": "not performed by the agent"
+}
