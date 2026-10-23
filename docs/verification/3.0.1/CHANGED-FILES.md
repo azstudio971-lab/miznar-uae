@@ -21,7 +21,7 @@
 - `WdCar/Shared/DrivingMonitor.swift` — Mandatory car lock, When In Use pre-explanation and permission-denied fallback.
 - `WdCar/Shared/PlaybackManager.swift` — Queue, position persistence, seek ranges, metadata, player preferences, startup timeout, sleep timer, audio/video safety and PiP lifecycle.
 - `WdCarTests/Media301Tests.swift` — Actual local import/persistence/playlist tests, native HLS playback, subtitle rules, safety default, real tab order and native UI captures.
-- `codemagic.yaml` — Dedicated release-candidate workflow with complete tests, mandatory signed Audio+Video checks and internal upload only.
+- `codemagic.yaml` — Full-test release workflow plus owner-authorized internal archive of unchanged tested source; mandatory frozen-browser and signed Audio+Video gates in both.
 - `docs/appstore/3.0.1/ar.json` — Localized store submission draft (not uploaded).
 - `docs/appstore/3.0.1/description-ar.txt` — Localized store submission draft (not uploaded).
 - `docs/appstore/3.0.1/description-en.txt` — Localized store submission draft (not uploaded).
@@ -38,3 +38,9 @@
 - `scripts/verify_frozen_browser.py` — Byte-compare 26 protected files and three original launch/configuration methods against build 17.
 - `scripts/verify_signed_301.py` — Validate true signed Audio+Video, existing Team/Bundle ID and distribution signing; save exact signed entitlement plist.
 - `web/src/policies.js` — Append bilingual media-player, content-rights and safety terms without deploying the site.
+
+- `docs/verification/3.0.1/OWNER-TRIAL.md` — Owner-authorized internal test scope and complete honest test outcome summary.
+- `docs/verification/3.0.1/RESUME-REPORT.md` — Original resume checkpoint, preserved as a historical record; later results are in OWNER-TRIAL.md.
+- `docs/verification/3.0.1/UPLOAD.md` — Actual archive, signed entitlement verification, uploader delivery UUID and internal availability evidence.
+- `docs/verification/3.0.1/signed-entitlements.txt` — Complete actual entitlement dictionary emitted by the successful exported-IPA verifier.
+- `docs/verification/3.0.1/codemagic-finished.jpg` — Actual completed build screenshot showing source/version, successful identity gate and archive steps.

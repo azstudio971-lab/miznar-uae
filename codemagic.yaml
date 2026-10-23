@@ -508,3 +508,18 @@ workflows:
         auth: integration
         submit_to_testflight: false
         submit_to_app_store: false
+  wudcar-301-testflight-status:
+    name: WudCar 3.0.1 (1) — finish existing TestFlight upload (no build)
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    integrations:
+      app_store_connect: WudCar ASC Key
+    scripts:
+    - name: Confirm existing upload and internal group only
+      script: 'set -euo pipefail
+
+        python3 scripts/verify_internal_301.py
+
+        '
+    artifacts:
+    - build/301-testflight-status/*.json

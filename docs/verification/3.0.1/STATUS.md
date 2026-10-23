@@ -4,14 +4,19 @@ Base: 6ca24bc877495dbaed55ff2aa833e687fa4e058f. Branch: release/wudcar-3.0.1.
 No main merge, production deployment, store metadata change, external beta review or App Store submission authorized/performed.
 Owner removed section 9: no DiagnosticLog, no copy log UI, no diagnostic tests, no test-audio code in this release. Existing build-17 WDLog is byte-identical.
 
-## Verification so far
-- Frozen browser check: PASS (26 files byte-identical, three original launch methods verbatim; empty browser-diff-stat.txt).
-- npm run check: PASS (7 tests and web production build). GitHub browser UI web job PASS.
-- Initial iOS compile failures corrected: official CoreMedia subtitle placement constant; future SDK MiniPlayer API gated.
-- Native compile passed at cfaa43b on GitHub and Codemagic. Codemagic new core tests passed: import/playlists/persistence, invalid import rollback, safety default, subtitle parsing and style application. Screenshot and existing subscription-dependent tests failed on current runtime with SKTestSession notEntitled. No signed IPA uploaded from that attempt. CI now uses real iOS 18.5 for StoreKit; all tests remain mandatory. Final source tests and signed release pending.
-- App Store Connect observed existing versions through 2.2.3 (1701), no 3.0.1 uploaded at inspection.
+## Verification and current upload status
 
-Codemagic queued build: https://codemagic.io/app/6ad1db1b951fcdf1e4f45860/build/6adb4fc54a72334e32e460f3 (source cfaa43b).
+App source under test: f14d3265dea56641f9aa4fed67f25594c60cefec.
+Owner-trial workflow commit: e85525737e1ea880e2913a7f687b65ae6fbb575e (app source unchanged).
+
+- Frozen browser gate: PASS (26 files byte-identical, three launch methods verbatim, empty browser-diff-stat.txt).
+- GitHub run 39953949991: web job PASS, native compile PASS; complete native suite FAILED. Six new Media301Tests, five Release150Tests, five Release160Tests, three Release17Tests and SubscriptionTests all passed. Remaining failures are recorded without a green-suite claim in OWNER-TRIAL.md.
+- Actual legal Apple HLS playback advanced in GitHub Simulator. YouTube desktop navigation and back passed on phone then car-size Simulator at width1280/pageZoom1.0. Physical vehicle testing is not claimed.
+- GitHub native artifact 12503243444 contains generated phone UI captures; download attempts timed out and visual acceptance remains pending.
+- Codemagic full-test attempt 6adb53d84a72334e32e46243 reproduced five old assertions, and timed out in HLS and captures. Canceled at40m14s after owner requested direct internal trial; it never archived or uploaded.
+- Owner explicitly requested internal TestFlight upload after these limitations were explained. Workflow wudcar-301-owner-internal archives unchanged tested app source without repeating simulator tests; original strict workflow remains intact. Signed Audio+Video and frozen-browser gates remain mandatory.
+- Current owner-trial build: https://codemagic.io/app/6ad1db1b951fcdf1e4f45860/build/6adb5e684a72334e32e46670 . Archive/export and strict signed-entitlement checks passed. Apple uploader confirmed success without errors at13:27:05UTC, delivery22e2db8c-529f-4b11-bc02-c4f34951fdfb. App Store Connect showed3.0.1(1) Processing before its session expired; final availability is still being verified. See UPLOAD.md and signed-entitlements.txt.
+- No App Store review, store metadata upload, production merge or external beta review performed.
 
 ## Limits / acceptance still pending
 - Physical vehicle testing is owner-only and not claimed.
@@ -60,3 +65,5 @@ Codemagic queued build: https://codemagic.io/app/6ad1db1b951fcdf1e4f45860/build/
 - `scripts/verify_frozen_browser.py` — media-player implementation, safety, policies or build/test integration
 - `scripts/verify_signed_301.py` — media-player implementation, safety, policies or build/test integration
 - `web/src/policies.js` — media-player implementation, safety, policies or build/test integration
+
+Implementation boundary: the four-tab root is a native CPTabBarTemplate. The build-17 external-display dashboard/browser path remains intact, including its existing welcome/dashboard UI when that separate window is opened. This release does not claim that the retained external browser is an Apple-approved CarPlay template.
