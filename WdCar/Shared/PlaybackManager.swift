@@ -27,6 +27,7 @@ final class PlaybackManager: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var isExternalDisplayPlayback = false
     @Published var isPlayerPresented = false
+    @Published var isPictureInPictureActive = false
 
     @Published private(set) var queue: [Item] = []
     @Published private(set) var elapsed: Double = 0
@@ -150,9 +151,11 @@ final class PlaybackManager: ObservableObject {
         player.seek(to: CMTime(seconds: target, preferredTimescale: 600))
     }
 
-    func playQueue(_ items: [Item], startingAt url: URL?, presentOnPhone: Bool) {
-        queue = items
-        guard let first = items.first(where: { $0.url == url }) ?? items.first else { return }
+    func playQueue(_ items: [Item], startingAt url: URL?, presentOnPhone: Bool, playlistName: String? = nil) {
+        queue = items.map { item in
+            Item(title: item.title, subtitle: playlistName ?? item.subtitle, url: item.url, isLive: item.isLive, artworkURL: item.artworkURL, sourceKey: item.sourceKey)
+        }
+        guard let first = queue.first(where: { $0.url == url }) ?? queue.first else { return }
         play(first, presentOnPhone: presentOnPhone)
     }
 
@@ -308,6 +311,9 @@ final class PlaybackManager: ObservableObject {
     }
 
     private func loadArtwork(for item: Item) {
+        if let url = item.artworkURL, url.isFileURL, let image = UIImage(contentsOfFile: url.path) {
+            artwork = image; updateNowPlaying(); return
+        }
         ImageLoader.shared.load(item.artworkURL) { [weak self] image in
             guard let self, self.current == item else { return }
             self.artwork = image
@@ -325,7 +331,7 @@ final class PlaybackManager: ObservableObject {
             MPMediaItemPropertyArtist: current.subtitle,
             MPMediaItemPropertyAlbumTitle: current.subtitle,
             MPNowPlayingInfoPropertyIsLiveStream: current.isLive,
-            MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.video.rawValue,
+            MPNowPlayingInfoPropertyMediaType: (["mp3", "m4a", "aac", "wav", "aiff", "flac"].contains(current.url.pathExtension.lowercased()) ? MPNowPlayingInfoMediaType.audio : .video).rawValue,
             MPNowPlayingInfoPropertyPlaybackRate: Double(player.rate)
         ]
         let center = MPRemoteCommandCenter.shared()
@@ -396,8 +402,22 @@ final class PlaybackManager: ObservableObject {
 // MARK: - شاشة المشغل على الهاتف (فيها زر AirPlay وصورة داخل صورة)
 
 struct PlayerScreen: UIViewControllerRepresentable {
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    final class Coordinator: NSObject, AVPlayerViewControllerDelegate {
+        func playerViewControllerWillStartPictureInPicture(_ playerViewController: AVPlayerViewController) { PlaybackManager.shared.isPictureInPictureActive = true }
+        func playerViewControllerDidStopPictureInPicture(_ playerViewController: AVPlayerViewController) {
+            let playback = PlaybackManager.shared
+            playback.isPictureInPictureActive = false
+            if !playback.isPlayerPresented && !playback.isExternalDisplayPlayback { playback.stop() }
+        }
+        func playerViewController(_ playerViewController: AVPlayerViewController, restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
+            PlaybackManager.shared.isPlayerPresented = true
+            completionHandler(true)
+        }
+    }
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
+        controller.delegate = context.coordinator
         controller.player = PlaybackManager.shared.player
         controller.allowsPictureInPicturePlayback = PlayerPreferences.flag("pip", true)
         controller.canStartPictureInPictureAutomaticallyFromInline = PlayerPreferences.flag("pip", true)

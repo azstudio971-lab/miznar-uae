@@ -22,7 +22,7 @@ struct LibraryMedia: Codable, Identifiable, Equatable {
     }
     var playbackItem: PlaybackManager.Item? {
         guard let url else { return nil }
-        return .init(title: title, subtitle: localFilename == nil ? tr("مصدر إنترنت", "Internet source") : tr("ملف مستورد", "Imported file"), url: url, isLive: isLive, artworkURL: nil, sourceKey: sourceKey)
+        return .init(title: title, subtitle: localFilename == nil ? tr("مصدر إنترنت", "Internet source") : tr("ملف مستورد", "Imported file"), url: url, isLive: isLive, artworkURL: localFilename == nil ? nil : MediaLibrary.shared.thumbnailURL(id), sourceKey: sourceKey)
     }
 }
 
@@ -40,6 +40,11 @@ final class MediaLibrary: ObservableObject {
 
     private init() {
         do {
+            let legacy = Self.directory.deletingLastPathComponent().appendingPathComponent("MediaLibrary", isDirectory: true)
+            if !FileManager.default.fileExists(atPath: Self.directory.path), FileManager.default.fileExists(atPath: legacy.path) {
+                // Copy once; retain the old library unchanged for rollback.
+                try FileManager.default.copyItem(at: legacy, to: Self.directory)
+            }
             try FileManager.default.createDirectory(at: Self.directory, withIntermediateDirectories: true)
             if FileManager.default.fileExists(atPath: metadata.path) {
                 items = try JSONDecoder().decode([LibraryMedia].self, from: Data(contentsOf: metadata))

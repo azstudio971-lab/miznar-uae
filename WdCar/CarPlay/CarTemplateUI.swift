@@ -183,7 +183,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                     let rows = members.map { media -> CPListItem in
                         let row = self?.mediaItem(media) ?? CPListItem(text: media.title, detailText: nil)
                         row.handler = { _, finished in
-                            PlaybackManager.shared.playQueue(members.compactMap(\.playbackItem), startingAt: media.url, presentOnPhone: false)
+                            PlaybackManager.shared.playQueue(members.compactMap(\.playbackItem), startingAt: media.url, presentOnPhone: false, playlistName: list.name)
                             if self?.supportsVideo != true { self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil) }
                             finished()
                         }

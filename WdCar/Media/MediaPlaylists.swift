@@ -42,7 +42,7 @@ extension MediaLibrary {
         (playlists.first { $0.id == id }?.itemIDs ?? []).compactMap { id in items.first { $0.id == id } }
     }
     func play(_ list: MediaPlaylist, onPhone: Bool) {
-        PlaybackManager.shared.playQueue(members(list.id).compactMap(\.playbackItem), startingAt: nil, presentOnPhone: onPhone)
+        PlaybackManager.shared.playQueue(members(list.id).compactMap(\.playbackItem), startingAt: nil, presentOnPhone: onPhone, playlistName: list.name)
     }
 }
 struct MediaPlaylistsView: View {

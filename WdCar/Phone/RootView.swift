@@ -72,7 +72,7 @@ struct MainTabView: View {
         }
         .fullScreenCover(isPresented: $playback.isPlayerPresented) {
             PlayerContainer()
-                .onDisappear { if !playback.isExternalDisplayPlayback { playback.stop() } }
+                .onDisappear { if !playback.isExternalDisplayPlayback && !playback.isPictureInPictureActive { playback.stop() } }
         }
     }
 }
