@@ -14,7 +14,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     private var interfaceController: CPInterfaceController?
     private var sessionConfiguration: CPSessionConfiguration?
-    private let home = CPListTemplate(title: carTr("الرئيسية", "Home"), sections: [])
+    private let home = CPListTemplate(title: carTr("المكتبة", "Library"), sections: [])
     private let entertainment = CPListTemplate(title: carTr("الترفيه", "Entertainment"), sections: [])
     private let settings = CPListTemplate(title: carTr("الإعدادات", "Settings"), sections: [])
     private let television = CPListTemplate(title: carTr("التلفزيون TV", "TV"), sections: [])
@@ -61,7 +61,8 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         settings.tabTitle = carTr("الإعدادات", "Settings")
         settings.tabImage = UIImage(systemName: "gearshape.fill")
 
-        let tabs = CPTabBarTemplate(templates: [home, entertainment, television, settings])
+        let templates: [CPTemplate] = [home, television, entertainment, settings]
+        let tabs = CPTabBarTemplate(templates: Array(templates.prefix(CPTabBarTemplate.maximumTabCount)))
         tabs.delegate = self
         tabBar = tabs
         rebuildHome()
@@ -90,6 +91,11 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         ShortcutStore.shared.$shortcuts
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
             .sink { [weak self] shortcuts in self?.rebuildEntertainment(shortcuts) }
+            .store(in: &bag)
+
+        MediaLibrary.shared.$items
+            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildHome() }
             .store(in: &bag)
 
         XtreamStore.shared.$accounts
@@ -148,35 +154,39 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     }
 
     func tabBarTemplate(_ tabBarTemplate: CPTabBarTemplate, didSelect selectedTemplate: CPTemplate) {
-        guard selectedTemplate === entertainment, !AppState.shared.carScreenActive else { return }
-        startCarScreen()
+        // Selecting a tab must not start unrelated media or bootstrap an external display.
     }
 
     private func rebuildHome() {
-        let greeting = CPListItem(
-            text: carTr("مرحباً بكم في وُد كار (WudCar)", "Welcome to WudCar"),
-            detailText: carTr("أهلاً بكم في تجربتكم الترفيهية مع وُد كار.",
-                              "Welcome to your entertainment experience with WudCar."),
-            image: UIImage(systemName: "sparkles")
-        )
-        let customize = CPListItem(
-            text: carTr("التخصيص والمواقع المفضلة", "Settings and favorites"),
-            detailText: carTr("يمكنكم تخصيص إعدادات التطبيق وإدارة خيارات الترفيه والمواقع المفضلة بسهولة من خلال تطبيق WudCar على هاتف iPhone.",
-                              "Customize app settings, entertainment options, and favorite websites in WudCar on your iPhone."),
-            image: UIImage(systemName: "iphone")
-        )
-        let safety = CPListItem(
-            text: carTr("سلامتكم أولويتنا", "Your safety comes first"),
-            detailText: carTr("نرجو الالتزام بقواعد السلامة المرورية وعدم الانشغال بالشاشة أثناء القيادة.",
-                              "Please follow traffic safety rules and avoid interacting with the screen while driving."),
-            image: UIImage(systemName: "hand.raised.fill")
-        )
-        let farewell = CPListItem(
-            text: carTr("رافقتكم السلامة ..", "Safe travels"),
-            detailText: nil,
-            image: UIImage(systemName: "heart.fill")
-        )
-        home.updateSections([CPListSection(items: [greeting, customize, safety, farewell])])
+        home.tabTitle = carTr("المكتبة", "Library")
+        let media = MediaLibrary.shared.items
+        let groups: [(String, [LibraryMedia])] = [
+            (carTr("متابعة المشاهدة", "Continue watching"), media.filter { $0.position > 0 }),
+            (carTr("المفضلة", "Favorites"), media.filter { $0.favorite }),
+            (carTr("ملفات محلية وروابط", "Local files and URLs"), media)
+        ]
+        var sections: [CPListSection] = []
+        var remaining = Self.maxItems
+        for (title, entries) in groups where !entries.isEmpty && remaining > 0 {
+            let rows = entries.prefix(remaining).map { media -> CPListItem in
+                let row = CPListItem(text: media.title, detailText: media.localFilename == nil ? carTr("مصدر إنترنت", "Internet source") : carTr("ملف مستورد", "Imported file"))
+                self.applyPlaybackConfiguration(to: row)
+                row.handler = { [weak self] _, completion in
+                    PlaybackManager.shared.playQueue(entries.compactMap(\.playbackItem), startingAt: media.url, presentOnPhone: false)
+                    if self?.supportsVideo != true {
+                        self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+                    }
+                    completion()
+                }
+                return row
+            }
+            sections.append(CPListSection(items: rows, header: title, sectionIndexTitle: nil))
+            remaining -= rows.count
+        }
+        if sections.isEmpty {
+            sections = [CPListSection(items: [CPListItem(text: carTr("أضف وسائط من iPhone", "Add media on iPhone"), detailText: carTr("القنوات في تبويب التلفزيون، والملفات في مكتبة الهاتف.", "Channels are in the TV tab; import files in the iPhone library."))])]
+        }
+        home.updateSections(sections)
     }
 
     private func rebuildSettings() {
@@ -191,7 +201,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             self.entertainment.tabTitle = carTr("الترفيه", "Entertainment")
             self.television.tabTitle = carTr("التلفزيون TV", "TV")
             self.settings.tabTitle = carTr("الإعدادات", "Settings")
-            self.tabBar?.updateTemplates([self.home, self.entertainment, self.television, self.settings])
+            self.tabBar?.updateTemplates([self.home, self.television, self.entertainment, self.settings])
             self.rebuildHome()
             self.rebuildSettings()
         }
@@ -295,7 +305,6 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             detailText: active ? carTr("يعمل الآن", "Running now") : carTr("اضغط للتشغيل", "Tap to start")
         )
         item.setImage(UIImage(systemName: active ? "safari.fill" : "safari"))
-        applyPlaybackConfiguration(to: item)
         item.handler = { [weak self] _, completion in
             self?.startCarScreen()
             completion()
@@ -602,3 +611,4 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                                              animated: true, completion: nil)
     }
 }
+

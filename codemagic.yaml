@@ -1,13 +1,3 @@
-# Codemagic — بناء WudCar ورفعه إلى TestFlight
-#
-# قبل أول تشغيل (مرة واحدة، من حسابك):
-# 1) Codemagic → Teams → Integrations → Developer Portal: أضف مفتاح App Store Connect API
-#    (صلاحية App Manager) وسمّه بالاسم في الأسفل: WudCar ASC Key
-# 2) Codemagic → المشروع → Environment variables، مجموعة باسم wudcar:
-#      TEAM_ID       = معرّف فريقك في Apple (10 أحرف)
-#      APP_STORE_ID  = رقم Apple ID للتطبيق من App Store Connect (بعد إنشاء سجل التطبيق)
-# 3) تأكد أن App ID للمعرّف أدناه مفعّل عليه CarPlay (Video) في Apple Developer.
-
 workflows:
   wudcar-preview:
     name: WudCar → Preview 1.6.0
@@ -19,42 +9,41 @@ workflows:
         XCODE_PROJECT: WdCar.xcodeproj
         XCODE_SCHEME: WdCar
     scripts:
-      - name: التحقق من المصدر والشعار الكامل
-        script: |
-          echo "SOURCE_COMMIT: $(git rev-parse HEAD)"
-          python3 scripts/verify_logo.py
-      - name: تثبيت XcodeGen
-        script: |
-          brew install xcodegen
-      - name: إنشاء مشروع Xcode
-        script: |
-          xcodegen generate
-      - name: بناء واختبار نسخة المعاينة فقط
-        script: |
-          set -euo pipefail
-          xcrun simctl list devices available
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); candidates=[(k,v["udid"]) for k,a in d["devices"].items() for v in a if "iPhone" in v["name"] and any(t in k for t in ("iOS-18-", "iOS-26-1", "iOS-26-2", "iOS-26-6"))]; print(sorted(candidates)[0][1] if candidates else "")')
-          if [ -z "$DEVICE" ]; then
-            xcodebuild -downloadPlatform iOS -buildVersion 18.5
-            DEVICE=$(xcrun simctl create WudCarStoreKitTest com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro com.apple.CoreSimulator.SimRuntime.iOS-18-5)
-          fi
-          echo "STOREKIT_TEST_DEVICE: $DEVICE"
-          xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests \
-            -destination "platform=iOS Simulator,id=$DEVICE" \
-            -parallel-testing-enabled NO -test-timeouts-enabled YES \
-            -default-test-execution-time-allowance 180 \
-            -maximum-test-execution-time-allowance 180 \
-            -resultBundlePath /tmp/WudCar150Preview.xcresult \
-            CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-150-preview.log
-      - name: تصدير صور المعاينة
-        script: |
-          mkdir -p build/150-preview
-          xcrun xcresulttool export attachments --path /tmp/WudCar150Preview.xcresult --output-path build/150-preview
-    artifacts:
-      - build/150-preview/**/*
-      - /tmp/WudCar150Preview.xcresult
-      - /tmp/wudcar-150-preview.log
+    - name: التحقق من المصدر والشعار الكامل
+      script: 'echo "SOURCE_COMMIT: $(git rev-parse HEAD)"
 
+        python3 scripts/verify_logo.py
+
+        '
+    - name: تثبيت XcodeGen
+      script: 'brew install xcodegen
+
+        '
+    - name: إنشاء مشروع Xcode
+      script: 'xcodegen generate
+
+        '
+    - name: بناء واختبار نسخة المعاينة فقط
+      script: "set -euo pipefail\nxcrun simctl list devices available\nDEVICE=$(xcrun simctl list devices available -j | python3\
+        \ -c 'import json,sys; d=json.load(sys.stdin); candidates=[(k,v[\"udid\"]) for k,a in d[\"devices\"].items() for v\
+        \ in a if \"iPhone\" in v[\"name\"] and any(t in k for t in (\"iOS-18-\", \"iOS-26-1\", \"iOS-26-2\", \"iOS-26-6\"\
+        ))]; print(sorted(candidates)[0][1] if candidates else \"\")')\nif [ -z \"$DEVICE\" ]; then\n  xcodebuild -downloadPlatform\
+        \ iOS -buildVersion 18.5\n  DEVICE=$(xcrun simctl create WudCarStoreKitTest com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro\
+        \ com.apple.CoreSimulator.SimRuntime.iOS-18-5)\nfi\necho \"STOREKIT_TEST_DEVICE: $DEVICE\"\nxcodebuild -project \"\
+        $XCODE_PROJECT\" -scheme WdCarTests \\\n  -destination \"platform=iOS Simulator,id=$DEVICE\" \\\n  -parallel-testing-enabled\
+        \ NO -test-timeouts-enabled YES \\\n  -default-test-execution-time-allowance 180 \\\n  -maximum-test-execution-time-allowance\
+        \ 180 \\\n  -resultBundlePath /tmp/WudCar150Preview.xcresult \\\n  CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES\
+        \ CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-150-preview.log\n"
+    - name: تصدير صور المعاينة
+      script: 'mkdir -p build/150-preview
+
+        xcrun xcresulttool export attachments --path /tmp/WudCar150Preview.xcresult --output-path build/150-preview
+
+        '
+    artifacts:
+    - build/150-preview/**/*
+    - /tmp/WudCar150Preview.xcresult
+    - /tmp/wudcar-150-preview.log
   wudcar-testflight:
     name: WudCar → TestFlight
     max_build_duration: 60
@@ -64,7 +53,7 @@ workflows:
     environment:
       xcode: latest
       groups:
-        - wudcar
+      - wudcar
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.azstudio.wudcar
@@ -74,98 +63,100 @@ workflows:
         BUNDLE_ID: com.azstudio.wudcar
     triggering:
       events:
-        - push
+      - push
       branch_patterns:
-        - pattern: wudcar
-          include: true
-        - pattern: wudcar-update9
-          include: true
-        - pattern: wudcar-update10
-          include: true
-        - pattern: wudcar-update14
-          include: true
+      - pattern: wudcar
+        include: true
+      - pattern: wudcar-update9
+        include: true
+      - pattern: wudcar-update10
+        include: true
+      - pattern: wudcar-update14
+        include: true
     scripts:
-      - name: التحقق من المصدر والشعار الكامل
-        script: |
-          echo "SOURCE_COMMIT: $(git rev-parse HEAD)"
-          python3 scripts/verify_logo.py
-      - name: تثبيت XcodeGen
-        script: |
-          brew install xcodegen
-      - name: إنشاء مشروع Xcode
-        script: |
-          xcodegen generate
-      - name: ضبط Team ID
-        script: |
-          sed -i '' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $TEAM_ID;/g" "$XCODE_PROJECT/project.pbxproj" || true
-      - name: التحقق من المشروع (بناء Debug للمحاكي)
-        script: |
-          set -euo pipefail
-          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
-            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            -configuration Debug CODE_SIGNING_ALLOWED=NO build | xcpretty
-      - name: اختبار واجهة السيارة والتكبير والفيديو والمواقع
-        script: |
-          set -euo pipefail
-          xcrun simctl list devices available
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); candidates=[(k,v["udid"]) for k,a in d["devices"].items() for v in a if "iPhone" in v["name"] and any(t in k for t in ("iOS-18-", "iOS-26-1", "iOS-26-2", "iOS-26-6"))]; print(sorted(candidates)[0][1] if candidates else "")')
-          if [ -z "$DEVICE" ]; then
-            xcodebuild -downloadPlatform iOS -buildVersion 18.5
-            DEVICE=$(xcrun simctl create WudCarStoreKitTest com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro com.apple.CoreSimulator.SimRuntime.iOS-18-5)
-          fi
-          echo "STOREKIT_TEST_DEVICE: $DEVICE"
-          xcodebuild -project "$XCODE_PROJECT" -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 180 -resultBundlePath /tmp/WudCar150Interface.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-150-interface-tests.log
-      - name: صور التحقق من عرض المتصفح
-        script: |
-          mkdir -p build/150-test-screenshots
-          xcrun xcresulttool export attachments --path /tmp/WudCar150Interface.xcresult --output-path build/150-test-screenshots || true
-      - name: Require real-app YouTube desktop verification
-        script: python3 scripts/verify_browser_test_gate.py /tmp/wudcar-150-interface-tests.log
-      - name: تجهيز التوقيع
-        script: |
-          xcode-project use-profiles
-      - name: رقم البناء
-        script: |
-          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_ID" || echo 0)
-          NEXT=$((LATEST + 1))
-          if [ "$NEXT" -lt 17 ]; then NEXT=17; fi
-          echo "Build number: $NEXT"
-          agvtool new-version -all $NEXT
-      - name: بناء IPA (Release)
-        script: |
-          xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
-      - name: التحقق من صلاحيات CarPlay (فيديو + صوت) داخل IPA
-        script: |
-          set -e
-          IPA=$(ls build/ios/ipa/*.ipa | head -1)
-          rm -rf /tmp/ipa_check && mkdir -p /tmp/ipa_check
-          unzip -q "$IPA" -d /tmp/ipa_check
-          APP=$(ls -d /tmp/ipa_check/Payload/*.app | head -1)
-          echo "== Entitlements in signed app =="
-          codesign -d --entitlements :- "$APP" 2>/dev/null | tee /tmp/ipa_check/ents.plist
-          echo "== Provisioning profile =="
-          security cms -D -i "$APP/embedded.mobileprovision" > /tmp/ipa_check/profile.plist
-          grep -A1 -i "carplay" /tmp/ipa_check/profile.plist || true
-          for KEY in com.apple.developer.carplay-video com.apple.developer.carplay-audio; do
-            grep -q "$KEY" /tmp/ipa_check/ents.plist || { echo "MISSING in app: $KEY"; exit 1; }
-            grep -q "$KEY" /tmp/ipa_check/profile.plist || { echo "MISSING in profile: $KEY"; exit 1; }
-            echo "OK: $KEY"
-          done
-          echo "== Scene roles in Info.plist =="
-          plutil -p "$APP/Info.plist" | grep -E "ExternalDisplay|CPTemplateApplication" || { echo "External display scenes missing"; exit 1; }
+    - name: التحقق من المصدر والشعار الكامل
+      script: 'echo "SOURCE_COMMIT: $(git rev-parse HEAD)"
+
+        python3 scripts/verify_logo.py
+
+        '
+    - name: تثبيت XcodeGen
+      script: 'brew install xcodegen
+
+        '
+    - name: إنشاء مشروع Xcode
+      script: 'xcodegen generate
+
+        '
+    - name: ضبط Team ID
+      script: 'sed -i '''' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $TEAM_ID;/g" "$XCODE_PROJECT/project.pbxproj" ||
+        true
+
+        '
+    - name: التحقق من المشروع (بناء Debug للمحاكي)
+      script: "set -euo pipefail\nxcodebuild -project \"$XCODE_PROJECT\" -scheme \"$XCODE_SCHEME\" \\\n  -sdk iphonesimulator\
+        \ -destination 'generic/platform=iOS Simulator' \\\n  -configuration Debug CODE_SIGNING_ALLOWED=NO build | xcpretty\n"
+    - name: اختبار واجهة السيارة والتكبير والفيديو والمواقع
+      script: "set -euo pipefail\nxcrun simctl list devices available\nDEVICE=$(xcrun simctl list devices available -j | python3\
+        \ -c 'import json,sys; d=json.load(sys.stdin); candidates=[(k,v[\"udid\"]) for k,a in d[\"devices\"].items() for v\
+        \ in a if \"iPhone\" in v[\"name\"] and any(t in k for t in (\"iOS-18-\", \"iOS-26-1\", \"iOS-26-2\", \"iOS-26-6\"\
+        ))]; print(sorted(candidates)[0][1] if candidates else \"\")')\nif [ -z \"$DEVICE\" ]; then\n  xcodebuild -downloadPlatform\
+        \ iOS -buildVersion 18.5\n  DEVICE=$(xcrun simctl create WudCarStoreKitTest com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro\
+        \ com.apple.CoreSimulator.SimRuntime.iOS-18-5)\nfi\necho \"STOREKIT_TEST_DEVICE: $DEVICE\"\nxcodebuild -project \"\
+        $XCODE_PROJECT\" -scheme WdCarTests -destination \"platform=iOS Simulator,id=$DEVICE\" -parallel-testing-enabled NO\
+        \ -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 180\
+        \ -resultBundlePath /tmp/WudCar150Interface.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=-\
+        \ test | tee /tmp/wudcar-150-interface-tests.log\n"
+    - name: صور التحقق من عرض المتصفح
+      script: 'mkdir -p build/150-test-screenshots
+
+        xcrun xcresulttool export attachments --path /tmp/WudCar150Interface.xcresult --output-path build/150-test-screenshots
+        || true
+
+        '
+    - name: Require real-app YouTube desktop verification
+      script: python3 scripts/verify_browser_test_gate.py /tmp/wudcar-150-interface-tests.log
+    - name: تجهيز التوقيع
+      script: 'xcode-project use-profiles
+
+        '
+    - name: رقم البناء
+      script: 'LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_ID" || echo 0)
+
+        NEXT=$((LATEST + 1))
+
+        if [ "$NEXT" -lt 17 ]; then NEXT=17; fi
+
+        echo "Build number: $NEXT"
+
+        agvtool new-version -all $NEXT
+
+        '
+    - name: بناء IPA (Release)
+      script: 'xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+
+        '
+    - name: التحقق من صلاحيات CarPlay (فيديو + صوت) داخل IPA
+      script: "set -e\nIPA=$(ls build/ios/ipa/*.ipa | head -1)\nrm -rf /tmp/ipa_check && mkdir -p /tmp/ipa_check\nunzip -q\
+        \ \"$IPA\" -d /tmp/ipa_check\nAPP=$(ls -d /tmp/ipa_check/Payload/*.app | head -1)\necho \"== Entitlements in signed\
+        \ app ==\"\ncodesign -d --entitlements :- \"$APP\" 2>/dev/null | tee /tmp/ipa_check/ents.plist\necho \"== Provisioning\
+        \ profile ==\"\nsecurity cms -D -i \"$APP/embedded.mobileprovision\" > /tmp/ipa_check/profile.plist\ngrep -A1 -i \"\
+        carplay\" /tmp/ipa_check/profile.plist || true\nfor KEY in com.apple.developer.carplay-video com.apple.developer.carplay-audio;\
+        \ do\n  grep -q \"$KEY\" /tmp/ipa_check/ents.plist || { echo \"MISSING in app: $KEY\"; exit 1; }\n  grep -q \"$KEY\"\
+        \ /tmp/ipa_check/profile.plist || { echo \"MISSING in profile: $KEY\"; exit 1; }\n  echo \"OK: $KEY\"\ndone\necho\
+        \ \"== Scene roles in Info.plist ==\"\nplutil -p \"$APP/Info.plist\" | grep -E \"ExternalDisplay|CPTemplateApplication\"\
+        \ || { echo \"External display scenes missing\"; exit 1; }\n"
     artifacts:
-      - build/150-test-screenshots/**/*
-      - /tmp/WudCar150Interface.xcresult
-      - /tmp/wudcar-150-interface-tests.log
-      - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    - build/150-test-screenshots/**/*
+    - /tmp/WudCar150Interface.xcresult
+    - /tmp/wudcar-150-interface-tests.log
+    - build/ios/ipa/*.ipa
+    - /tmp/xcodebuild_logs/*.log
+    - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: false
-
-  # Manual internal-device build. Live app-browser verification must pass before IPA; physical CarPlay remains separate.
   wudcar-device-validation:
     name: WudCar 1.6.0 → Device validation (internal TestFlight)
     max_build_duration: 60
@@ -199,20 +190,26 @@ workflows:
 
         '
     - name: ضبط Team ID
-      script: 'sed -i '''' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $TEAM_ID;/g" "$XCODE_PROJECT/project.pbxproj"
-        || true
+      script: 'sed -i '''' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $TEAM_ID;/g" "$XCODE_PROJECT/project.pbxproj" ||
+        true
 
         '
     - name: التحقق من المشروع (بناء Debug للمحاكي)
       script: "set -euo pipefail\nxcodebuild -project \"$XCODE_PROJECT\" -scheme \"$XCODE_SCHEME\" \\\n  -sdk iphonesimulator\
-        \ -destination 'generic/platform=iOS Simulator' \\\n  -configuration Debug CODE_SIGNING_ALLOWED=NO build |\
-        \ xcpretty\n"
+        \ -destination 'generic/platform=iOS Simulator' \\\n  -configuration Debug CODE_SIGNING_ALLOWED=NO build | xcpretty\n"
     - name: Require real-app YouTube desktop verification before IPA
-      script: |
-        set -euo pipefail
-        DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); ids=[v["udid"] for k,a in d["devices"].items() for v in a if "iOS" in k and "iPhone" in v["name"]]; print(ids[0])')
-        xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -only-testing:WdCarTests/Release160Tests -only-testing:WdCarTests/Release17Tests -resultBundlePath /tmp/WudCar160ReleaseGate.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-160-release-gate.log
+      script: 'set -euo pipefail
+
+        DEVICE=$(xcrun simctl list devices available -j | python3 -c ''import json,sys; d=json.load(sys.stdin); ids=[v["udid"]
+        for k,a in d["devices"].items() for v in a if "iOS" in k and "iPhone" in v["name"]]; print(ids[0])'')
+
+        xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled
+        NO -only-testing:WdCarTests/Release160Tests -only-testing:WdCarTests/Release17Tests -resultBundlePath /tmp/WudCar160ReleaseGate.xcresult
+        CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test | tee /tmp/wudcar-160-release-gate.log
+
         python3 scripts/verify_browser_test_gate.py /tmp/wudcar-160-release-gate.log --internal-testflight
+
+        '
     - name: تجهيز التوقيع
       script: 'xcode-project use-profiles
 
@@ -236,16 +233,15 @@ workflows:
 
         '
     - name: التحقق من صلاحيات CarPlay (فيديو + صوت) داخل IPA
-      script: "set -e\nIPA=$(ls build/ios/ipa/*.ipa | head -1)\nrm -rf /tmp/ipa_check && mkdir -p /tmp/ipa_check\n\
-        unzip -q \"$IPA\" -d /tmp/ipa_check\nAPP=$(ls -d /tmp/ipa_check/Payload/*.app | head -1)\necho \"== Entitlements\
-        \ in signed app ==\"\ncodesign -d --entitlements :- \"$APP\" 2>/dev/null | tee /tmp/ipa_check/ents.plist\n\
-        echo \"== Provisioning profile ==\"\nsecurity cms -D -i \"$APP/embedded.mobileprovision\" > /tmp/ipa_check/profile.plist\n\
-        grep -A1 -i \"carplay\" /tmp/ipa_check/profile.plist || true\nfor KEY in com.apple.developer.carplay-video\
-        \ com.apple.developer.carplay-audio; do\n  grep -q \"$KEY\" /tmp/ipa_check/ents.plist || { echo \"MISSING\
-        \ in app: $KEY\"; exit 1; }\n  grep -q \"$KEY\" /tmp/ipa_check/profile.plist || { echo \"MISSING in profile:\
-        \ $KEY\"; exit 1; }\n  echo \"OK: $KEY\"\ndone\necho \"== Scene roles in Info.plist ==\"\nplutil -p \"$APP/Info.plist\"\
-        \ | grep -E \"ExternalDisplay|CPTemplateApplication\" || { echo \"External display scenes missing\"; exit\
-        \ 1; }\n"
+      script: "set -e\nIPA=$(ls build/ios/ipa/*.ipa | head -1)\nrm -rf /tmp/ipa_check && mkdir -p /tmp/ipa_check\nunzip -q\
+        \ \"$IPA\" -d /tmp/ipa_check\nAPP=$(ls -d /tmp/ipa_check/Payload/*.app | head -1)\necho \"== Entitlements in signed\
+        \ app ==\"\ncodesign -d --entitlements :- \"$APP\" 2>/dev/null | tee /tmp/ipa_check/ents.plist\necho \"== Provisioning\
+        \ profile ==\"\nsecurity cms -D -i \"$APP/embedded.mobileprovision\" > /tmp/ipa_check/profile.plist\ngrep -A1 -i \"\
+        carplay\" /tmp/ipa_check/profile.plist || true\nfor KEY in com.apple.developer.carplay-video com.apple.developer.carplay-audio;\
+        \ do\n  grep -q \"$KEY\" /tmp/ipa_check/ents.plist || { echo \"MISSING in app: $KEY\"; exit 1; }\n  grep -q \"$KEY\"\
+        \ /tmp/ipa_check/profile.plist || { echo \"MISSING in profile: $KEY\"; exit 1; }\n  echo \"OK: $KEY\"\ndone\necho\
+        \ \"== Scene roles in Info.plist ==\"\nplutil -p \"$APP/Info.plist\" | grep -E \"ExternalDisplay|CPTemplateApplication\"\
+        \ || { echo \"External display scenes missing\"; exit 1; }\n"
     artifacts:
     - build/ios/ipa/*.ipa
     - /tmp/xcodebuild_logs/*.log
@@ -256,7 +252,6 @@ workflows:
         auth: integration
         submit_to_testflight: false
         submit_to_app_store: false
-
   wudcar-browser-validation:
     name: WudCar 1.6.0 → Browser verification (no publishing)
     max_build_duration: 45
@@ -264,22 +259,112 @@ workflows:
     environment:
       xcode: latest
     scripts:
-      - name: Generate existing project
-        script: |
-          set -euo pipefail
-          brew install xcodegen
-          xcodegen generate
-      - name: Native browser regressions
-        script: |
-          set -euo pipefail
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); ids=[v["udid"] for k,a in d["devices"].items() for v in a if "iOS" in k and "iPhone" in v["name"]]; print(ids[0])')
-          TEST_STATUS=0
-          xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled NO -only-testing:WdCarTests/Release150Tests -only-testing:WdCarTests/Release160Tests -only-testing:WdCarTests/Release17Tests -resultBundlePath /tmp/WudCar160.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test || TEST_STATUS=$?
-          mkdir -p build/160-verification
-          EXPORT_STATUS=0
-          xcrun xcresulttool export attachments --path /tmp/WudCar160.xcresult --output-path build/160-verification || EXPORT_STATUS=$?
-          if [ "$TEST_STATUS" -ne 0 ]; then exit "$TEST_STATUS"; fi
-          exit "$EXPORT_STATUS"
+    - name: Generate existing project
+      script: 'set -euo pipefail
+
+        brew install xcodegen
+
+        xcodegen generate
+
+        '
+    - name: Native browser regressions
+      script: 'set -euo pipefail
+
+        DEVICE=$(xcrun simctl list devices available -j | python3 -c ''import json,sys; d=json.load(sys.stdin); ids=[v["udid"]
+        for k,a in d["devices"].items() for v in a if "iOS" in k and "iPhone" in v["name"]]; print(ids[0])'')
+
+        TEST_STATUS=0
+
+        xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled
+        NO -only-testing:WdCarTests/Release150Tests -only-testing:WdCarTests/Release160Tests -only-testing:WdCarTests/Release17Tests
+        -resultBundlePath /tmp/WudCar160.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=-
+        test || TEST_STATUS=$?
+
+        mkdir -p build/160-verification
+
+        EXPORT_STATUS=0
+
+        xcrun xcresulttool export attachments --path /tmp/WudCar160.xcresult --output-path build/160-verification || EXPORT_STATUS=$?
+
+        if [ "$TEST_STATUS" -ne 0 ]; then exit "$TEST_STATUS"; fi
+
+        exit "$EXPORT_STATUS"
+
+        '
     artifacts:
-      - build/160-verification/**/*
-      - /tmp/WudCar160.xcresult/**/*
+    - build/160-verification/**/*
+    - /tmp/WudCar160.xcresult/**/*
+  wudcar-222-media-validation:
+    name: WudCar 2.2.2 - internal media validation
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: WudCar ASC Key
+    environment:
+      xcode: latest
+      groups:
+      - wudcar
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.azpixel.wudcar
+      vars:
+        CARPLAY_MODE: Audio
+    scripts:
+    - name: Generate project
+      script: 'set -euo pipefail
+
+        brew install xcodegen
+
+        xcodegen generate
+
+        python3 scripts/verify_media_release.py'
+    - name: Simulator build and media tests
+      script: 'set -euo pipefail
+
+        DEVICE=$(xcrun simctl list devices available -j | python3 -c ''import json,sys; d=json.load(sys.stdin); print(next(v["udid"]
+        for k,a in d["devices"].items() for v in a if "iPhone" in v["name"]))'')
+
+        xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -only-testing:WdCarTests/Media222Tests
+        -resultBundlePath /tmp/WudCar222.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test'
+    - name: Verify identity and select entitlement experiment
+      script: 'set -euo pipefail
+
+        [ "${TEAM_ID:-QS29RVJPUT}" = "QS29RVJPUT" ] || { echo "Unexpected signing team"; exit 1; }
+
+        case "$CARPLAY_MODE" in Audio|Video|Combined) ;; *) exit 1 ;; esac
+
+        cp "Config/CarPlay${CARPLAY_MODE}.entitlements" Config/WdCar.entitlements
+
+        xcode-project use-profiles'
+    - name: Allocate verified next build number
+      script: 'set -euo pipefail
+
+        LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_ID")
+
+        [[ "$LATEST" =~ ^[0-9]+$ ]] || { echo "Cannot establish latest TestFlight build"; exit 1; }
+
+        NEXT=$((LATEST + 1))
+
+        if [ "$NEXT" -lt 222 ]; then NEXT=222; fi
+
+        agvtool new-version -all "$NEXT"
+
+        echo "WudCar 2.2.2 build $NEXT"'
+    - name: Archive and audit signed app
+      script: 'set -euo pipefail
+
+        xcode-project build-ipa --project WdCar.xcodeproj --scheme WdCar
+
+        IPA=$(find build/ios/ipa -name ''*.ipa'' -print -quit)
+
+        python3 scripts/audit_signed_media.py "$IPA" "$CARPLAY_MODE"'
+    artifacts:
+    - build/ios/ipa/*.ipa
+    - build/media-signing-audit.json
+    - /tmp/WudCar222.xcresult/**/*
+    - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false

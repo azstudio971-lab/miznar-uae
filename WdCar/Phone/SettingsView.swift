@@ -8,7 +8,7 @@ struct SettingsView: View {
     @EnvironmentObject private var app: AppState
     @AppStorage(WDKeys.language) private var language = L10n.language.rawValue
     @AppStorage(WDKeys.appearance) private var appearance = AppAppearance.system.rawValue
-    @AppStorage(WDKeys.lockVideoWhileDriving) private var lockVideo = false
+    @AppStorage(WDKeys.lockVideoWhileDriving) private var lockVideo = true
     @AppStorage(WDKeys.phoneDesktopMode) private var phoneDesktop = true
     @State private var confirmClear = false
     @State private var confirmReset = false
@@ -25,6 +25,11 @@ struct SettingsView: View {
             Form {
                 Section(tr("حالة الاشتراك", "Subscription status")) {
                     NavigationLink(tr("حالة الاشتراك وإدارته", "Subscription status and management")) { SubscriptionView() }
+                }
+
+                Section(tr("المشغّل والتحكم", "Player and controls")) {
+                    NavigationLink(tr("إعدادات المشغّل", "Player settings")) { MediaSettingsView() }
+                    NavigationLink(tr("الماوس", "Mouse")) { SubscriptionGate { CarMousePadView() } }
                 }
 
                 Section(tr("العرض", "Display")) {
@@ -161,3 +166,4 @@ struct AirPlayButton: UIViewRepresentable {
 
     func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
 }
+

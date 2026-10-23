@@ -17,7 +17,7 @@ enum WDSettings {
 
     /// يوقف الفيديو عند حركة السيارة إذا اختار المستخدم تفعيل ذلك
     static var lockVideoWhileDriving: Bool {
-        get { defaults.object(forKey: WDKeys.lockVideoWhileDriving) as? Bool ?? false }
+        get { defaults.object(forKey: WDKeys.lockVideoWhileDriving) as? Bool ?? true }
         set { defaults.set(newValue, forKey: WDKeys.lockVideoWhileDriving) }
     }
 
@@ -72,3 +72,4 @@ enum WDSettings {
 func carTr(_ arabic: String, _ english: String) -> String {
     WDSettings.carLanguage == "en" ? english : arabic
 }
+

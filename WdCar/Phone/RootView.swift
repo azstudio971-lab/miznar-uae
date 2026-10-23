@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct RootView: View {
     @EnvironmentObject private var app: AppState
@@ -58,8 +59,8 @@ struct MainTabView: View {
             SubscriptionGate { XtreamHomeView() }
                 .tabItem { Label("Xtream", systemImage: "antenna.radiowaves.left.and.right") }
                 .tag(2)
-            SubscriptionGate { CarMousePadView() }
-                .tabItem { Label(tr("الماوس", "Mouse"), systemImage: "cursorarrow.rays") }
+            SubscriptionGate { MediaLibraryView() }
+                .tabItem { Label(tr("المكتبة", "Library"), systemImage: "play.rectangle.on.rectangle") }
                 .tag(3)
             SettingsView(isSheet: false)
                 .tabItem { Label(tr("الإعدادات", "Settings"), systemImage: "gearshape") }
@@ -75,11 +76,31 @@ struct MainTabView: View {
 /// المشغل بملء الشاشة على الهاتف + زر إغلاق + زر AirPlay
 private struct PlayerContainer: View {
     @ObservedObject private var playback = PlaybackManager.shared
+    @ObservedObject private var captions = ExternalSubtitles.shared
+    @State private var importSubtitle = false
+    @State private var subtitleError: String?
+    @AppStorage("wd.media.externalSubtitles") private var externalSubtitles = true
+    @AppStorage("wd.media.subtitleSize") private var subtitleSize = 22.0
+    @AppStorage("wd.media.subtitleDelay") private var subtitleDelay = 0.0
+    @AppStorage("wd.media.subtitleYellow") private var subtitleYellow = false
+    @AppStorage("wd.media.subtitleBackground") private var subtitleBackground = true
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             Color.black.ignoresSafeArea()
             PlayerScreen().ignoresSafeArea()
+            if externalSubtitles && !playback.player.isExternalPlaybackActive {
+                VStack {
+                    Spacer()
+                    let text = captions.text(at: playback.elapsed - subtitleDelay, mediaURL: playback.current?.url)
+                    if !text.isEmpty {
+                        Text(text).font(.system(size: subtitleSize)).multilineTextAlignment(.center)
+                            .foregroundStyle(subtitleYellow ? Color.yellow : Color.white)
+                            .padding(8).background(subtitleBackground ? Color.black.opacity(0.75) : Color.clear)
+                            .padding(.bottom, 95)
+                    }
+                }.frame(maxWidth: .infinity).allowsHitTesting(false)
+            }
             HStack {
                 Button {
                     playback.stop()
@@ -99,6 +120,18 @@ private struct PlayerContainer: View {
                         .background(Capsule().fill(Color.red.opacity(0.8)))
                 }
                 Spacer()
+                Menu {
+                    Button(tr("السابق", "Previous")) { playback.previous() }
+                    Button(tr("التالي", "Next")) { playback.next() }
+                    Button(tr("تأخير", "Skip backward")) { playback.seek(by: -Double(PlayerPreferences.skip)) }
+                    Button(tr("تقديم", "Skip forward")) { playback.seek(by: Double(PlayerPreferences.skip)) }
+                    Button(tr("استيراد SRT/VTT للهاتف", "Import SRT/VTT for iPhone")) { importSubtitle = true }
+                    ForEach(Array(playback.queue.enumerated()), id: \.offset) { _, item in
+                        Button(item.title) { playback.play(item, presentOnPhone: true) }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle.fill").font(.title).foregroundStyle(.white)
+                }
                 AirPlayButton()
                     .frame(width: 44, height: 44)
                     .background(Circle().fill(Color.black.opacity(0.5)))
@@ -107,6 +140,15 @@ private struct PlayerContainer: View {
             .padding(.top, 8)
             .environment(\.layoutDirection, .leftToRight)
         }
+        .fileImporter(isPresented: $importSubtitle, allowedContentTypes: [.plainText, UTType(filenameExtension: "srt") ?? .data, UTType(filenameExtension: "vtt") ?? .data]) { result in
+            do {
+                guard let mediaURL = playback.current?.url else { return }
+                try captions.load(result.get(), for: mediaURL)
+            } catch { subtitleError = error.localizedDescription }
+        }
+        .alert(tr("خطأ في الترجمة", "Subtitle error"), isPresented: Binding(get: { subtitleError != nil }, set: { if !$0 { subtitleError = nil } })) {
+            Button(tr("حسنًا", "OK")) { subtitleError = nil }
+        } message: { Text(subtitleError ?? "") }
     }
 }
 
@@ -158,3 +200,4 @@ struct SendToCarIcon: View {
         }
     }
 }
+
