@@ -81,14 +81,23 @@ import VLCKit
     }
     func testNativeSourcesAndCastScreenshots() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
-        let views: [(String, AnyView)] = [("303-sources", AnyView(NavigationStack { SourcesView() })), ("303-add-source", AnyView(NavigationStack { AddSourceView() })), ("303-cast", AnyView(CastView())), ("303-player-settings", AnyView(NavigationStack { PlayerOptionsView() }))]
-        for (name, view) in views {
-            let host = UIHostingController(rootView: view.environmentObject(AppState.shared))
-            let window = UIWindow(windowScene: scene); window.rootViewController = host; window.makeKeyAndVisible()
-            host.view.layoutIfNeeded(); try await Task.sleep(for: .milliseconds(400))
-            let image = UIGraphicsImageRenderer(bounds: host.view.bounds).image { _ in host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true) }
-            let attachment = XCTAttachment(image: image); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
-            window.isHidden = true; window.rootViewController = nil
+        let savedLanguage = UserDefaults.standard.object(forKey: WDKeys.language)
+        defer {
+            if let savedLanguage { UserDefaults.standard.set(savedLanguage, forKey: WDKeys.language) }
+            else { UserDefaults.standard.removeObject(forKey: WDKeys.language) }
+        }
+        for language in ["en", "ar"] {
+            UserDefaults.standard.set(language, forKey: WDKeys.language)
+            let views: [(String, AnyView)] = [("303-sources", AnyView(NavigationStack { SourcesView() })), ("303-add-source", AnyView(NavigationStack { AddSourceView() })), ("303-cast", AnyView(CastView())), ("303-player-settings", AnyView(NavigationStack { PlayerOptionsView() }))]
+            for (name, view) in views {
+                let host = UIHostingController(rootView: view.environmentObject(AppState.shared).environment(\.layoutDirection, language == "ar" ? .rightToLeft : .leftToRight).environment(\.locale, Locale(identifier: language)))
+                let window = UIWindow(windowScene: scene); window.rootViewController = host; window.makeKeyAndVisible()
+                host.view.layoutIfNeeded(); try await Task.sleep(for: .milliseconds(500))
+                let image = UIGraphicsImageRenderer(bounds: host.view.bounds).image { _ in host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true) }
+                XCTAssertGreaterThan(image.size.width, 300); XCTAssertGreaterThan(image.size.height, 600)
+                let attachment = XCTAttachment(image: image); attachment.name = name + "-" + language; attachment.lifetime = .keepAlways; add(attachment)
+                window.isHidden = true; window.rootViewController = nil
+            }
         }
     }
 }

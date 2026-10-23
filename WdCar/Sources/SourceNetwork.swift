@@ -123,7 +123,10 @@ struct SourceNetwork {
             let stream: URL?
             if let partKey = part?["key"] as? String { stream = try Self.endpoint(base, partKey.trimmingCharacters(in: CharacterSet(charactersIn: "/")), query: [URLQueryItem(name: "X-Plex-Token", value: token)]) } else { stream = nil }
             let next = key.hasPrefix("/") ? String(key.dropFirst()) : "library/sections/\(key)/all"
-            return SourceMedia(id: next, title: title, url: stream, folder: folder || stream == nil, position: ((entry["viewOffset"] as? NSNumber)?.doubleValue ?? 0) / 1000, duration: ((entry["duration"] as? NSNumber)?.doubleValue ?? 0) / 1000)
+            let artwork = try (entry["thumb"] as? String).map { path in
+                try Self.endpoint(base, path.trimmingCharacters(in: CharacterSet(charactersIn: "/")), query: [URLQueryItem(name: "X-Plex-Token", value: token)])
+            }
+            return SourceMedia(id: next, title: title, url: stream, artwork: artwork, folder: folder || stream == nil, position: ((entry["viewOffset"] as? NSNumber)?.doubleValue ?? 0) / 1000, duration: ((entry["duration"] as? NSNumber)?.doubleValue ?? 0) / 1000)
         }
     }
 }

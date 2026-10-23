@@ -14,7 +14,8 @@ final class SoftwareDecoder: NSObject, VLCMediaPlayerDelegate {
     func play(_ url: URL, position: Double) {
         initialPosition = position; resumed = false; player.delegate = self
         player.media = VLCMedia(url: url)
-        player.media?.addOption(":network-caching=\(Int(PlayerPreferences.number("buffer", 5) * 1000))")
+        let buffer = PlayerPreferences.number("buffer", 0)
+        if buffer > 0 { player.media?.addOption(":network-caching=\(Int(buffer * 1000))") }
         player.media?.addOption(":http-user-agent=\(PlayerPreferences.text("userAgent", "WudCar/3.0.1"))")
         player.play()
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
@@ -49,10 +50,17 @@ struct SoftwarePlaybackSurface: UIViewRepresentable {
     func updateUIView(_ view: UIView, context: Context) {
         if decoder.player.drawable as? UIView !== view { decoder.player.drawable = view }
         let gravity = PlayerPreferences.text("gravity", "fit")
+        view.clipsToBounds = true
         decoder.player.videoAspectRatio = gravity == "stretch" && view.bounds.height > 0 ? "\(Int(view.bounds.width)):\(Int(view.bounds.height))" : nil
-        if PlayerPreferences.flag("actualSize", false) {
+        let zoom = PlayerPreferences.number("videoZoom", 1)
+        let size = decoder.player.videoSize
+        let actual = PlayerPreferences.flag("actualSize", false)
+        if actual || (abs(zoom - 1) > 0.001 && size.width > 0 && size.height > 0) {
+            let horizontal = Double(view.bounds.width / size.width)
+            let vertical = Double(view.bounds.height / size.height)
+            let base = actual ? 1 : (gravity == "fill" ? max(horizontal, vertical) : min(horizontal, vertical))
             decoder.player.videoFitMode = .init(rawValue: 0)!
-            decoder.player.scaleFactor = Float(PlayerPreferences.number("videoZoom", 1))
+            decoder.player.scaleFactor = Float(base * zoom)
         } else {
             decoder.player.scaleFactor = 0
             decoder.player.videoFitMode = .init(rawValue: gravity == "fill" ? 2 : 1)!
@@ -69,9 +77,9 @@ struct SoftwarePlayerView: View {
                 Text(tr("فك ترميز برمجي — الهاتف فقط", "Software decoding — iPhone only")).font(.caption)
                 HStack(spacing: 24) {
                     Button { manager.previous() } label: { Image(systemName: "backward.end.fill") }.disabled(!manager.canPlayPrevious)
-                    Button { manager.seek(by: -15) } label: { Image(systemName: "gobackward.15") }
+                    Button { manager.seek(by: -Double(PlayerPreferences.skip)) } label: { Image(systemName: "gobackward.\(PlayerPreferences.skip)") }
                     Button { manager.togglePlayPause() } label: { Image(systemName: manager.isPlaying ? "pause.fill" : "play.fill") }
-                    Button { manager.seek(by: 15) } label: { Image(systemName: "goforward.15") }
+                    Button { manager.seek(by: Double(PlayerPreferences.skip)) } label: { Image(systemName: "goforward.\(PlayerPreferences.skip)") }
                     Button { manager.next() } label: { Image(systemName: "forward.end.fill") }.disabled(!manager.canPlayNext)
                 }.font(.title2).padding()
                 HStack {

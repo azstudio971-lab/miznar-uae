@@ -12,7 +12,7 @@ Test with public legal Apple sample HLS: https://devstreaming-cdn.apple.com/vide
 M3U fixture: docs/appstore/3.0.1/sample.m3u (host or paste through a supported import route; no credentials).
 1. Library → Add media URL: paste Apple HLS, title Apple sample, mark Live; play.
 2. Import a rights-cleared local MP4/audio file. Play, leave, resume; create a playlist and reorder entries.
-3. CarPlay: Library → TV → Favorites → Settings. Physical car acceptance remains pending owner testing.
+3. CarPlay: Library → TV → Favorites → Cast (Settings is inside Cast). Physical car acceptance remains pending owner testing.
 4. Browser is an additional feature at Favorites → Play from web. First launch shows a parked/passenger notice. Phone access: Settings → Car and web tools.
 5. Movement detection locks car video. Location is When In Use, transient speed only. Denied permission blocks external video unless the car reports video support; Apple policy always applies.
 6. Frozen legacy browser lock pauses all web media; continuing browser audio during movement is not claimed. External subtitle files display on iPhone only.

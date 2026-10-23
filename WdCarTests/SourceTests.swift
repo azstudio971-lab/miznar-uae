@@ -34,6 +34,8 @@ final class SourceTestProtocol: URLProtocol {
     func testConfigAndSmartPaste() {
         let links = SourceInput.links("{\"a\":\"https://one.test/a.m3u\",\"b\":\"https://two.test/live.m3u8\",\"c\":\"https://one.test/a.m3u\"}")
         XCTAssertEqual(links.count, 2)
+        let config = SourceInput.configLinks("https://one.test/a.m3u\ninvalid\nhttps://one.test/a.m3u")
+        XCTAssertEqual(config.urls.count, 1); XCTAssertEqual(config.invalid, 1)
         XCTAssertEqual(SourceInput.smartKind("https://one.test/a.m3u"), .playlist)
         XCTAssertEqual(SourceInput.smartKind("https://two.test/live.m3u8"), .stream)
         XCTAssertEqual(SourceInput.smartKind("#EXTM3U\nhttps://one.test/a"), .pasted)

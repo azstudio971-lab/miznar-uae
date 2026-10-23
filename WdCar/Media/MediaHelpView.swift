@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 struct MediaHelpView: View {
     var body: some View {
         List {
@@ -13,6 +14,13 @@ struct MediaHelpView: View {
             }
             Section(tr("هل تُحفظ بيانات دخولي؟", "Where are my credentials stored?")) {
                 Text(tr("على هذا الجهاز فقط في Keychain. يتصل التطبيق بخادمك مباشرة ولا يرسل بيانات المصادر إلى خوادم WudCar.", "On this device only in Keychain. The app connects directly to your server and does not send source data to WudCar servers."))
+            }
+            Section(tr("الدعم", "Support")) {
+                Text("az.studio971@gmail.com")
+                Button(tr("نسخ بريد الدعم", "Copy support email")) {
+                    UIPasteboard.general.string = "az.studio971@gmail.com"
+                }
+                Link(tr("موقع WudCar", "WudCar website"), destination: URL(string: "https://wudcar.netlify.app/")!)
             }
         }.navigationTitle(tr("المساعدة", "Help"))
     }

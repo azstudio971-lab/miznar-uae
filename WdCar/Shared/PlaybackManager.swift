@@ -242,6 +242,7 @@ final class PlaybackManager: ObservableObject {
     }
 
     var supportedRates: [Float] {
+        if isSoftwareDecoding { return current?.isLive == false ? [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] : [1] }
         guard current?.isLive == false, let item = player.currentItem, item.status == .readyToPlay else { return [1] }
         var rates: [Float] = [1]
         if item.canPlaySlowForward { rates.insert(0.5, at: 0) }
@@ -250,7 +251,7 @@ final class PlaybackManager: ObservableObject {
     }
 
     func setRate(_ rate: Float) {
-        if isSoftwareDecoding, !isExternalDisplayPlayback { software?.player.rate = rate; return }
+        if isSoftwareDecoding, !isExternalDisplayPlayback, !AppState.shared.isCarConnected, supportedRates.contains(rate) { software?.player.rate = rate; return }
         guard supportedRates.contains(rate), !AppState.shared.isCarConnected, !isExternalDisplayPlayback else { return }
         player.defaultRate = rate
         if isPlaying { player.rate = rate }
@@ -260,7 +261,10 @@ final class PlaybackManager: ObservableObject {
     func previous() { moveQueue(by: -1) }
     private func moveQueue(by offset: Int) {
         guard let current, let index = queue.firstIndex(of: current), queue.indices.contains(index + offset) else { return }
-        play(queue[index + offset], presentOnPhone: isPlayerPresented)
+        let onPhone = !isExternalDisplayPlayback
+        let wasPresented = isPlayerPresented
+        play(queue[index + offset], presentOnPhone: onPhone)
+        if onPhone && !wasPresented { isPlayerPresented = false; isMinimized = true }
     }
 
     func savePosition(completed: Bool = false) {
@@ -336,7 +340,10 @@ final class PlaybackManager: ObservableObject {
     func setSleepTimer(minutes: Int) {
         sleepTimer?.invalidate()
         guard minutes > 0 else { return }
-        sleepTimer = Timer.scheduledTimer(withTimeInterval: Double(minutes * 60), repeats: false) { [weak self] _ in self?.player.pause() }
+        sleepTimer = Timer.scheduledTimer(withTimeInterval: Double(minutes * 60), repeats: false) { [weak self] _ in
+            guard let self else { return }
+            if self.isSoftwareDecoding { self.software?.player.pause() } else { self.player.pause() }
+        }
     }
     func applyPreferences() {
         guard let item = player.currentItem else { return }
@@ -422,6 +429,7 @@ final class PlaybackManager: ObservableObject {
             self.errorMessage = MediaImportError.unsupported.localizedDescription; self.isPlaying = false
         }
         decoder.play(media.url, position: PlayerPreferences.resume ? position : 0)
+        decoder.player.rate = AppState.shared.isCarConnected || media.isLive ? 1 : Float(PlayerPreferences.number("rate", 1))
         loadArtwork(for: media)
     }
 
