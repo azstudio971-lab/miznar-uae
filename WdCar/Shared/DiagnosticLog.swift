@@ -1,5 +1,4 @@
 import Foundation
-import Security
 import UIKit
 
 extension Notification.Name {
@@ -140,20 +139,21 @@ final class DiagnosticLog {
 enum DiagnosticProfile {
     static func carPlayEntitlements() -> String {
         guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
-              let message = try? Data(contentsOf: url) else { return "unavailable" }
-        var decoder: CMSDecoder?
-        guard CMSDecoderCreate(kCFAllocatorDefault, &decoder) == errSecSuccess,
-              let decoder else { return "decode-error" }
-        let update = message.withUnsafeBytes { bytes in
-            CMSDecoderUpdateMessage(decoder, bytes.baseAddress, message.count)
-        }
-        guard update == errSecSuccess, CMSDecoderFinalizeMessage(decoder) == errSecSuccess else { return "decode-error" }
-        var content: CFData?
-        guard CMSDecoderCopyContent(decoder, &content) == errSecSuccess, let content,
-              let plist = try? PropertyListSerialization.propertyList(from: content as Data, format: nil) as? [String: Any],
+              let message = try? Data(contentsOf: url),
+              let plistData = embeddedProfilePlist(in: message),
+              let plist = try? PropertyListSerialization.propertyList(from: plistData, format: nil) as? [String: Any],
               let profileEntitlements = plist["Entitlements"] as? [String: Any] else { return "entitlements-unavailable" }
         let keys = profileEntitlements.keys.filter { $0.hasPrefix("com.apple.developer.carplay-") }.sorted()
         return keys.isEmpty ? "none" : keys.map { "\($0)=\(profileEntitlements[$0] ?? "nil")" }.joined(separator: ", ")
+    }
+
+    private static func embeddedProfilePlist(in cmsMessage: Data) -> Data? {
+        let header = Data("<?xml".utf8)
+        let openingTag = Data("<plist".utf8)
+        let closingTag = Data("</plist>".utf8)
+        guard let start = cmsMessage.range(of: header)?.lowerBound ?? cmsMessage.range(of: openingTag)?.lowerBound,
+              let end = cmsMessage.range(of: closingTag, in: start..<cmsMessage.endIndex)?.upperBound else { return nil }
+        return cmsMessage.subdata(in: start..<end)
     }
 
     static func recordAppLaunch() {
