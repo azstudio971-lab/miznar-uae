@@ -111,6 +111,7 @@ final class PlaybackManager: ObservableObject {
         let playerItem = AVPlayerItem(url: item.url)
         observe(playerItem)
         player.replaceCurrentItem(with: playerItem)
+        player.defaultRate = 1
         player.play()
         updateNowPlaying()
         loadArtwork(for: item)
@@ -139,6 +140,22 @@ final class PlaybackManager: ObservableObject {
         queue = items
         guard let first = items.first(where: { $0.url == url }) ?? items.first else { return }
         play(first, presentOnPhone: presentOnPhone)
+    }
+
+    var canSeek: Bool {
+        guard let item = player.currentItem, item.status == .readyToPlay else { return false }
+        return item.seekableTimeRanges.contains { value in
+            let range = value.timeRangeValue
+            return range.duration.seconds.isFinite && range.duration.seconds > 0
+        }
+    }
+    var canPlayNext: Bool {
+        guard let current, let index = queue.firstIndex(of: current) else { return false }
+        return queue.indices.contains(index + 1)
+    }
+    var canPlayPrevious: Bool {
+        guard let current, let index = queue.firstIndex(of: current) else { return false }
+        return index > 0
     }
 
     var supportedRates: [Float] {

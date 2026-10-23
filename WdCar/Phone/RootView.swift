@@ -121,10 +121,10 @@ private struct PlayerContainer: View {
                 }
                 Spacer()
                 Menu {
-                    Button(tr("السابق", "Previous")) { playback.previous() }
-                    Button(tr("التالي", "Next")) { playback.next() }
-                    Button(tr("تأخير", "Skip backward")) { playback.seek(by: -Double(PlayerPreferences.skip)) }
-                    Button(tr("تقديم", "Skip forward")) { playback.seek(by: Double(PlayerPreferences.skip)) }
+                    Button(tr("السابق", "Previous")) { playback.previous() }.disabled(!playback.canPlayPrevious)
+                    Button(tr("التالي", "Next")) { playback.next() }.disabled(!playback.canPlayNext)
+                    Button(tr("تأخير", "Skip backward")) { playback.seek(by: -Double(PlayerPreferences.skip)) }.disabled(!playback.canSeek)
+                    Button(tr("تقديم", "Skip forward")) { playback.seek(by: Double(PlayerPreferences.skip)) }.disabled(!playback.canSeek)
                     ForEach(playback.supportedRates, id: \.self) { rate in
                         Button(String(format: "%.1f×", rate)) { playback.setRate(rate) }
                     }
