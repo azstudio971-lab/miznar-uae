@@ -42,41 +42,33 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     private var externalDisplay = false
-    private var mediaObservation: AnyCancellable?
+    private var externalDelegate: CarExternalDisplaySceneDelegate?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
                options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
         // Some interactive external screens arrive with the application role.
         externalDisplay = windowScene.screen !== UIScreen.main
+        if externalDisplay {
+            // The application-role fallback must use the same explicit-only
+            // external presentation as the dedicated external-display roles.
+            let delegate = CarExternalDisplaySceneDelegate()
+            externalDelegate = delegate
+            delegate.scene(scene, willConnectTo: session, options: connectionOptions)
+            return
+        }
         let window = UIWindow(windowScene: windowScene)
         window.backgroundColor = .black
-        if externalDisplay {
-            window.overrideUserInterfaceStyle = .dark
-            window.rootViewController = CarDashboardViewController()
-        } else {
-            window.rootViewController = UIHostingController(
-                rootView: RootView().environmentObject(AppState.shared).tint(.wdAccent))
-        }
+        window.rootViewController = UIHostingController(
+            rootView: RootView().environmentObject(AppState.shared).tint(.wdAccent))
         self.window = window
         window.makeKeyAndVisible()
-        WDLog.car("application scene visible external=\(externalDisplay)")
-        if externalDisplay {
-            mediaObservation = PlaybackManager.shared.$current
-                .receive(on: RunLoop.main)
-                .sink { [weak window] media in window?.isHidden = media != nil }
-            AppState.shared.carScreenConnected(interactive: true)
-            CarScreenLauncher.shared.externalDisplayDidConnect()
-        }
+        WDLog.car("phone application scene visible")
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
-        if externalDisplay {
-            WebViewPool.car.pauseAllMedia()
-            AppState.shared.carScreenDisconnected()
-        }
-        mediaObservation = nil
+        externalDelegate?.sceneDidDisconnect(scene)
+        externalDelegate = nil
         window = nil
     }
 }
-

@@ -40,6 +40,8 @@ struct MediaLibraryView: View {
         NavigationStack {
             List {
                 Section {
+                    Label(tr("WudCar • مشغّل فيديو ووسائط", "WudCar • Video & media player"), systemImage: "play.rectangle.fill").font(.headline)
+                    NavigationLink(tr("البث إلى الشاشة • AirPlay", "Send to display • AirPlay")) { MediaCastingView() }
                     NavigationLink(tr("القنوات وقوائم M3U وحسابات Xtream", "Channels, M3U playlists and Xtream")) { XtreamHomeView() }
                     PhotosPicker(selection: $photos, matching: .videos) { Label(tr("استيراد من الصور", "Import from Photos"), systemImage: "photo") }
                         .disabled(library.importProgress != nil)

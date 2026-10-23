@@ -11,7 +11,7 @@ settings:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
     MARKETING_VERSION: "2.2.2"
-    CURRENT_PROJECT_VERSION: "222"
+    CURRENT_PROJECT_VERSION: "224"
     VERSIONING_SYSTEM: apple-generic
 
 targets:
@@ -24,7 +24,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: WdCar
-        PRODUCT_BUNDLE_IDENTIFIER: com.azstudio.wudcar   # المعرّف المقترح — ينتظر موافقتك
+        PRODUCT_BUNDLE_IDENTIFIER: com.azstudio.wudcar   # Existing identity confirmed by owner
         DEVELOPMENT_TEAM: "QS29RVJPUT"                             # يضبطه Codemagic من متغير TEAM_ID
         CODE_SIGN_STYLE: Automatic
         INFOPLIST_FILE: Config/Info.plist

@@ -28,3 +28,8 @@ for name, expected in json.loads((root / 'docs/releases/2.2.2/preserved-source.j
     actual = hashlib.sha1(b'blob ' + str(len(content)).encode() + b'\0' + content).hexdigest()
     assert actual == expected, f'Protected browser/subscription/branding source changed: {name}'
 print('Protected browser, shortcuts, subscription, intro and mouse sources match build 17.')
+
+# The old custom dashboard must not be installed through either scene role.
+for path in ['WdCar/App/WdCarApp.swift', 'WdCar/CarPlay/CarExternalDisplaySceneDelegate.swift']:
+    assert 'CarDashboardViewController()' not in (root / path).read_text(), f'Legacy dashboard mounted: {path}'
+print('Both external-scene routes preserve native CarPlay navigation.')

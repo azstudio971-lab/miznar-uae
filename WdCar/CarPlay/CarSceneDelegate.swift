@@ -19,6 +19,7 @@ final class CarSceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
     func templateApplicationScene(_ scene: CPTemplateApplicationScene,
                                   didDisconnectInterfaceController interfaceController: CPInterfaceController) {
         WDLog.car("CarPlay template scene disconnected")
+        CarScreenLauncher.shared.closeBrowser()
         PlaybackManager.shared.carDisconnected()
         templateUI?.stop()
         templateUI = nil

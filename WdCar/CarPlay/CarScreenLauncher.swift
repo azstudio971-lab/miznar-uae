@@ -1,15 +1,22 @@
 import Foundation
+import Combine
 
-/// Browser launch no longer plays an unrelated intro to acquire a video surface.
-/// The legacy external-display browser is retained for compatibility and requires
-/// separate platform/review validation; it is not a media-video transport.
-final class CarScreenLauncher {
+/// Explicit browser presentation only. Connecting a display must never mount the
+/// legacy dashboard over CarPlay's media-library templates.
+final class CarScreenLauncher: ObservableObject {
     static let shared = CarScreenLauncher()
-    private(set) var isLaunching = false
+    @Published private(set) var browserRequested = false
+    var isLaunching: Bool { false }
     private init() {}
+
     func launch() {
+        guard SubscriptionStore.shared.hasAccess else { return }
+        PlaybackManager.shared.stop()
+        browserRequested = true
         AppState.shared.showCarScreenHelp = true
-        WDLog.car("Browser external display requested; no bootstrap video is played")
+        WDLog.car("Explicit browser request; no bootstrap video is played")
     }
+
+    func closeBrowser() { browserRequested = false }
     func externalDisplayDidConnect() {}
 }
