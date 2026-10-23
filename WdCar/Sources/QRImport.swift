@@ -65,8 +65,7 @@ struct QRPhotoPicker: UIViewControllerRepresentable {
             provider.loadObject(ofClass: UIImage.self) { image, _ in
                 var value: String?
                 if let data = (image as? UIImage)?.pngData() {
-                    let request = QRImageDecoder.request()
-                    if (try? VNImageRequestHandler(data: data).perform([request])) != nil { value = request.results?.first?.payloadStringValue }
+                    value = QRImageDecoder.payload(data: data)
                 }
                 DispatchQueue.main.async { self.completion(value) }
             }
@@ -76,9 +75,18 @@ struct QRPhotoPicker: UIViewControllerRepresentable {
 
 /// Vision's simulator model compiler needs CPU inference in a virtual machine.
 enum QRImageDecoder {
+    static func payload(data: Data) -> String? {
+        let request = request()
+        if (try? VNImageRequestHandler(data: data).perform([request])) != nil,
+           let value = request.results?.first?.payloadStringValue { return value }
+        guard let image = CIImage(data: data),
+              let detector = CIDetector(ofType: CIDetectorTypeQRCode, context: CIContext(options: [.useSoftwareRenderer: true]), options: [CIDetectorAccuracy: CIDetectorAccuracyHigh]) else { return nil }
+        return (detector.features(in: image).first as? CIQRCodeFeature)?.messageString
+    }
     static func request() -> VNDetectBarcodesRequest {
         let request = VNDetectBarcodesRequest()
         request.symbologies = [.qr]
+        request.revision = VNDetectBarcodesRequestRevision1
         #if targetEnvironment(simulator)
         request.usesCPUOnly = true
         #endif
