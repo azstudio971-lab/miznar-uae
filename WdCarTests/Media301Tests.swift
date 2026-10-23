@@ -2,10 +2,58 @@ import XCTest
 import AVFoundation
 import CoreMedia
 import SwiftUI
+import StoreKitTest
 @testable import WdCar
 
 @MainActor
 final class Media301Tests: XCTestCase {
+    func testStoreScreenshotsFromActualViews() async throws {
+        let config = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "WudCar", withExtension: "storekit"))
+        let session = try SKTestSession(contentsOf: config)
+        session.disableDialogs = true
+        _ = try await session.buyProduct(identifier: SubscriptionStore.productID)
+        await SubscriptionStore.shared.refresh()
+        XCTAssertTrue(SubscriptionStore.shared.hasAccess)
+        let library = MediaLibrary.shared
+        let source = try XCTUnwrap(Bundle.main.url(forResource: "intro_day", withExtension: "mp4"))
+        let ids = Set(library.items.map(\.id))
+        try await library.importFile(source)
+        let imported = try XCTUnwrap(library.items.first { !ids.contains($0.id) })
+        defer { library.remove(imported.id); PlaybackManager.shared.stop() }
+        library.createPlaylist("WudCar demo")
+        let list = try XCTUnwrap(library.playlists.last)
+        library.setMembers([imported.id], in: list.id)
+        defer { library.deletePlaylist(list.id) }
+        for (label, size) in [("6.9", CGSize(width: 440, height: 956)), ("6.5", CGSize(width: 428, height: 926))] {
+            let item = try XCTUnwrap(imported.playbackItem)
+            PlaybackManager.shared.playQueue([item], startingAt: item.url, presentOnPhone: true)
+            for _ in 0..<100 where PlaybackManager.shared.player.currentItem?.status != .readyToPlay { try await Task.sleep(for: .milliseconds(50)) }
+            XCTAssertEqual(PlaybackManager.shared.player.currentItem?.status, .readyToPlay)
+            let views: [(String, AnyView)] = [
+                ("01-player", AnyView(PlayerHomeView())),
+                ("02-library", AnyView(MediaLibraryView())),
+                ("03-tv", AnyView(XtreamHomeView())),
+                ("04-subtitles", AnyView(NavigationStack { PlayerOptionsView() })),
+                ("05-cast", AnyView(CastView()))
+            ]
+            for (name, view) in views {
+                let host = UIHostingController(rootView: view.environmentObject(AppState.shared))
+                let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+                let window = UIWindow(windowScene: scene)
+                window.rootViewController = host; window.makeKeyAndVisible()
+                host.view.frame = CGRect(origin: .zero, size: size)
+                host.view.layoutIfNeeded()
+                try await Task.sleep(for: .milliseconds(350))
+                let format = UIGraphicsImageRendererFormat(); format.scale = 3
+                let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in host.view.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true) }
+                XCTAssertEqual(image.cgImage?.width, Int(size.width * 3)); XCTAssertEqual(image.cgImage?.height, Int(size.height * 3))
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "301-\(label)-\(name)"; attachment.lifetime = .keepAlways; add(attachment)
+                window.isHidden = true; window.rootViewController = nil
+            }
+        }
+    }
+
     func testImportPlaylistOrderResumeAndRemoval() async throws {
         let library = MediaLibrary.shared
         let original = try XCTUnwrap(Bundle.main.url(forResource: "intro_day", withExtension: "mp4"))

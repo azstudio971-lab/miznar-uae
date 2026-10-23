@@ -1,4 +1,5 @@
 import SwiftUI
+import AVKit
 
 struct PlayerHomeView: View {
     @ObservedObject private var library = MediaLibrary.shared
@@ -9,6 +10,7 @@ struct PlayerHomeView: View {
             List {
                 Section(tr("يعمل الآن", "Now playing")) {
                     if let item = playback.current {
+                        MiniMediaPlayer().frame(height: 180).clipShape(RoundedRectangle(cornerRadius: 12))
                         Button { playback.isPlayerPresented = true } label: { Label(item.title, systemImage: "play.rectangle") }
                         HStack {
                             Button { playback.previous() } label: { Image(systemName: "backward.end.fill") }.disabled(!playback.canPlayPrevious)
@@ -60,4 +62,17 @@ struct CastView: View {
             }.navigationTitle("Cast / AirPlay")
         }
     }
+}
+
+struct MiniMediaPlayer: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        let controller = AVPlayerViewController()
+        controller.player = PlaybackManager.shared.player
+        controller.updatesNowPlayingInfoCenter = false
+        controller.videoGravity = PlayerPreferences.gravity
+        controller.allowsPictureInPicturePlayback = PlayerPreferences.flag("pip", true)
+        controller.entersFullScreenWhenPlaybackBegins = false
+        return controller
+    }
+    func updateUIViewController(_ controller: AVPlayerViewController, context: Context) { controller.videoGravity = PlayerPreferences.gravity }
 }

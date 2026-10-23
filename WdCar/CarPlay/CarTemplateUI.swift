@@ -25,6 +25,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     private var statusTimer: Timer?
     private var tabBar: CPTabBarTemplate?
     private var browserWarningAccepted = false
+    private var favoriteChannelRows: [CPListItem] = []
     static let tabOrder = ["library", "tv", "favorites", "settings"]
 
     init(interfaceController: CPInterfaceController) {
@@ -60,7 +61,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         // Playback speed is phone-only; retain the official control without changing car playback speed.
         rate.isEnabled = false
         now.updateNowPlayingButtons([rate])
-        if #available(iOS 26.4, *) { now.allowsMiniPlayer = true }
+        #if WUDCAR_IOS27_SDK
+        if #available(iOS 27.0, *) { now.allowsMiniPlayer = true }
+        #endif
         MediaLibrary.shared.$items.combineLatest(MediaLibrary.shared.$playlists)
             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
             .sink { [weak self] _, _ in self?.rebuildHome(); self?.rebuildEntertainment(self?.currentShortcuts ?? []) }.store(in: &bag)
@@ -154,6 +157,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             }
             .store(in: &bag)
 
+        M3UStore.shared.objectWillChange.debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.refreshFavoriteChannels() }.store(in: &bag)
+        refreshFavoriteChannels()
         WDLog.car("templates connected supportsVideo=\(supportsVideo)")
         startedAt = Date()
         refreshVideoSupport()
@@ -209,7 +215,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                 if self?.supportsVideo != true { self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil) }
                 done()
             }
-            return CPListSection(items: [row] + (items.count > 12 ? Array(items.dropFirst(12)).map(mediaItem) : []))
+            var rows: [CPListTemplateItem] = [row]
+            rows.append(contentsOf: items.dropFirst(12).map(mediaItem))
+            return CPListSection(items: rows)
         }
         return CPListSection(items: items.map(mediaItem), header: title, sectionIndexTitle: nil)
     }
@@ -342,12 +350,28 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         let browser = carScreenItem()
         browser.handler = { [weak self] _, done in self?.confirmBrowserLaunch(); done() }
         let media = MediaLibrary.shared.items.filter { $0.favorite && !$0.isLive }.map(mediaItem)
-        let channels = MediaLibrary.shared.items.filter { $0.favorite && $0.isLive }.map(mediaItem)
+        let channels = favoriteChannelRows + MediaLibrary.shared.items.filter { $0.favorite && $0.isLive }.map(mediaItem)
         entertainment.updateSections([
             CPListSection(items: channels, header: carTr("القنوات المفضلة", "Favorite channels"), sectionIndexTitle: nil),
             CPListSection(items: media, header: carTr("الوسائط المفضلة", "Favorite media"), sectionIndexTitle: nil),
             CPListSection(items: [browser] + Array(items) + [videoStatusItem()], header: carTr("تشغيل من الويب", "Play from web"), sectionIndexTitle: nil)
         ])
+    }
+
+    private func refreshFavoriteChannels() {
+        let playlists = M3UStore.shared.playlists
+        Task { [weak self] in
+            var rows: [CPListItem] = []
+            for playlist in playlists {
+                guard let entries = try? await M3UStore.shared.entries(for: playlist) else { continue }
+                guard let self else { return }
+                let favorites = M3UStore.shared.favorites(in: playlist, entries: entries)
+                let section = self.m3uSection(playlist.name, entries: favorites, playlist: playlist)
+                rows += section.items.compactMap { $0 as? CPListItem }
+            }
+            self?.favoriteChannelRows = rows
+            self?.rebuildEntertainment(self?.currentShortcuts ?? [])
+        }
     }
 
     private func confirmBrowserLaunch() {
