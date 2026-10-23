@@ -28,6 +28,8 @@ struct SettingsView: View {
                 }
 
                 Section(tr("المشغّل والتحكم", "Player and controls")) {
+                    Text(tr("مشغّل للفيديو والصوت", "Video and audio player")).font(.headline)
+                    NavigationLink(tr("فحص اتصال CarPlay", "CarPlay connection check")) { CarPlayConnectionView() }
                     NavigationLink(tr("إعدادات المشغّل", "Player settings")) { MediaSettingsView() }
                     NavigationLink(tr("البث إلى الشاشة • AirPlay", "Send to display • AirPlay")) { SubscriptionGate { MediaCastingView() } }
                     NavigationLink(tr("الماوس", "Mouse")) { SubscriptionGate { CarMousePadView() } }
@@ -123,7 +125,7 @@ struct LegalTextView: View {
 
     var privacy: String {
         tr("""
-        • WudCar مشغّل فيديو ووسائط لقوائم M3U/M3U8 وحسابات Xtream وروابط الوسائط والملفات التي يختارها المستخدم. لا نوفر قنوات أو أفلامًا أو اشتراكات IPTV ولا نستضيف المحتوى.
+        • WudCar مشغّل للفيديو والصوت لقوائم M3U/M3U8 وحسابات Xtream وروابط الوسائط والملفات التي يختارها المستخدم. لا نوفر قنوات أو أفلامًا أو اشتراكات IPTV ولا نستضيف المحتوى.
         • مكتبة الوسائط والمفضلة وسجل المشاهدة ومواضع الاستئناف تُحفظ محليًا. تُحفظ بيانات الدخول وروابط الوسائط في Keychain.
         • الصور والملفات التي تختارها عبر أدوات iPhone الرسمية تُنسخ إلى مساحة التطبيق للتشغيل المحلي. إزالة النسخة من المكتبة لا تحذف الأصل من هاتفك.
         • لا نرسل مكتبتك أو ملفاتك المستوردة إلى خوادمنا، ولا يحتوي التطبيق على إعلانات أو أدوات تتبع.
@@ -135,7 +137,7 @@ struct LegalTextView: View {
         • الموقع الجغرافي يُستخدم على الجهاز فقط لمعرفة حركة السيارة وإيقاف الفيديو، ولا يُحفظ ولا يُرسل.
         • الميكروفون والتعرف على الكلام يُستخدمان فقط عند الضغط على زر البحث الصوتي.
         """, """
-        • WudCar is a video and media player for user-supplied M3U/M3U8 playlists, Xtream accounts, media URLs and selected files. We do not provide channels, movies or IPTV content subscriptions, or host content.
+        • WudCar is a video and audio player for user-supplied M3U/M3U8 playlists, Xtream accounts, media URLs and selected files. We do not provide channels, movies or IPTV content subscriptions, or host content.
         • Library metadata, favorites, viewing history and resume positions are stored locally. Credentials and media URLs are stored in the Keychain.
         • Photos and files selected with official iPhone pickers are copied into app storage for local playback. Removing an app copy does not delete the original from your phone.
         • We do not upload your library or imported files to our servers. The app contains no ads or tracking tools.
@@ -151,14 +153,14 @@ struct LegalTextView: View {
 
     var terms: String {
         tr("""
-        • WudCar مشغّل فيديو ووسائط، يدعم قوائم M3U/M3U8 وحسابات Xtream وروابط الإنترنت والملفات المستوردة، ويتضمن متصفحًا. لا يوفر التطبيق المحتوى أو اشتراكات IPTV ولا يستضيفها.
+        • WudCar مشغّل للفيديو والصوت، يدعم قوائم M3U/M3U8 وحسابات Xtream وروابط الإنترنت والملفات المستوردة، ويتضمن متصفحًا. لا يوفر التطبيق المحتوى أو اشتراكات IPTV ولا يستضيفها.
         • الملفات المستوردة المحفوظة محليًا يمكن تشغيلها دون إنترنت؛ البث من الإنترنت يحتاج اتصالًا ومصدرًا متاحًا. يختلف دعم الصيغ والترجمة وAirPlay حسب المصدر والجهاز.
         • عرض الفيديو في السيارة يعتمد على دعم النظام والسيارة وحالة السماح. وجود صلاحيات CarPlay لا يضمن عرض الفيديو في كل سيارة. لا توجد ميزة لعكس شاشة الهاتف بالكامل في هذا الإصدار.
         • أنت مسؤول عن امتلاك حق الوصول للمواقع والحسابات والقوائم التي تضيفها.
         • لا تشاهد الفيديو أثناء القيادة. التزم بأنظمة المرور في بلدك.
         • التطبيق مقدّم "كما هو" دون ضمانات.
         """, """
-        • WudCar is a video and media player for M3U/M3U8 playlists, Xtream accounts, internet URLs and imported files, with browser functionality. It does not provide or host content or IPTV subscriptions.
+        • WudCar is a video and audio player for M3U/M3U8 playlists, Xtream accounts, internet URLs and imported files, with browser functionality. It does not provide or host content or IPTV subscriptions.
         • Locally saved imported files can play offline; internet streaming requires connectivity and an available source. Format, subtitle and AirPlay support depend on the source and device.
         • In-car video depends on system and vehicle support and current permission. CarPlay entitlements do not guarantee video on every vehicle. Full iPhone screen mirroring is not available in this release.
         • You are responsible for having the right to access the sites, accounts and playlists you add.

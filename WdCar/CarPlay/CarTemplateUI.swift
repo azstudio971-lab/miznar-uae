@@ -9,7 +9,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     private var interfaceController: CPInterfaceController?
     private var sessionConfiguration: CPSessionConfiguration?
-    private var home = CPListTemplate(title: carTr("WudCar • مشغّل الفيديو", "WudCar • Video player"), sections: [])
+    private var home = CPListTemplate(title: carTr("WudCar • مشغّل للفيديو والصوت", "WudCar • Video and audio player"), sections: [])
     private var favorites = CPListTemplate(title: carTr("المفضلة", "Favorites"), sections: [])
     private var filesAndCast = CPListTemplate(title: carTr("الملفات والبث", "Files & AirPlay"), sections: [])
     private var entertainment = CPListTemplate(title: carTr("الترفيه", "Entertainment"), sections: [])
@@ -45,8 +45,16 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     }
 
     func start() {
-        sessionConfiguration = CPSessionConfiguration(delegate: self)
+        // Complete the initial root installation before loading or replacing it.
+        let root = makeLaunchTemplate()
+        interfaceController?.setRootTemplate(root, animated: false) { [weak self] success, error in
+            CarPlayLaunchDiagnostics.shared.record(success ? "initial-root-installed" : "initial-root-failed: \(error?.localizedDescription ?? "unknown")")
+            if success { self?.startMediaInterface() }
+        }
+    }
 
+    private func startMediaInterface() {
+        sessionConfiguration = CPSessionConfiguration(delegate: self)
         prepareTemplates()
         installRoot()
 
@@ -131,7 +139,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     /// Also used by the native regression test to inspect the actual template tree.
     func prepareTemplates() {
-        home = CPListTemplate(title: carTr("WudCar • مشغّل الفيديو", "WudCar • Video player"), sections: [])
+        home = CPListTemplate(title: carTr("WudCar • مشغّل للفيديو والصوت", "WudCar • Video and audio player"), sections: [])
         favorites = CPListTemplate(title: carTr("المفضلة", "Favorites"), sections: [])
         filesAndCast = CPListTemplate(title: carTr("الملفات والبث", "Files & AirPlay"), sections: [])
         television = CPListTemplate(title: carTr("القنوات والقوائم", "Channels & playlists"), sections: [])
@@ -163,17 +171,28 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             return tabs
         }
         tabBar = nil
-        return CPListTemplate(title: carTr("WudCar • مشغّل الفيديو", "WudCar • Video player"), sections: [
+        return CPListTemplate(title: carTr("WudCar • مشغّل للفيديو والصوت", "WudCar • Video and audio player"), sections: [
             CPListSection(items: templates.map { template in
                 navigationItem(template.tabTitle ?? "WudCar", symbol: nil, template: template)
             })
         ])
     }
 
+    func makeLaunchTemplate() -> CPListTemplate {
+        CPListTemplate(title: carTr("WudCar • مشغّل للفيديو والصوت", "WudCar • Video and audio player"), sections: [CPListSection(items: [
+            CPListItem(text: carTr("مشغّل للفيديو والصوت", "Video and audio player"), detailText: carTr("جارِ فتح المكتبة والمفضلة…", "Opening your library and favorites…"))
+        ])])
+    }
+
     private func installRoot() {
-        let root = makeRootTemplate(maximumTabCount: CPTabBarTemplate.maximumTabCount)
-        interfaceController?.setRootTemplate(root, animated: false) { success, error in
-            WDLog.car("media root template installed=\(success) error=\(String(describing: error))")
+        // Keep one simple, nonempty CPListTemplate as the entry point. Each row
+        // opens a native destination; no external UIWindow or tab renderer owns it.
+        let root = makeRootTemplate(maximumTabCount: 0)
+        interfaceController?.setRootTemplate(root, animated: false) { [weak self] success, error in
+            CarPlayLaunchDiagnostics.shared.record(success ? "media-root-installed" : "media-root-failed: \(error?.localizedDescription ?? "unknown")")
+            if !success {
+                self?.interfaceController?.setRootTemplate(self?.makeLaunchTemplate() ?? CPListTemplate(title: "WudCar", sections: []), animated: false, completion: nil)
+            }
         }
     }
 
@@ -221,7 +240,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     private func rebuildMediaLists() {
         let media = MediaLibrary.shared.items
         var sections = [CPListSection(items: [
-            CPListItem(text: carTr("مشغّل فيديو ووسائط", "Video & media player"), detailText: carTr("محتواك من iPhone • لا نوفر قنوات أو اشتراكات محتوى", "Your media from iPhone • No channels or content subscriptions supplied")),
+            CPListItem(text: carTr("مشغّل للفيديو والصوت", "Video and audio player"), detailText: carTr("محتواك من iPhone • لا نوفر قنوات أو اشتراكات محتوى", "Your media from iPhone • No channels or content subscriptions supplied")),
             navigationItem(carTr("القنوات وقوائم M3U / Xtream", "Channels and M3U / Xtream playlists"), symbol: "tv", template: television)
         ])]
         let recent = media.filter { $0.position > 0 }.sorted { ($0.lastPlayed ?? $0.added) > ($1.lastPlayed ?? $1.added) }
@@ -367,12 +386,8 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     /// العنصر الأول: يفتح متصفح ود كار على شاشة السيارة (كشاشة خارجية) مثل CarTV
     private func carScreenItem() -> CPListItem {
-        let active = AppState.shared.carScreenActive
-        let item = CPListItem(
-            text: carTr("المتصفح على شاشة السيارة", "Browser on car screen"),
-            detailText: active ? carTr("يعمل الآن", "Running now") : carTr("اضغط للتشغيل", "Tap to start")
-        )
-        item.setImage(UIImage(systemName: active ? "safari.fill" : "safari"))
+        let item = CPListItem(text: carTr("المتصفح على iPhone", "Browser on iPhone"), detailText: carTr("افتح المواقع من الهاتف؛ القوالب لا تعرض صفحات ويب.", "Open sites on iPhone; templates do not render web pages."))
+        item.setImage(UIImage(systemName: "safari"))
         item.handler = { [weak self] _, completion in
             self?.startCarScreen()
             completion()
@@ -381,29 +396,8 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     }
 
     private func startCarScreen() {
-        guard SubscriptionStore.shared.hasAccess else {
-            showAlert([carTr("فعّل اشتراك ود كار أو استعده من تطبيق iPhone أثناء التوقف.", "Activate or restore WudCar Premium on iPhone while parked.")]); return
-        }
-        WDLog.car("templates: browser item tapped active=\(AppState.shared.carScreenActive) supportsVideo=\(supportsVideo)")
-        if AppState.shared.carScreenActive {
-            showAlert([
-                carTr("المتصفح يعمل على شاشة السيارة. افتح المواقع من الهاتف أو من الاختصارات هنا.",
-                   "The browser is on the car screen. Open sites from iPhone or from shortcuts here."),
-                carTr("المتصفح يعمل", "Browser running")
-            ])
-            return
-        }
-        // المسار 1: فتح وضع الفيديو من CarPlay مباشرة
-        CarScreenLauncher.shared.launch()
-        // المسار 2: على الهاتف تظهر نافذة فيها زر AirPlay لاختيار شاشة السيارة
         AppState.shared.showCarScreenHelp = true
-        if !supportsVideo {
-            showAlert([
-                carTr("إذا لم يظهر المتصفح، اختر شاشة السيارة من زر AirPlay في ود كار على iPhone.",
-                   "If the browser does not appear, choose the car display from AirPlay in WudCar on iPhone."),
-                carTr("اختر شاشة السيارة من AirPlay", "Choose the car display in AirPlay")
-            ])
-        }
+        showAlert([carTr("المتصفح متاح على iPhone. لتشغيل محتوى متوافق على السيارة استخدم المشغّل وزر AirPlay أثناء الوقوف، وفق دعم النظام والسيارة.", "The browser is available on iPhone. For compatible in-car media, use the player and AirPlay while parked, subject to system and vehicle support.")])
     }
 
     /// الاختصار يُفتح على شاشة السيارة إن كان المتصفح معروضاً، وإلا على الهاتف

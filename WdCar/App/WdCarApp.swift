@@ -9,6 +9,7 @@ import Combine
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        CarPlayLaunchDiagnostics.shared.record("app-launched")
         let audio = AVAudioSession.sharedInstance()
         do {
             try audio.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo, options: [])
@@ -23,6 +24,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      configurationForConnecting session: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        CarPlayLaunchDiagnostics.shared.record("scene-request: \(session.role.rawValue)")
         WDLog.car("scene connecting role=\(session.role.rawValue)")
         if session.role == .carTemplateApplication {
             let configuration = UISceneConfiguration(name: "CarPlay", sessionRole: session.role)
@@ -30,33 +32,18 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             configuration.delegateClass = CarSceneDelegate.self
             return configuration
         }
-        let external = CarExternalDisplaySceneDelegate.roles.contains(session.role.rawValue)
-        let configuration = UISceneConfiguration(name: external ? "External Display" : "Default Configuration",
-                                                 sessionRole: session.role)
+        let configuration = UISceneConfiguration(name: "Default Configuration", sessionRole: session.role)
         configuration.sceneClass = UIWindowScene.self
-        configuration.delegateClass = external ? CarExternalDisplaySceneDelegate.self : PhoneSceneDelegate.self
+        configuration.delegateClass = PhoneSceneDelegate.self
         return configuration
     }
 }
 
 final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
-    private var externalDisplay = false
-    private var externalDelegate: CarExternalDisplaySceneDelegate?
-
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
                options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
-        // Some interactive external screens arrive with the application role.
-        externalDisplay = windowScene.screen !== UIScreen.main
-        if externalDisplay {
-            // The application-role fallback must use the same explicit-only
-            // external presentation as the dedicated external-display roles.
-            let delegate = CarExternalDisplaySceneDelegate()
-            externalDelegate = delegate
-            delegate.scene(scene, willConnectTo: session, options: connectionOptions)
-            return
-        }
         let window = UIWindow(windowScene: windowScene)
         window.backgroundColor = .black
         window.rootViewController = UIHostingController(
@@ -67,8 +54,6 @@ final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
-        externalDelegate?.sceneDidDisconnect(scene)
-        externalDelegate = nil
         window = nil
     }
 }

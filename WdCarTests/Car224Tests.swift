@@ -23,7 +23,7 @@ final class Car224Tests: XCTestCase {
                 let tabs = try XCTUnwrap(root as? CPTabBarTemplate)
                 XCTAssertEqual(tabs.templates.map(\.tabTitle), titles.map(Optional.some))
                 let library = try XCTUnwrap(tabs.templates.first as? CPListTemplate)
-                XCTAssertTrue(library.title?.contains(language == "ar" ? "مشغّل الفيديو" : "Video player") == true)
+                XCTAssertTrue(library.title?.contains(language == "ar" ? "مشغّل للفيديو والصوت" : "Video and audio player") == true)
                 XCTAssertTrue(library.sections.flatMap(\.items).contains { ($0 as? CPListItem)?.text?.contains("M3U / Xtream") == true })
                 let files = try XCTUnwrap(tabs.templates[2] as? CPListTemplate)
                 XCTAssertEqual(files.sections.flatMap(\.items).count, 3)
@@ -73,7 +73,7 @@ final class Car224Tests: XCTestCase {
             UserDefaults.standard.set(language, forKey: WDKeys.language)
             let privacy = LegalTextView(kind: .privacy)
             let terms = LegalTextView(kind: .terms)
-            XCTAssertTrue(privacy.privacy.contains(language == "ar" ? "مشغّل فيديو" : "video and media player"))
+            XCTAssertTrue(privacy.privacy.contains(language == "ar" ? "مشغّل للفيديو والصوت" : "video and audio player"))
             XCTAssertTrue(terms.terms.contains(language == "ar" ? "لا يوفر التطبيق المحتوى" : "does not provide or host content"))
             for (name, view) in [("cast", AnyView(NavigationStack { MediaCastingView() })), ("privacy", AnyView(NavigationStack { privacy }))] {
                 let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)

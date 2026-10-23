@@ -8,6 +8,7 @@ final class CarSceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
 
     func templateApplicationScene(_ scene: CPTemplateApplicationScene,
                                   didConnect interfaceController: CPInterfaceController) {
+        CarPlayLaunchDiagnostics.shared.record("template-connected")
         WDLog.car("CarPlay template scene connected")
         self.interfaceController = interfaceController
         let ui = CarTemplateUI(interfaceController: interfaceController)

@@ -33,3 +33,8 @@ print('Protected browser, shortcuts, subscription, intro and mouse sources match
 for path in ['WdCar/App/WdCarApp.swift', 'WdCar/CarPlay/CarExternalDisplaySceneDelegate.swift']:
     assert 'CarDashboardViewController()' not in (root / path).read_text(), f'Legacy dashboard mounted: {path}'
 print('Both external-scene routes preserve native CarPlay navigation.')
+
+manifest = plistlib.loads((root / 'Config/Info.plist').read_bytes())['UIApplicationSceneManifest']['UISceneConfigurations']
+assert set(manifest) == {'UIWindowSceneSessionRoleApplication', 'CPTemplateApplicationSceneSessionRoleApplication'}
+assert 'CarExternalDisplaySceneDelegate' not in (root / 'WdCar/App/WdCarApp.swift').read_text()
+print('Only phone and native CarPlay scene routes are declared; no empty external scene is registered.')
