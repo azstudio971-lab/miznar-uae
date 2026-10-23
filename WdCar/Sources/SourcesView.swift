@@ -202,7 +202,7 @@ struct SourceBrowserView: View {
                 if item.folder {
                     NavigationLink { SourceBrowserView(source: source, parent: item.id, title: item.title) } label: { row(item) }
                 } else {
-                    Button { store.play(item, source: source, onPhone: true) } label: { row(item) }
+                    Button { store.play(item, source: source, onPhone: true, queue: visible) } label: { row(item) }
                         .contextMenu {
                             Button(tr("إضافة للمفضلة", "Add to favorites")) { favorite(item) }
                             Button(tr("إضافة للرئيسية", "Add to Home")) { favorite(item) }

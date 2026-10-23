@@ -450,7 +450,7 @@ final class PlaybackManager: ObservableObject {
             MPNowPlayingInfoPropertyPlaybackRate: isSoftwareDecoding ? (isPlaying ? Double(software?.player.rate ?? 1) : 0) : Double(player.rate)
         ]
         let center = MPRemoteCommandCenter.shared()
-        let canSeek = player.currentItem?.seekableTimeRanges.isEmpty == false
+        let canSeek = self.canSeek
         center.skipForwardCommand.isEnabled = canSeek
         center.skipBackwardCommand.isEnabled = canSeek
         center.changePlaybackPositionCommand.isEnabled = canSeek && !current.isLive
@@ -486,10 +486,10 @@ final class PlaybackManager: ObservableObject {
         center.previousTrackCommand.addTarget { [weak self] _ in self?.previous(); return .success }
         center.playCommand.addTarget { [weak self] _ in
             guard SubscriptionStore.shared.hasAccess else { return .commandFailed }
-            self?.player.play(); return .success
+            if self?.isSoftwareDecoding == true { self?.software?.player.play() } else { self?.player.play() }; return .success
         }
         center.pauseCommand.addTarget { [weak self] _ in
-            self?.player.pause(); return .success
+            if self?.isSoftwareDecoding == true { self?.software?.player.pause() } else { self?.player.pause() }; return .success
         }
         center.togglePlayPauseCommand.addTarget { [weak self] _ in
             self?.togglePlayPause(); return .success
@@ -505,7 +505,7 @@ final class PlaybackManager: ObservableObject {
         center.changePlaybackPositionCommand.addTarget { [weak self] event in
             guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
             guard let self, self.current?.isLive == false else { return .commandFailed }
-            self.seek(by: event.positionTime - self.player.currentTime().seconds)
+            self.seek(by: event.positionTime - (self.isSoftwareDecoding ? self.elapsed : self.player.currentTime().seconds))
             return .success
         }
     }

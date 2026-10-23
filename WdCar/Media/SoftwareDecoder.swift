@@ -46,7 +46,18 @@ final class SoftwareDecoder: NSObject, VLCMediaPlayerDelegate {
 struct SoftwarePlaybackSurface: UIViewRepresentable {
     let decoder: SoftwareDecoder
     func makeUIView(context: Context) -> UIView { let view = UIView(); view.backgroundColor = .black; decoder.player.drawable = view; return view }
-    func updateUIView(_ view: UIView, context: Context) { if decoder.player.drawable as? UIView !== view { decoder.player.drawable = view } }
+    func updateUIView(_ view: UIView, context: Context) {
+        if decoder.player.drawable as? UIView !== view { decoder.player.drawable = view }
+        let gravity = PlayerPreferences.text("gravity", "fit")
+        decoder.player.videoAspectRatio = gravity == "stretch" && view.bounds.height > 0 ? "\(Int(view.bounds.width)):\(Int(view.bounds.height))" : nil
+        if PlayerPreferences.flag("actualSize", false) {
+            decoder.player.videoFitMode = .init(rawValue: 0)!
+            decoder.player.scaleFactor = Float(PlayerPreferences.number("videoZoom", 1))
+        } else {
+            decoder.player.scaleFactor = 0
+            decoder.player.videoFitMode = .init(rawValue: gravity == "fill" ? 2 : 1)!
+        }
+    }
 }
 struct SoftwarePlayerView: View {
     let decoder: SoftwareDecoder

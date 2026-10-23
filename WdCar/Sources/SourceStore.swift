@@ -130,13 +130,17 @@ import CryptoKit
             MediaLibrary.shared.removeCachedSource(source.id.uuidString)
         } catch { self.error = error.localizedDescription }
     }
-    func play(_ media: SourceMedia, source: MediaSource, onPhone: Bool) {
+    func play(_ media: SourceMedia, source: MediaSource, onPhone: Bool, queue: [SourceMedia]? = nil) {
         guard let url = media.url else { return }
         do {
             try MediaLibrary.shared.addRemote(title: media.title, url: url, isLive: media.isLive, sourceKey: source.id.uuidString)
             let saved = MediaLibrary.shared.items.first { $0.url == url }
             if let saved, saved.lastPlayed == nil, media.position > 0 { MediaLibrary.shared.record(url: url, position: media.position, duration: media.duration) }
-            PlaybackManager.shared.playQueue([.init(title: media.title, subtitle: source.name, url: url, isLive: media.isLive, artworkURL: media.artwork, sourceKey: source.id.uuidString)], startingAt: url, presentOnPhone: onPhone)
+            let items = (queue ?? [media]).filter { !$0.folder }.compactMap { value -> PlaybackManager.Item? in
+                guard let url = value.url else { return nil }
+                return .init(title: value.title, subtitle: source.name, url: url, isLive: value.isLive, artworkURL: value.artwork, sourceKey: source.id.uuidString)
+            }
+            PlaybackManager.shared.playQueue(items, startingAt: url, presentOnPhone: onPhone)
         } catch { self.error = error.localizedDescription }
     }
 }

@@ -326,6 +326,8 @@ workflows:
 
         python3 scripts/verify_frozen_browser.py
 
+        python3 scripts/verify_release303_scope.py
+
         python3 scripts/verify_logo.py
 
         '
@@ -431,6 +433,8 @@ workflows:
 
         python3 scripts/verify_frozen_browser.py
 
+        python3 scripts/verify_release303_scope.py
+
         python3 scripts/verify_logo.py
 
         '
@@ -523,6 +527,8 @@ workflows:
         git fetch origin 6ca24bc877495dbaed55ff2aa833e687fa4e058f
 
         python3 scripts/verify_frozen_browser.py
+
+        python3 scripts/verify_release303_scope.py
 
         python3 scripts/verify_logo.py
 
@@ -637,6 +643,8 @@ workflows:
 
         python3 scripts/verify_frozen_browser.py
 
+        python3 scripts/verify_release303_scope.py
+
         python3 scripts/verify_logo.py
 
         '
@@ -742,6 +750,8 @@ workflows:
         git fetch origin 6ca24bc877495dbaed55ff2aa833e687fa4e058f
 
         python3 scripts/verify_frozen_browser.py
+
+        python3 scripts/verify_release303_scope.py
 
         python3 scripts/verify_logo.py
 

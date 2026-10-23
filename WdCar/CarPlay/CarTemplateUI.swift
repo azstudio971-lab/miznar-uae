@@ -184,7 +184,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 guard self?.interfaceController?.topTemplate !== CPNowPlayingTemplate.shared else { return }
-                self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+                self?.showNowPlaying()
             }.store(in: &bag)
         DrivingMonitor.shared.$isMoving.receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildSettings(); self?.rebuildCast() }.store(in: &bag)
@@ -204,7 +204,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         let library = MediaLibrary.shared
         let sections = [
             mediaSection(carTr("متابعة المشاهدة", "Continue watching"), items: library.items.filter { $0.position > 0 }),
-            CPListSection(items: library.playlists.map { list in
+            compactSection(carTr("قوائم التشغيل", "Playlists"), rows: library.playlists.map { list in
                 let item = CPListItem(text: list.name, detailText: "\(list.itemIDs.count)", image: UIImage(systemName: "list.bullet.rectangle"))
                 item.handler = { [weak self] _, done in
                     let members = library.members(list.id)
@@ -212,20 +212,19 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                         let row = self?.mediaItem(media) ?? CPListItem(text: media.title, detailText: nil)
                         row.handler = { _, finished in
                             PlaybackManager.shared.playQueue(members.compactMap(\.playbackItem), startingAt: media.url, presentOnPhone: false, playlistName: list.name)
-                            if self?.supportsVideo != true { self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil) }
+                            if self?.supportsVideo != true { self?.showNowPlaying() }
                             finished()
                         }
                         return row
                     }
-                    let template = CPListTemplate(title: list.name, sections: bounded([CPListSection(items: rows)]))
-                    self?.interfaceController?.pushTemplate(template, animated: true, completion: nil); done()
+                    self?.showPagedRows(title: list.name, rows: rows); done()
                 }
                 return item
-            }, header: carTr("قوائم التشغيل", "Playlists"), sectionIndexTitle: nil),
+            }),
             mediaSection(carTr("الفيديوهات والملفات المحلية", "Local video and audio"), items: library.items.filter { $0.localFilename != nil }),
             mediaSection(carTr("روابط الوسائط", "Media URLs"), items: library.items.filter { $0.localFilename == nil })
         ]
-        home.updateSections(bounded([sourceSection()] + sections))
+        home.updateSections(bounded([sections[0], sourceSection()] + Array(sections.dropFirst())))
     }
     private func bounded(_ sections: [CPListSection]) -> [CPListSection] {
         var remaining = Self.maxItems
@@ -234,6 +233,35 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             let items = Array(section.items.prefix(remaining)); remaining -= items.count
             return CPListSection(items: items, header: section.header, sectionIndexTitle: section.sectionIndexTitle)
         }
+    }
+    private func showNowPlaying() {
+        guard let controller = interfaceController, controller.topTemplate !== CPNowPlayingTemplate.shared else { return }
+        if controller.templates.count >= 5 {
+            controller.popToRootTemplate(animated: false) { _, _ in
+                controller.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+            }
+        } else { controller.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil) }
+    }
+    private func showPagedRows(title: String, rows: [CPListItem]) {
+        let template = CPListTemplate(title: title, sections: [])
+        populateRows(template, rows: rows, offset: 0)
+        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+    }
+    private func populateRows(_ template: CPListTemplate, rows: [CPListItem], offset: Int) {
+        let capacity = max(1, Self.maxItems - 1)
+        var page = Array(rows.dropFirst(offset).prefix(capacity))
+        for row in page { if let url = row.userInfo as? URL { loadImage(url, into: row) } }
+        if offset + capacity < rows.count {
+            let more = CPListItem(text: carTr("المزيد", "More"), detailText: nil)
+            more.handler = { [weak self] _, done in self?.populateRows(template, rows: rows, offset: offset + capacity); done() }; page.append(more)
+        }
+        template.updateSections([CPListSection(items: page)])
+    }
+    private func compactSection(_ title: String, rows: [CPListItem]) -> CPListSection {
+        guard !rows.isEmpty else { return CPListSection(items: []) }
+        let item = CPListItem(text: title, detailText: "\(rows.count)", image: UIImage(systemName: "list.bullet"))
+        item.handler = { [weak self] _, done in self?.showPagedRows(title: title, rows: rows); done() }
+        return CPListSection(items: [item], header: title, sectionIndexTitle: nil)
     }
     private func rebuildCast() {
         let route = CPListItem(text: carTr("AirPlay", "AirPlay"), detailText: PlaybackManager.shared.isAirPlayActive ? carTr("متصل بشاشة", "Connected to a display") : carTr("اختر جهاز الاستقبال من iPhone", "Choose a receiver on iPhone"), image: UIImage(systemName: "airplay.video"))
@@ -244,12 +272,12 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         cast.updateSections(bounded([CPListSection(items: [route, mirroring, videoStatusItem(), preferences])]))
     }
     private func sourceSection(liveOnly: Bool = false) -> CPListSection {
-        let rows = SourceStore.shared.sources.filter { !$0.hidden && (!liveOnly || [.playlist, .pasted, .stream].contains($0.kind)) }.prefix(Self.maxItems).map { source -> CPListItem in
+        let rows = SourceStore.shared.sources.filter { !$0.hidden && (!liveOnly || [.playlist, .pasted, .stream].contains($0.kind)) }.map { source -> CPListItem in
             let item = CPListItem(text: source.name, detailText: "\(source.count)", image: UIImage(systemName: "server.rack"))
             item.accessoryType = .disclosureIndicator
             item.handler = { [weak self] _, done in self?.showSource(source); done() }; return item
         }
-        return CPListSection(items: Array(rows), header: carTr("المصادر", "Sources"), sectionIndexTitle: nil)
+        return compactSection(carTr("المصادر", "Sources"), rows: Array(rows))
     }
     private func showSource(_ source: MediaSource, parent: String? = nil, title: String? = nil) {
         let template = loadingTemplate(title: title ?? source.name)
@@ -262,17 +290,25 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             } catch { self.fail(template, error) }
         }
     }
-    private func populateSource(_ template: CPListTemplate, source: MediaSource, items: [SourceMedia], offset: Int) {
-        let capacity = max(1, Self.maxItems - 1)
+    private func populateSource(_ template: CPListTemplate, source: MediaSource, items: [SourceMedia], offset: Int, trail: [[SourceMedia]] = []) {
+        let capacity = max(1, Self.maxItems - 1 - (trail.isEmpty ? 0 : 1))
         var rows = items.dropFirst(offset).prefix(capacity).map { media -> CPListItem in
             let row = CPListItem(text: media.title, detailText: media.group.isEmpty ? nil : media.group, image: UIImage(systemName: media.folder ? "folder" : "play.rectangle"))
             loadImage(media.artwork, into: row)
             if !media.folder { applyPlaybackConfiguration(to: row) }
             row.handler = { [weak self] _, done in
-                if media.folder { self?.showSource(source, parent: media.id, title: media.title) }
+                if media.folder {
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        do {
+                            let children = try await SourceStore.shared.browse(source, parent: media.id)
+                            self.populateSource(template, source: source, items: children, offset: 0, trail: trail + [items])
+                        } catch { self.fail(template, error) }
+                    }
+                }
                 else {
-                    SourceStore.shared.play(media, source: source, onPhone: false)
-                    if self?.supportsVideo != true { self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil) }
+                    SourceStore.shared.play(media, source: source, onPhone: false, queue: items)
+                    if self?.supportsVideo != true { self?.showNowPlaying() }
                 }
                 done()
             }
@@ -280,7 +316,12 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         }
         if offset + capacity < items.count {
             let more = CPListItem(text: carTr("المزيد", "More"), detailText: nil)
-            more.handler = { [weak self] _, done in self?.populateSource(template, source: source, items: items, offset: offset + capacity); done() }; rows.append(more)
+            more.handler = { [weak self] _, done in self?.populateSource(template, source: source, items: items, offset: offset + capacity, trail: trail); done() }; rows.append(more)
+        }
+        if let previous = trail.last {
+            let up = CPListItem(text: carTr("المجلد السابق", "Previous folder"), detailText: nil, image: UIImage(systemName: "arrow.up"))
+            up.handler = { [weak self] _, done in self?.populateSource(template, source: source, items: previous, offset: 0, trail: Array(trail.dropLast())); done() }
+            rows.insert(up, at: 0)
         }
         template.updateSections([CPListSection(items: rows)])
     }
@@ -297,11 +338,17 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             row.listImageRowHandler = { [weak self] _, index, done in
                 guard visible.indices.contains(index) else { done(); return }
                 PlaybackManager.shared.playQueue(items.compactMap(\.playbackItem), startingAt: visible[index].url, presentOnPhone: false)
-                if self?.supportsVideo != true { self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil) }
+                if self?.supportsVideo != true { self?.showNowPlaying() }
                 done()
             }
             var rows: [CPListTemplateItem] = [row]
-            rows.append(contentsOf: items.dropFirst(visible.count).map(mediaItem))
+            if items.count > visible.count {
+                let more = CPListItem(text: carTr("عرض الكل", "Show all"), detailText: "\(items.count)")
+                more.handler = { [weak self] _, done in
+                    guard let self else { done(); return }
+                    self.showPagedRows(title: title, rows: items.map(self.mediaItem)); done()
+                }; rows.append(more)
+            }
             return CPListSection(items: rows)
         }
         return CPListSection(items: items.map(mediaItem), header: title, sectionIndexTitle: nil)
@@ -316,7 +363,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         item.handler = { [weak self] _, done in
             let items = MediaLibrary.shared.items.compactMap(\.playbackItem)
             PlaybackManager.shared.playQueue(items, startingAt: media.url, presentOnPhone: false)
-            if self?.supportsVideo != true { self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil) }; done()
+            if self?.supportsVideo != true { self?.showNowPlaying() }; done()
         }
         return item
     }
@@ -424,9 +471,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         guard SubscriptionStore.shared.hasAccess else {
             entertainment.updateSections([CPListSection(items: [CPListItem(text: carTr("الاشتراك مطلوب", "Subscription required"), detailText: carTr("فعّل الاشتراك من تطبيق iPhone أثناء التوقف.", "Subscribe in the iPhone app while parked."))])]); return
         }
-        let items = shortcuts.prefix(Self.maxItems - 3).map { shortcut -> CPListItem in
+        let items = shortcuts.map { shortcut -> CPListItem in
             let item = CPListItem(text: shortcut.name, detailText: shortcut.url.host)
-            loadImage(Favicon.url(for: shortcut.url), into: item)
+            item.userInfo = Favicon.url(for: shortcut.url)
             item.handler = { [weak self] _, completion in
                 self?.openShortcut(shortcut.url)
                 completion()
@@ -437,10 +484,17 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         browser.handler = { [weak self] _, done in self?.confirmBrowserLaunch(); done() }
         let media = MediaLibrary.shared.items.filter { $0.favorite && !$0.isLive }.map(mediaItem)
         let channels = favoriteChannelRows + MediaLibrary.shared.items.filter { $0.favorite && $0.isLive }.map(mediaItem)
+        let websiteBudget = max(0, Self.maxItems - (channels.isEmpty ? 0 : 1) - (media.isEmpty ? 0 : 1) - 3)
+        var websites = Array(items.prefix(websiteBudget))
+        if websites.count < items.count {
+            let more = CPListItem(text: carTr("كل اختصارات المواقع", "All website shortcuts"), detailText: "\(shortcuts.count)")
+            more.handler = { [weak self] _, done in self?.showPagedRows(title: carTr("تشغيل من الويب", "Play from web"), rows: Array(items)); done() }; websites.append(more)
+        }
+        for row in websites { if let url = row.userInfo as? URL { loadImage(url, into: row) } }
         entertainment.updateSections(bounded([
-            CPListSection(items: channels, header: carTr("القنوات المفضلة", "Favorite channels"), sectionIndexTitle: nil),
-            CPListSection(items: media, header: carTr("الوسائط المفضلة", "Favorite media"), sectionIndexTitle: nil),
-            CPListSection(items: [browser] + Array(items) + [videoStatusItem()], header: carTr("تشغيل من الويب", "Play from web"), sectionIndexTitle: nil)
+            compactSection(carTr("القنوات المفضلة", "Favorite channels"), rows: channels),
+            compactSection(carTr("الوسائط المفضلة", "Favorite media"), rows: media),
+            CPListSection(items: [browser] + websites + [videoStatusItem()], header: carTr("تشغيل من الويب", "Play from web"), sectionIndexTitle: nil)
         ]))
     }
 
@@ -607,8 +661,8 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             return item
         }
         var sections: [CPListSection] = []
-        if !accounts.isEmpty { sections.append(CPListSection(items: accounts, header: "Xtream Codes", sectionIndexTitle: nil)) }
-        if !playlists.isEmpty { sections.append(CPListSection(items: playlists, header: "M3U", sectionIndexTitle: nil)) }
+        if !accounts.isEmpty { sections.append(compactSection("Xtream Codes", rows: accounts)) }
+        if !playlists.isEmpty { sections.append(compactSection("M3U", rows: playlists)) }
         sections.append(sourceSection(liveOnly: true))
         television.updateSections(bounded(sections))
     }
@@ -623,17 +677,19 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                     guard let self else { return }
                     let favorites = M3UStore.shared.favorites(in: playlist, entries: entries)
                     let groups = Dictionary(grouping: entries, by: { $0.group.isEmpty ? carTr("قنوات أخرى", "Other channels") : $0.group })
-                    var sections: [CPListSection] = []
-                    if !favorites.isEmpty {
-                        sections.append(self.m3uSection(carTr("المفضلة", "Favorites"), entries: favorites, playlist: playlist))
+                    var rows: [CPListItem] = []
+                    func addGroup(_ title: String, values: [M3UEntry]) {
+                        let row = CPListItem(text: title, detailText: "\(values.count)", image: UIImage(systemName: "folder"))
+                        row.handler = { [weak self] _, done in
+                            guard let self else { done(); return }
+                            let items = self.m3uSection(title, entries: values, playlist: playlist).items.compactMap { $0 as? CPListItem }
+                            self.showPagedRows(title: title, rows: items); done()
+                        }; rows.append(row)
                     }
-                    for key in groups.keys.sorted() {
-                        if let values = groups[key] {
-                            sections.append(self.m3uSection(key, entries: values, playlist: playlist))
-                        }
-                    }
+                    if !favorites.isEmpty { addGroup(carTr("المفضلة", "Favorites"), values: favorites) }
+                    for key in groups.keys.sorted() { if let values = groups[key] { addGroup(key, values: values) } }
                     template.emptyViewTitleVariants = [carTr("لا يوجد محتوى", "No content")]
-                    template.updateSections(bounded(sections))
+                    self.populateRows(template, rows: rows, offset: 0)
                 }
             } catch {
                 await MainActor.run { self?.fail(template, error) }
@@ -642,9 +698,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     }
 
     private func m3uSection(_ title: String, entries: [M3UEntry], playlist: M3UPlaylist) -> CPListSection {
-        let items = entries.prefix(Self.maxItems).map { entry -> CPListItem in
+        let items = entries.map { entry -> CPListItem in
             let item = CPListItem(text: entry.title, detailText: nil)
-            loadImage(entry.logo, into: item)
+            item.userInfo = entry.logo
             applyPlaybackConfiguration(to: item)
             item.handler = { [weak self] _, completion in
                 guard let self else { completion(); return }
@@ -655,7 +711,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                                                   artworkURL: entry.logo),
                                             presentOnPhone: false)
                 if !self.supportsVideo {
-                    self.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+                    self.showNowPlaying()
                 }
                 completion()
             }
@@ -678,7 +734,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                     guard let self else { return }
                     var sections: [CPListSection] = []
                     for (kind, categories) in [(XtreamKind.live, liveCategories), (XtreamKind.movies, movieCategories)] where !categories.isEmpty {
-                        let items = categories.prefix(Self.maxItems).map { category -> CPListItem in
+                        let items = categories.map { category -> CPListItem in
                             let item = CPListItem(text: category.name, detailText: nil)
                             item.accessoryType = .disclosureIndicator
                             item.handler = { [weak self] _, completion in
@@ -687,7 +743,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                             }
                             return item
                         }
-                        sections.append(CPListSection(items: Array(items), header: kind.title, sectionIndexTitle: nil))
+                        sections.append(self.compactSection(kind.title, rows: Array(items)))
                     }
                     template.emptyViewTitleVariants = [carTr("لا يوجد محتوى", "No content")]
                     template.updateSections(bounded(sections))
@@ -708,9 +764,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                 let streams = try await client.streams(kind, categoryID: category.id)
                 await MainActor.run {
                     guard let self else { return }
-                    let items = streams.prefix(Self.maxItems).map { stream -> CPListItem in
+                    let items = streams.map { stream -> CPListItem in
                         let item = CPListItem(text: stream.name, detailText: kind == .live ? carTr("مباشر", "Live") : nil)
-                        self.loadImage(stream.icon, into: item)
+                        item.userInfo = stream.icon
                         self.applyPlaybackConfiguration(to: item)
                         item.handler = { [weak self] _, completion in
                             self?.play(stream, account: account, client: client)
@@ -719,7 +775,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                         return item
                     }
                     template.emptyViewTitleVariants = [carTr("لا يوجد محتوى", "No content")]
-                    template.updateSections([CPListSection(items: Array(items))])
+                    self.populateRows(template, rows: Array(items), offset: 0)
                 }
             } catch {
                 await MainActor.run { self?.fail(template, error) }
