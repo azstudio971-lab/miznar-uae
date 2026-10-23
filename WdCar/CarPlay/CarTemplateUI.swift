@@ -486,40 +486,197 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             item.setImage(UIImage(systemName: "list.bullet.rectangle"))
             item.accessoryType = .disclosureIndicator
             item.handler = { [weak self] _, completion in
-                self?.showM3UEntrie…4962 tokens truncated…fault.removeItem(at: movie.url) }
-                            try await library.importFile(movie.url)
-                        } catch { failures.append(error.localizedDescription) }
-                        library.importProgress = Double(index + 1) / Double(selection.count)
+                self?.showM3UEntries(for: playlist)
+                completion()
+            }
+            return item
+        }
+        var sections: [CPListSection] = []
+        if !accounts.isEmpty { sections.append(CPListSection(items: accounts, header: "Xtream Codes", sectionIndexTitle: nil)) }
+        if !playlists.isEmpty { sections.append(CPListSection(items: playlists, header: "M3U", sectionIndexTitle: nil)) }
+        television.updateSections(sections)
+    }
+
+    private func showM3UEntries(for playlist: M3UPlaylist) {
+        let template = loadingTemplate(title: playlist.name)
+        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+        Task { [weak self] in
+            do {
+                let entries = try await M3UStore.shared.entries(for: playlist)
+                await MainActor.run {
+                    guard let self else { return }
+                    let favorites = M3UStore.shared.favorites(in: playlist, entries: entries)
+                    let groups = Dictionary(grouping: entries, by: { $0.group.isEmpty ? carTr("قنوات أخرى", "Other channels") : $0.group })
+                    var sections: [CPListSection] = []
+                    if !favorites.isEmpty {
+                        sections.append(self.m3uSection(carTr("المفضلة", "Favorites"), entries: favorites, playlist: playlist))
                     }
-                    if !failures.isEmpty { library.error = failures.joined(separator: "\n") }
-                }
-            }
-            .sheet(isPresented: $addLink) {
-                NavigationStack {
-                    Form {
-                        TextField(tr("الاسم", "Name"), text: $title)
-                        TextField("https://", text: $address).textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
-                        Toggle(tr("بث مباشر", "Live stream"), isOn: $live)
-                        Button(tr("إضافة", "Add")) {
-                            do {
-                                guard let url = URL(string: address.trimmingCharacters(in: .whitespacesAndNewlines)) else { throw M3UError.invalidURL }
-                                try library.addRemote(title: title, url: url, isLive: live)
-                                address = ""; title = ""; addLink = false
-                            } catch { library.error = error.localizedDescription; addLink = false }
+                    for key in groups.keys.sorted() {
+                        if let values = groups[key] {
+                            sections.append(self.m3uSection(key, entries: values, playlist: playlist))
                         }
-                    }.navigationTitle(tr("رابط وسائط", "Media URL"))
-                        .toolbar { Button(tr("إلغاء", "Cancel")) { addLink = false } }
+                    }
+                    template.emptyViewTitleVariants = [carTr("لا يوجد محتوى", "No content")]
+                    template.updateSections(sections)
                 }
-            }
-            .alert(tr("تعذّر إكمال العملية", "Operation failed"), isPresented: Binding(get: { library.error != nil }, set: { if !$0 { library.error = nil } })) {
-                Button(tr("حسنًا", "OK")) { library.error = nil }
-            } message: { Text(library.error ?? "") }
-            .confirmationDialog(tr("إزالة نسخة التطبيق فقط؟ الأصل في الصور أو الملفات لن يُحذف.", "Remove the app copy only? The original in Photos or Files will remain."), isPresented: Binding(get: { removal != nil }, set: { if !$0 { removal = nil } }), titleVisibility: .visible) {
-                Button(tr("إزالة", "Remove"), role: .destructive) {
-                    if let removal { library.remove(removal.id) }
-                    removal = nil
-                }
+            } catch {
+                await MainActor.run { self?.fail(template, error) }
             }
         }
     }
+
+    private func m3uSection(_ title: String, entries: [M3UEntry], playlist: M3UPlaylist) -> CPListSection {
+        let items = entries.prefix(Self.maxItems).map { entry -> CPListItem in
+            let item = CPListItem(text: entry.title, detailText: nil)
+            loadImage(entry.logo, into: item)
+            applyPlaybackConfiguration(to: item)
+            item.handler = { [weak self] _, completion in
+                guard let self else { completion(); return }
+                PlaybackManager.shared.play(.init(title: entry.title,
+                                                  subtitle: playlist.name,
+                                                  url: entry.url,
+                                                  isLive: true,
+                                                  artworkURL: entry.logo, sourceKey: "m3u-\(playlist.id.uuidString)"),
+                                            presentOnPhone: false)
+                if !self.supportsVideo {
+                    self.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+                }
+                completion()
+            }
+            return item
+        }
+        return CPListSection(items: Array(items), header: title, sectionIndexTitle: nil)
+    }
+
+    private func showCategories(for account: XtreamAccount) {
+        let template = loadingTemplate(title: account.name)
+        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+
+        Task { [weak self] in
+            let client = XtreamClient(account: account)
+            do {
+                async let live = client.categories(.live)
+                async let movies = client.categories(.movies)
+                let (liveCategories, movieCategories) = try await (live, movies)
+                await MainActor.run {
+                    guard let self else { return }
+                    var sections: [CPListSection] = []
+                    for (kind, categories) in [(XtreamKind.live, liveCategories), (XtreamKind.movies, movieCategories)] where !categories.isEmpty {
+                        let items = categories.prefix(Self.maxItems).map { category -> CPListItem in
+                            let item = CPListItem(text: category.name, detailText: nil)
+                            item.accessoryType = .disclosureIndicator
+                            item.handler = { [weak self] _, completion in
+                                self?.showStreams(account: account, kind: kind, category: category)
+                                completion()
+                            }
+                            return item
+                        }
+                        sections.append(CPListSection(items: Array(items), header: kind.title, sectionIndexTitle: nil))
+                    }
+                    template.emptyViewTitleVariants = [carTr("لا يوجد محتوى", "No content")]
+                    template.updateSections(sections)
+                }
+            } catch {
+                await MainActor.run { self?.fail(template, error) }
+            }
+        }
+    }
+
+    private func showStreams(account: XtreamAccount, kind: XtreamKind, category: XtreamCategory) {
+        let template = loadingTemplate(title: category.name)
+        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+
+        Task { [weak self] in
+            let client = XtreamClient(account: account)
+            do {
+                let streams = try await client.streams(kind, categoryID: category.id)
+                await MainActor.run {
+                    guard let self else { return }
+                    let items = streams.prefix(Self.maxItems).map { stream -> CPListItem in
+                        let item = CPListItem(text: stream.name, detailText: kind == .live ? carTr("مباشر", "Live") : nil)
+                        self.loadImage(stream.icon, into: item)
+                        self.applyPlaybackConfiguration(to: item)
+                        item.handler = { [weak self] _, completion in
+                            self?.play(stream, account: account, client: client)
+                            completion()
+                        }
+                        return item
+                    }
+                    template.emptyViewTitleVariants = [carTr("لا يوجد محتوى", "No content")]
+                    template.updateSections([CPListSection(items: Array(items))])
+                }
+            } catch {
+                await MainActor.run { self?.fail(template, error) }
+            }
+        }
+    }
+
+    /// إعلان العنصر كمحتوى فيديو: CarPlay يعرضه فيديو عند التوقف، وصوتاً أثناء القيادة
+    private func applyPlaybackConfiguration(to item: CPListItem) {
+        if #available(iOS 26.4, *) {
+            item.playbackConfiguration = CPPlaybackConfiguration(
+                preferredPresentation: supportsVideo ? .video : .audio,
+                playbackAction: .play,
+                elapsedTime: .zero,
+                duration: .zero
+            )
+        }
+    }
+
+    private func play(_ stream: XtreamStream, account: XtreamAccount, client: XtreamClient) {
+        guard let url = client.playbackURL(for: stream) else {
+            showAlert([XtreamError.missingPassword.localizedDescription])
+            return
+        }
+        PlaybackManager.shared.play(.init(title: stream.name,
+                                          subtitle: account.name,
+                                          url: url,
+                                          isLive: stream.kind == .live,
+                                          artworkURL: stream.icon, sourceKey: "xtream-\(account.id.uuidString)"),
+                                    presentOnPhone: false)
+        // مع دعم الفيديو يعرض CarPlay المشغل تلقائياً. بدونه نعرض شاشة التشغيل الحالي (صوت).
+        if !supportsVideo {
+            interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+        }
+    }
+
+    // MARK: - أدوات
+
+    private static var maxItems: Int { min(200, CPListTemplate.maximumItemCount) }
+
+    private func loadingTemplate(title: String) -> CPListTemplate {
+        let template = CPListTemplate(title: title, sections: [])
+        template.emptyViewTitleVariants = [carTr("جارِ التحميل…", "Loading…")]
+        return template
+    }
+
+    private func fail(_ template: CPListTemplate, _ error: Error) {
+        template.emptyViewTitleVariants = [error.localizedDescription]
+        template.emptyViewSubtitleVariants = [carTr("تحقق من الحساب على iPhone", "Check the account on iPhone")]
+        template.updateSections([])
+    }
+
+    private func loadImage(_ url: URL?, into item: CPListItem) {
+        ImageLoader.shared.load(url) { image in
+            guard let image else { return }
+            let size = CPListItem.maximumImageSize
+            let resized = UIGraphicsImageRenderer(size: size).image { _ in
+                let scale = min(size.width / image.size.width, size.height / image.size.height)
+                let drawSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+                image.draw(in: CGRect(x: (size.width - drawSize.width) / 2,
+                                      y: (size.height - drawSize.height) / 2,
+                                      width: drawSize.width, height: drawSize.height))
+            }
+            item.setImage(resized)
+        }
+    }
+
+    private func showAlert(_ titles: [String]) {
+        let ok = CPAlertAction(title: carTr("حسناً", "OK"), style: .default) { [weak self] _ in
+            self?.interfaceController?.dismissTemplate(animated: true, completion: nil)
+        }
+        interfaceController?.presentTemplate(CPAlertTemplate(titleVariants: titles, actions: [ok]),
+                                             animated: true, completion: nil)
+    }
 }
+
