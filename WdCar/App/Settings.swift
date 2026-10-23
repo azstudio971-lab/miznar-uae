@@ -10,10 +10,24 @@ enum WDKeys {
     static let carLanguage = "wd.carLanguage"
     static let language = "wd.language"
     static let appearance = "wd.appearance"
+    static let testAutoOpenBrowserOnFavorites = "wd.test.autoOpenBrowserOnFavorites"
+    static let testForceBrowserVideo = "wd.test.forceBrowserVideo"
 }
+
+let WD_BUILD_TAG = "17-TEST-AUDIO"
 
 enum WDSettings {
     private static var defaults: UserDefaults { .standard }
+
+    static var testAutoOpenBrowserOnFavorites: Bool {
+        get { defaults.object(forKey: WDKeys.testAutoOpenBrowserOnFavorites) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: WDKeys.testAutoOpenBrowserOnFavorites) }
+    }
+
+    static var testForceBrowserVideo: Bool {
+        get { defaults.object(forKey: WDKeys.testForceBrowserVideo) as? Bool ?? false }
+        set { defaults.set(newValue, forKey: WDKeys.testForceBrowserVideo) }
+    }
 
     /// يوقف الفيديو عند حركة السيارة إذا اختار المستخدم تفعيل ذلك
     static var lockVideoWhileDriving: Bool {

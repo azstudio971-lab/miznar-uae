@@ -20,7 +20,9 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
         }
         let role = session.role.rawValue
         let bounds = windowScene.coordinateSpace.bounds
-        WDLog.car("external display CONNECTED role=\(role) size=\(Int(bounds.width))x\(Int(bounds.height)) scale=\(windowScene.traitCollection.displayScale)")
+        WDLog.car("external display CONNECTED role=\(role) size=\(Int(bounds.width))x\(Int(bounds.height)) scale=\(windowScene.traitCollection.displayScale) interactive=\(role == Self.interactiveRole)")
+        DiagnosticLog.recordScreens(event: "external display connected")
+        DiagnosticLog.shared.markExternalDisplayConnected()
 
         let window = UIWindow(windowScene: windowScene)
         window.backgroundColor = .black
@@ -37,14 +39,18 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
 
     func sceneDidBecomeActive(_ scene: UIScene) {
         WDLog.car("external display active")
+        WDLog.car("external sceneDidBecomeActive role=\(scene.session.role.rawValue)")
     }
 
     func sceneWillResignActive(_ scene: UIScene) {
         WDLog.car("external display will resign active")
+        WDLog.car("external sceneWillResignActive role=\(scene.session.role.rawValue)")
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
         WDLog.car("external display DISCONNECTED")
+        WDLog.car("external sceneDidDisconnect role=\(scene.session.role.rawValue)")
+        DiagnosticLog.recordScreens(event: "external display disconnected")
         WebViewPool.car.pauseAllMedia()
         window?.rootViewController = nil
         window = nil

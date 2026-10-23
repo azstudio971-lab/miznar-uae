@@ -39,6 +39,7 @@ final class PlaybackManager: ObservableObject {
         player.publisher(for: \.timeControlStatus)
             .receive(on: RunLoop.main)
             .sink { [weak self] status in
+                WDLog.car("AVPlayer timeControlStatus=\(String(describing: status))")
                 self?.isPlaying = (status == .playing)
                 self?.updateNowPlaying()
             }
@@ -46,8 +47,16 @@ final class PlaybackManager: ObservableObject {
 
         player.publisher(for: \.isExternalPlaybackActive)
             .removeDuplicates()
-            .sink { active in WDLog.car("player externalPlaybackActive=\(active)") }
+            .sink { active in
+                WDLog.car("AVPlayer isExternalPlaybackActive=\(active)")
+                DiagnosticLog.shared.setSummaryValue("AVPlayer external playback", value: "\(active)")
+            }
             .store(in: &bag)
+
+        NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
+            .sink { [weak self] note in self?.logAudioRouteChange(note) }
+            .store(in: &bag)
+        logAudioRouteChange(nil)
 
         setupRemoteCommands()
     }
@@ -60,8 +69,13 @@ final class PlaybackManager: ObservableObject {
             return
         }
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo, options: [])
-        try? session.setActive(true)
+        do {
+            try session.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo, options: [])
+            try session.setActive(true)
+            WDLog.car("AVAudioSession category=\(session.category.rawValue) mode=\(session.mode.rawValue) active for playback")
+        } catch {
+            WDLog.car("AVAudioSession playback setup error=\(error.localizedDescription)")
+        }
 
         errorMessage = nil
         player.pause()
@@ -97,7 +111,11 @@ final class PlaybackManager: ObservableObject {
         player.replaceCurrentItem(with: nil)
         artwork = nil
         isPlaying = false
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            WDLog.car("AVAudioSession deactivation error=\(error.localizedDescription)")
+        }
         current = nil
         isExternalDisplayPlayback = false
         errorMessage = nil
@@ -113,13 +131,27 @@ final class PlaybackManager: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] status in
                 guard let self, self.player.currentItem === item else { return }
+                WDLog.car("AVPlayerItem status=\(String(describing: status))")
                 if status == .failed {
+                    WDLog.car("AVPlayerItem error=\(item.error?.localizedDescription ?? "unknown")")
                     self.errorMessage = item.error?.localizedDescription
                         ?? tr("تعذّر تشغيل هذا المحتوى.", "This content could not be played.")
                 }
                 self.updateNowPlaying()
             }
             .store(in: &itemBag)
+        if let error = item.error { WDLog.car("AVPlayerItem initial error=\(error.localizedDescription)") }
+    }
+
+    private func logAudioRouteChange(_ notification: Notification?) {
+        let session = AVAudioSession.sharedInstance()
+        let reason: String
+        if let raw = notification?.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+           let value = AVAudioSession.RouteChangeReason(rawValue: raw) {
+            reason = "\(value.rawValue) (\(String(describing: value)))"
+        } else { reason = notification == nil ? "initial" : "unknown" }
+        let outputs = session.currentRoute.outputs.map { "\($0.portType.rawValue):\($0.portName)" }
+        WDLog.car("AVAudioSession routeChange reason=\(reason) category=\(session.category.rawValue) mode=\(session.mode.rawValue) outputs=[\(outputs.joined(separator: ", "))]")
     }
 
     private func loadArtwork(for item: Item) {

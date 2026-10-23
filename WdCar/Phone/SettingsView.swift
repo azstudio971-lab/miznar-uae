@@ -1,6 +1,7 @@
 import SwiftUI
 import WebKit
 import AVKit
+import UIKit
 
 struct SettingsView: View {
     var isSheet = true
@@ -10,6 +11,8 @@ struct SettingsView: View {
     @AppStorage(WDKeys.appearance) private var appearance = AppAppearance.system.rawValue
     @AppStorage(WDKeys.lockVideoWhileDriving) private var lockVideo = false
     @AppStorage(WDKeys.phoneDesktopMode) private var phoneDesktop = true
+    @AppStorage(WDKeys.testAutoOpenBrowserOnFavorites) private var autoOpenBrowserOnFavorites = true
+    @AppStorage(WDKeys.testForceBrowserVideo) private var forceBrowserVideo = false
     @State private var confirmClear = false
     @State private var confirmReset = false
     @State private var confirmXtream = false
@@ -43,6 +46,31 @@ struct SettingsView: View {
                 } footer: {
                     Text(tr("عند تفعيل هذا الخيار يتوقف الفيديو إذا رصد التطبيق حركة السيارة. يظل أي منع يفرضه النظام سارياً.",
                             "When enabled, video pauses if the app detects vehicle movement. System-enforced restrictions always remain in effect."))
+                }
+
+                Section(tr("اختبار CarPlay", "CarPlay test")) {
+                    Toggle(tr("فتح المتصفح تلقائياً عند اختيار المفضلة", "Open browser when selecting Favorites"), isOn: $autoOpenBrowserOnFavorites)
+                        .onChange(of: autoOpenBrowserOnFavorites) { _, value in
+                            WDLog.car("test setting autoOpenBrowserOnFavorites=\(value)")
+                            NotificationCenter.default.post(name: .wdCarPlayDiagnosticSettingsChanged, object: nil)
+                        }
+                    Toggle(tr("فرض وضع الفيديو لعنصر المتصفح", "Force video presentation for Browser item"), isOn: $forceBrowserVideo)
+                        .onChange(of: forceBrowserVideo) { _, value in
+                            WDLog.car("test setting forceBrowserVideo=\(value)")
+                            NotificationCenter.default.post(name: .wdCarPlayDiagnosticSettingsChanged, object: nil)
+                        }
+                }
+
+                Section(tr("سجل التشخيص", "Diagnostic log")) {
+                    NavigationLink {
+                        DiagnosticLogView()
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(tr("إدارة سجل التشخيص", "Manage diagnostic log"))
+                            Text("\(WD_BUILD_TAG) · \(DiagnosticLog.shared.lineCount) \(tr("سطر", "lines"))")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
                 }
 
                 Section(tr("المتصفح", "Browser")) {
@@ -97,6 +125,45 @@ struct SettingsView: View {
         let store = WKWebsiteDataStore.default()
         store.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast) {
             app.showToast(tr("تم مسح البيانات", "Data cleared"))
+        }
+    }
+}
+
+private struct DiagnosticLogView: View {
+    @State private var lineCount = DiagnosticLog.shared.lineCount
+    @State private var showCopied = false
+    @State private var showClearConfirmation = false
+
+    var body: some View {
+        Form {
+            Section(tr("معلومات الاختبار", "Test information")) {
+                LabeledContent(tr("النسخة", "Build tag"), value: WD_BUILD_TAG)
+                LabeledContent(tr("عدد الأسطر", "Line count"), value: "\(lineCount)")
+            }
+            Section(tr("السجل", "Log")) {
+                Button(tr("نسخ السجل", "Copy log")) {
+                    UIPasteboard.general.string = DiagnosticLog.shared.fullText(summary: DiagnosticLog.shared.summaryText)
+                    lineCount = DiagnosticLog.shared.lineCount
+                    showCopied = true
+                }
+                ShareLink(item: DiagnosticLog.shared.logFileURL,
+                          preview: SharePreview("WudCar-\(WD_BUILD_TAG)-diagnostic.txt")) {
+                    Label(tr("مشاركة السجل", "Share log"), systemImage: "square.and.arrow.up")
+                }
+                Button(tr("مسح السجل", "Clear log"), role: .destructive) { showClearConfirmation = true }
+            }
+        }
+        .navigationTitle(tr("سجل التشخيص", "Diagnostic log"))
+        .onAppear { lineCount = DiagnosticLog.shared.lineCount }
+        .alert(tr("تم النسخ (\(lineCount) سطر)", "Copied (\(lineCount) lines)"), isPresented: $showCopied) {
+            Button(tr("حسناً", "OK"), role: .cancel) {}
+        }
+        .confirmationDialog(tr("مسح سجل التشخيص؟", "Clear diagnostic log?"), isPresented: $showClearConfirmation, titleVisibility: .visible) {
+            Button(tr("مسح السجل", "Clear log"), role: .destructive) {
+                DiagnosticLog.shared.clear()
+                lineCount = 0
+            }
+            Button(tr("إلغاء", "Cancel"), role: .cancel) {}
         }
     }
 }

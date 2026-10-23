@@ -3,7 +3,7 @@ import Combine
 import CoreMedia
 import UIKit
 
-/// واجهة CarPlay الرسمية لصلاحية CarPlay Video (قوالب فقط، بدون WebView على شاشة السيارة):
+/// واجهة CarPlay الرسمية لصلاحية CarPlay Audio (قوالب فقط، بدون WebView على شاشة السيارة):
 ///
 /// • تبويب «الترفيه»: اختصارات المواقع. القوالب لا تعرض صفحات الويب، لذلك يُفتح الموقع على iPhone
 ///   ويُبث الفيديو لشاشة السيارة عبر AirPlay.
@@ -14,10 +14,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     private var interfaceController: CPInterfaceController?
     private var sessionConfiguration: CPSessionConfiguration?
-    private let home = CPListTemplate(title: carTr("الرئيسية", "Home"), sections: [])
-    private let entertainment = CPListTemplate(title: carTr("الترفيه", "Entertainment"), sections: [])
+    private let favorites = CPListTemplate(title: carTr("المفضلة", "Favorites"), sections: [])
     private let settings = CPListTemplate(title: carTr("الإعدادات", "Settings"), sections: [])
-    private let television = CPListTemplate(title: carTr("التلفزيون TV", "TV"), sections: [])
+    private let television = CPListTemplate(title: carTr("البث", "Streaming"), sections: [])
     private var bag = Set<AnyCancellable>()
     private var currentShortcuts: [SiteShortcut] = []
     private var lastReportedVideo: Bool?
@@ -49,22 +48,24 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     func start() {
         sessionConfiguration = CPSessionConfiguration(delegate: self)
-
-        home.tabTitle = carTr("الرئيسية", "Home")
-        home.tabImage = UIImage(systemName: "house.fill")
-        entertainment.tabTitle = carTr("الترفيه", "Entertainment")
-        entertainment.tabImage = UIImage(systemName: "play.tv")
-        entertainment.emptyViewTitleVariants = [carTr("أضف مواقع من iPhone", "Add sites on iPhone")]
-        television.tabTitle = carTr("التلفزيون TV", "TV")
-        television.tabImage = UIImage(systemName: "tv")
+        if #available(iOS 26.4, *) {
+            WDLog.car("CPSessionConfiguration created supportsVideoPlayback=\(sessionConfiguration?.supportsVideoPlayback ?? false) contentStyle=\(String(describing: sessionConfiguration?.contentStyle))")
+        } else {
+            WDLog.car("CPSessionConfiguration created supportsVideoPlayback=false (API unavailable before iOS 26.4)")
+        }
+        favorites.tabTitle = carTr("المفضلة", "Favorites")
+        favorites.tabImage = UIImage(systemName: "star.fill")
+        favorites.emptyViewTitleVariants = [carTr("أضف مواقع من iPhone", "Add sites on iPhone")]
+        television.tabTitle = carTr("البث", "Streaming")
+        television.tabImage = UIImage(systemName: "antenna.radiowaves.left.and.right")
         television.emptyViewTitleVariants = [carTr("أضف حساب Xtream أو قائمة M3U من iPhone", "Add an Xtream account or M3U playlist on iPhone")]
         settings.tabTitle = carTr("الإعدادات", "Settings")
         settings.tabImage = UIImage(systemName: "gearshape.fill")
 
-        let tabs = CPTabBarTemplate(templates: [home, entertainment, television, settings])
+        let tabs = CPTabBarTemplate(templates: [favorites, television, settings])
+        WDLog.car("CPTabBarTemplate.maximumTabCount=\(CPTabBarTemplate.maximumTabCount) configured=3")
         tabs.delegate = self
         tabBar = tabs
-        rebuildHome()
         rebuildEntertainment(ShortcutStore.shared.shortcuts)
         rebuildTelevision()
         rebuildSettings()
@@ -73,11 +74,16 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             guard !success, let self else { return }
             let retry = CPListItem(text: carTr("إعادة فتح ود كار", "Open WudCar"), detailText: error?.localizedDescription)
             retry.handler = { [weak self] _, completion in
-                self?.interfaceController?.setRootTemplate(tabs, animated: false, completion: nil)
+                self?.recordItemTap(retry, name: "retry root")
+                self?.interfaceController?.setRootTemplate(tabs, animated: false) { success, error in
+                    WDLog.car("setRootTemplate retry success=\(success) error=\(String(describing: error))")
+                }
                 completion()
             }
             let fallback = CPListTemplate(title: "WudCar", sections: [CPListSection(items: [retry])])
-            self.interfaceController?.setRootTemplate(fallback, animated: false, completion: nil)
+            self.interfaceController?.setRootTemplate(fallback, animated: false) { success, error in
+                WDLog.car("setRootTemplate fallback success=\(success) error=\(String(describing: error))")
+            }
         }
 
         SubscriptionStore.shared.$state.removeDuplicates().receive(on: RunLoop.main)
@@ -112,6 +118,15 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             }
             .store(in: &bag)
 
+        NotificationCenter.default.publisher(for: .wdCarPlayDiagnosticSettingsChanged)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.rebuildEntertainment(self.currentShortcuts)
+                self.rebuildSettings()
+            }
+            .store(in: &bag)
+
         CarMouseBridge.shared.$input
             .receive(on: RunLoop.main)
             .sink { [weak self] value in
@@ -120,8 +135,8 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                 case .selectSection(let section):
                     let template: CPTemplate
                     switch section {
-                    case .home: template = self.home
-                    case .entertainment: template = self.entertainment
+                    case .home: template = self.favorites
+                    case .entertainment: template = self.favorites
                     case .television: template = self.television
                     case .settings: template = self.settings
                     }
@@ -148,35 +163,12 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     }
 
     func tabBarTemplate(_ tabBarTemplate: CPTabBarTemplate, didSelect selectedTemplate: CPTemplate) {
-        guard selectedTemplate === entertainment, !AppState.shared.carScreenActive else { return }
+        let name = selectedTemplate === favorites ? "Favorites" : (selectedTemplate === television ? "Streaming" : "Settings")
+        WDLog.car("CarPlay tab selected=\(name)")
+        DiagnosticLog.shared.setSummaryValue("آخر CarPlay tab", value: "\(name) — \(Date().ISO8601Format())")
+        guard selectedTemplate === favorites, WDSettings.testAutoOpenBrowserOnFavorites,
+              !AppState.shared.carScreenActive else { return }
         startCarScreen()
-    }
-
-    private func rebuildHome() {
-        let greeting = CPListItem(
-            text: carTr("مرحباً بكم في وُد كار (WudCar)", "Welcome to WudCar"),
-            detailText: carTr("أهلاً بكم في تجربتكم الترفيهية مع وُد كار.",
-                              "Welcome to your entertainment experience with WudCar."),
-            image: UIImage(systemName: "sparkles")
-        )
-        let customize = CPListItem(
-            text: carTr("التخصيص والمواقع المفضلة", "Settings and favorites"),
-            detailText: carTr("يمكنكم تخصيص إعدادات التطبيق وإدارة خيارات الترفيه والمواقع المفضلة بسهولة من خلال تطبيق WudCar على هاتف iPhone.",
-                              "Customize app settings, entertainment options, and favorite websites in WudCar on your iPhone."),
-            image: UIImage(systemName: "iphone")
-        )
-        let safety = CPListItem(
-            text: carTr("سلامتكم أولويتنا", "Your safety comes first"),
-            detailText: carTr("نرجو الالتزام بقواعد السلامة المرورية وعدم الانشغال بالشاشة أثناء القيادة.",
-                              "Please follow traffic safety rules and avoid interacting with the screen while driving."),
-            image: UIImage(systemName: "hand.raised.fill")
-        )
-        let farewell = CPListItem(
-            text: carTr("رافقتكم السلامة ..", "Safe travels"),
-            detailText: nil,
-            image: UIImage(systemName: "heart.fill")
-        )
-        home.updateSections([CPListSection(items: [greeting, customize, safety, farewell])])
     }
 
     private func rebuildSettings() {
@@ -187,12 +179,10 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         ) { [weak self] in
             WDSettings.carLanguage = WDSettings.carLanguage == "ar" ? "en" : "ar"
             guard let self else { return }
-            self.home.tabTitle = carTr("الرئيسية", "Home")
-            self.entertainment.tabTitle = carTr("الترفيه", "Entertainment")
-            self.television.tabTitle = carTr("التلفزيون TV", "TV")
+            self.favorites.tabTitle = carTr("المفضلة", "Favorites")
+            self.television.tabTitle = carTr("البث", "Streaming")
             self.settings.tabTitle = carTr("الإعدادات", "Settings")
-            self.tabBar?.updateTemplates([self.home, self.entertainment, self.television, self.settings])
-            self.rebuildHome()
+            self.tabBar?.updateTemplates([self.favorites, self.television, self.settings])
             self.rebuildSettings()
         }
         let display = settingItem(
@@ -226,12 +216,14 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             WebViewPool.car.applyZoom(1.0)
             self?.rebuildSettings()
         }
-        settings.updateSections([CPListSection(items: [language, display, zoomOut, zoom, zoomIn, reset])])
+        let buildTag = CPListItem(text: carTr("نسخة الاختبار: \(WD_BUILD_TAG)", "Test build: \(WD_BUILD_TAG)"), detailText: nil, image: UIImage(systemName: "info.circle"))
+        settings.updateSections([CPListSection(items: [buildTag, language, display, zoomOut, zoom, zoomIn, reset])])
     }
 
     private func settingItem(_ title: String, detail: String?, symbol: String, action: @escaping () -> Void) -> CPListItem {
         let item = CPListItem(text: title, detailText: detail, image: UIImage(systemName: symbol))
-        item.handler = { _, completion in
+        item.handler = { [weak self] _, completion in
+            self?.recordItemTap(item, name: title)
             action()
             completion()
         }
@@ -250,36 +242,48 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     /// يقرأ دعم الفيديو من السيارة ويحدّث الواجهة والهاتف عند تغيّره
     private func refreshVideoSupport() {
         let current = supportsVideo
+        if Date().timeIntervalSince(startedAt) <= 30 {
+            WDLog.car("CPSessionConfiguration supportsVideoPlayback poll=\(current) seconds=\(Int(Date().timeIntervalSince(startedAt))) contentStyle=\(String(describing: sessionConfiguration?.contentStyle))")
+        }
         // أول ثوانٍ قد تكون القيمة false لأن السيارة لم تعلن بعد: لا نحكم قبل ٤ ثوانٍ
         if !current && Date().timeIntervalSince(startedAt) < 4 { return }
         AppState.shared.updateCarVideoSupport(current)
         if lastReportedVideo != current {
             lastReportedVideo = current
             WDLog.car("templates: supportsVideoPlayback=\(current)")
+            DiagnosticLog.shared.setSummaryValue("آخر supportsVideoPlayback", value: "\(current) — \(Date().ISO8601Format())")
             rebuildEntertainment(currentShortcuts)
         }
     }
 
     func sessionConfiguration(_ sessionConfiguration: CPSessionConfiguration,
-                              limitedUserInterfacesChanged limitedUserInterfaces: CPLimitableUserInterface) {}
+                              limitedUserInterfacesChanged limitedUserInterfaces: CPLimitableUserInterface) {
+        WDLog.car("CPSessionConfiguration limitedUserInterfacesChanged=\(limitedUserInterfaces.rawValue) contentStyle=\(String(describing: sessionConfiguration.contentStyle))")
+    }
+
+    func sessionConfiguration(_ sessionConfiguration: CPSessionConfiguration,
+                              contentStyleChanged contentStyle: CPContentStyle) {
+        WDLog.car("CPSessionConfiguration contentStyleChanged=\(String(describing: contentStyle)) supportsVideoPlayback=\(supportsVideo)")
+    }
 
     // MARK: - الترفيه
 
     private func rebuildEntertainment(_ shortcuts: [SiteShortcut]) {
         currentShortcuts = shortcuts
         guard SubscriptionStore.shared.hasAccess else {
-            entertainment.updateSections([CPListSection(items: [CPListItem(text: carTr("الاشتراك مطلوب", "Subscription required"), detailText: carTr("فعّل الاشتراك من تطبيق iPhone أثناء التوقف.", "Subscribe in the iPhone app while parked."))])]); return
+            favorites.updateSections([CPListSection(items: [CPListItem(text: carTr("الاشتراك مطلوب", "Subscription required"), detailText: carTr("فعّل الاشتراك من تطبيق iPhone أثناء التوقف.", "Subscribe in the iPhone app while parked."))])]); return
         }
         let items = shortcuts.prefix(Self.maxItems - 3).map { shortcut -> CPListItem in
             let item = CPListItem(text: shortcut.name, detailText: shortcut.url.host)
             loadImage(Favicon.url(for: shortcut.url), into: item)
             item.handler = { [weak self] _, completion in
+                self?.recordItemTap(item, name: "shortcut \(shortcut.name)")
                 self?.openShortcut(shortcut.url)
                 completion()
             }
             return item
         }
-        entertainment.updateSections([
+        favorites.updateSections([
             CPListSection(items: [carScreenItem(), videoStatusItem()]),
             CPListSection(items: Array(items))
         ])
@@ -291,12 +295,13 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     private func carScreenItem() -> CPListItem {
         let active = AppState.shared.carScreenActive
         let item = CPListItem(
-            text: carTr("المتصفح على شاشة السيارة", "Browser on car screen"),
+            text: carTr("المتصفح", "Browser"),
             detailText: active ? carTr("يعمل الآن", "Running now") : carTr("اضغط للتشغيل", "Tap to start")
         )
-        item.setImage(UIImage(systemName: active ? "safari.fill" : "safari"))
+        item.setImage(UIImage(systemName: "safari"))
         applyPlaybackConfiguration(to: item)
         item.handler = { [weak self] _, completion in
+            self?.recordItemTap(item, name: "browser")
             self?.startCarScreen()
             completion()
         }
@@ -349,6 +354,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         )
         item.setImage(UIImage(systemName: ok ? "checkmark.circle.fill" : "speaker.wave.2.circle.fill"))
         item.handler = { [weak self] _, completion in
+            self?.recordItemTap(item, name: "video-status")
             self?.explainVideoStatus(supported: ok)
             completion()
         }
@@ -399,6 +405,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             item.setImage(UIImage(systemName: "antenna.radiowaves.left.and.right"))
             item.accessoryType = .disclosureIndicator
             item.handler = { [weak self] _, completion in
+                self?.recordItemTap(item, name: "Xtream account \(account.name)")
                 self?.showCategories(for: account)
                 completion()
             }
@@ -409,6 +416,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             item.setImage(UIImage(systemName: "list.bullet.rectangle"))
             item.accessoryType = .disclosureIndicator
             item.handler = { [weak self] _, completion in
+                self?.recordItemTap(item, name: "M3U playlist \(playlist.name)")
                 self?.showM3UEntries(for: playlist)
                 completion()
             }
@@ -422,7 +430,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     private func showM3UEntries(for playlist: M3UPlaylist) {
         let template = loadingTemplate(title: playlist.name)
-        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+        pushTemplate(template, context: "M3U entries")
         Task { [weak self] in
             do {
                 let entries = try await M3UStore.shared.entries(for: playlist)
@@ -455,6 +463,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             applyPlaybackConfiguration(to: item)
             item.handler = { [weak self] _, completion in
                 guard let self else { completion(); return }
+                self.recordItemTap(item, name: "M3U entry \(entry.title)")
                 PlaybackManager.shared.play(.init(title: entry.title,
                                                   subtitle: playlist.name,
                                                   url: entry.url,
@@ -462,7 +471,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                                                   artworkURL: entry.logo),
                                             presentOnPhone: false)
                 if !self.supportsVideo {
-                    self.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+                    self.pushTemplate(CPNowPlayingTemplate.shared, context: "M3U now playing")
                 }
                 completion()
             }
@@ -473,7 +482,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     private func showCategories(for account: XtreamAccount) {
         let template = loadingTemplate(title: account.name)
-        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+        pushTemplate(template, context: "Xtream categories")
 
         Task { [weak self] in
             let client = XtreamClient(account: account)
@@ -489,6 +498,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                             let item = CPListItem(text: category.name, detailText: nil)
                             item.accessoryType = .disclosureIndicator
                             item.handler = { [weak self] _, completion in
+                                self?.recordItemTap(item, name: "category \(category.name)")
                                 self?.showStreams(account: account, kind: kind, category: category)
                                 completion()
                             }
@@ -507,7 +517,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     private func showStreams(account: XtreamAccount, kind: XtreamKind, category: XtreamCategory) {
         let template = loadingTemplate(title: category.name)
-        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+        pushTemplate(template, context: "Xtream streams")
 
         Task { [weak self] in
             let client = XtreamClient(account: account)
@@ -520,6 +530,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                         self.loadImage(stream.icon, into: item)
                         self.applyPlaybackConfiguration(to: item)
                         item.handler = { [weak self] _, completion in
+                            self?.recordItemTap(item, name: "stream \(stream.name)")
                             self?.play(stream, account: account, client: client)
                             completion()
                         }
@@ -537,13 +548,27 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     /// إعلان العنصر كمحتوى فيديو: CarPlay يعرضه فيديو عند التوقف، وصوتاً أثناء القيادة
     private func applyPlaybackConfiguration(to item: CPListItem) {
         if #available(iOS 26.4, *) {
+            let forced = WDSettings.testForceBrowserVideo && item.text == carTr("المتصفح", "Browser")
+            let presentationName = forced || supportsVideo ? "video" : "audio"
             item.playbackConfiguration = CPPlaybackConfiguration(
-                preferredPresentation: supportsVideo ? .video : .audio,
+                preferredPresentation: forced ? .video : (supportsVideo ? .video : .audio),
                 playbackAction: .play,
                 elapsedTime: .zero,
                 duration: .zero
             )
+            WDLog.car("CarPlay playback configuration item=\(item.text ?? "?") preferredPresentation=\(presentationName) forced=\(forced)")
         }
+    }
+
+    private func recordItemTap(_ item: CPListItem, name: String) {
+        let presentation: String
+        if #available(iOS 26.4, *) {
+            if let value = item.playbackConfiguration?.preferredPresentation {
+                presentation = String(describing: value)
+            } else { presentation = "none" }
+        } else { presentation = "unavailable" }
+        WDLog.car("CarPlay item tapped name=\(name) preferredPresentation=\(presentation)")
+        if name == "browser" { DiagnosticLog.shared.setSummaryValue("وضع عنصر المتصفح", value: "\(presentation), forced=\(WDSettings.testForceBrowserVideo)") }
     }
 
     private func play(_ stream: XtreamStream, account: XtreamAccount, client: XtreamClient) {
@@ -559,7 +584,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                                     presentOnPhone: false)
         // مع دعم الفيديو يعرض CarPlay المشغل تلقائياً. بدونه نعرض شاشة التشغيل الحالي (صوت).
         if !supportsVideo {
-            interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+            pushTemplate(CPNowPlayingTemplate.shared, context: "Xtream now playing")
         }
     }
 
@@ -598,7 +623,15 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         let ok = CPAlertAction(title: carTr("حسناً", "OK"), style: .default) { [weak self] _ in
             self?.interfaceController?.dismissTemplate(animated: true, completion: nil)
         }
-        interfaceController?.presentTemplate(CPAlertTemplate(titleVariants: titles, actions: [ok]),
-                                             animated: true, completion: nil)
+        let alert = CPAlertTemplate(titleVariants: titles, actions: [ok])
+        interfaceController?.presentTemplate(alert, animated: true) { success, error in
+            WDLog.car("presentTemplate alert success=\(success) error=\(String(describing: error))")
+        }
+    }
+
+    private func pushTemplate(_ template: CPTemplate, context: String) {
+        interfaceController?.pushTemplate(template, animated: true) { success, error in
+            WDLog.car("pushTemplate context=\(context) template=\(String(describing: type(of: template))) success=\(success) error=\(String(describing: error))")
+        }
     }
 }

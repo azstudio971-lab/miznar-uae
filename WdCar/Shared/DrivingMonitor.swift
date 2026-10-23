@@ -38,6 +38,7 @@ final class DrivingMonitor: NSObject, ObservableObject, CLLocationManagerDelegat
         manager.stopUpdatingLocation()
         movingSamples = 0
         stillSamples = 0
+        if isMoving { WDLog.car("DrivingMonitor isMoving=false reason=monitor stopped") }
         isMoving = false
     }
 
@@ -54,7 +55,13 @@ final class DrivingMonitor: NSObject, ObservableObject, CLLocationManagerDelegat
             stillSamples += 1
             movingSamples = 0
         }
-        if movingSamples >= 2, !isMoving { isMoving = true }
-        if stillSamples >= 3, isMoving { isMoving = false }
+        if movingSamples >= 2, !isMoving {
+            isMoving = true
+            WDLog.car("DrivingMonitor isMoving=true speed=\(location.speed)")
+        }
+        if stillSamples >= 3, isMoving {
+            isMoving = false
+            WDLog.car("DrivingMonitor isMoving=false speed=\(location.speed)")
+        }
     }
 }

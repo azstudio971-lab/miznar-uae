@@ -37,6 +37,7 @@ final class AppState: ObservableObject {
 
     func carScreenConnected(interactive: Bool) {
         onMain {
+            WDLog.car("AppState carScreenActive false→true interactive=\(interactive)")
             self.carScreenActive = true
             self.carScreenInteractive = interactive
             self.showCarScreenHelp = false
@@ -47,6 +48,7 @@ final class AppState: ObservableObject {
 
     func carScreenDisconnected() {
         onMain {
+            WDLog.car("AppState carScreenActive true→false")
             self.carScreenActive = false
             self.carScreenInteractive = false
             if self.carMode == .none { DrivingMonitor.shared.stop() }
@@ -76,6 +78,7 @@ final class AppState: ObservableObject {
 
     func carConnected(mode: CarDisplayMode) {
         onMain {
+            WDLog.car("AppState carMode=\(mode.rawValue) carVideoSupport=unknown")
             self.carMode = mode
             self.carVideoSupport = .unknown
             DrivingMonitor.shared.start()
@@ -84,6 +87,7 @@ final class AppState: ObservableObject {
 
     func carDisconnected() {
         onMain {
+            WDLog.car("AppState carMode=none carVideoSupport=unknown")
             self.carMode = .none
             self.carVideoSupport = .unknown
             if !self.carScreenActive { DrivingMonitor.shared.stop() }
@@ -96,6 +100,7 @@ final class AppState: ObservableObject {
         onMain {
             let newValue: CarVideoSupport = supported ? .supported : .unsupported
             guard self.carVideoSupport != newValue else { return }
+            WDLog.car("AppState carVideoSupport=\(supported ? "supported" : "unsupported")")
             self.carVideoSupport = newValue
             if !supported {
                 self.showToast(tr("السيارة لا تعلن دعم الفيديو — سيصل الصوت فقط",

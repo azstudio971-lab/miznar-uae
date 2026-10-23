@@ -9,6 +9,7 @@ final class CarSceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
     func templateApplicationScene(_ scene: CPTemplateApplicationScene,
                                   didConnect interfaceController: CPInterfaceController) {
         WDLog.car("CarPlay template scene connected")
+        DiagnosticLog.recordScreens(event: "CarPlay template didConnect")
         self.interfaceController = interfaceController
         let ui = CarTemplateUI(interfaceController: interfaceController)
         templateUI = ui
@@ -19,6 +20,7 @@ final class CarSceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
     func templateApplicationScene(_ scene: CPTemplateApplicationScene,
                                   didDisconnectInterfaceController interfaceController: CPInterfaceController) {
         WDLog.car("CarPlay template scene disconnected")
+        DiagnosticLog.recordScreens(event: "CarPlay template didDisconnect")
         templateUI?.stop()
         templateUI = nil
         self.interfaceController = nil

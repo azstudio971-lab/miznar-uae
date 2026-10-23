@@ -8,10 +8,12 @@ import CarPlay
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        DiagnosticProfile.recordAppLaunch()
         let audio = AVAudioSession.sharedInstance()
         do {
             try audio.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo, options: [])
             try audio.setActive(true)
+            WDLog.car("AVAudioSession startup category=\(audio.category.rawValue) mode=\(audio.mode.rawValue)")
         } catch {
             WDLog.car("Audio session setup failed: \(error.localizedDescription)")
         }
@@ -30,6 +32,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             return configuration
         }
         let external = CarExternalDisplaySceneDelegate.roles.contains(session.role.rawValue)
+        WDLog.car("configurationForConnecting role=\(session.role.rawValue) external=\(external)")
         let configuration = UISceneConfiguration(name: external ? "External Display" : "Default Configuration",
                                                  sessionRole: session.role)
         configuration.sceneClass = UIWindowScene.self
@@ -59,13 +62,17 @@ final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.window = window
         window.makeKeyAndVisible()
         WDLog.car("application scene visible external=\(externalDisplay)")
+        DiagnosticLog.recordScreens(event: "application scene connected")
         if externalDisplay {
+            DiagnosticLog.shared.markExternalDisplayConnected()
             AppState.shared.carScreenConnected(interactive: true)
             CarScreenLauncher.shared.externalDisplayDidConnect()
         }
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
+        WDLog.car("application scene didDisconnect role=\(scene.session.role.rawValue)")
+        DiagnosticLog.recordScreens(event: "application scene disconnected")
         if externalDisplay {
             WebViewPool.car.pauseAllMedia()
             AppState.shared.carScreenDisconnected()

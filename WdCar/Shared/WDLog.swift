@@ -7,21 +7,17 @@ enum WDLog {
     private static let key = "wudcar.carplay.connectionLog"
 
     static func car(_ message: String) {
-        logger.notice("WUDCAR \(message, privacy: .public)")
+        let safeMessage = DiagnosticLog.redact(message)
+        logger.notice("WUDCAR \(safeMessage, privacy: .public)")
+        DiagnosticLog.shared.append(category: "CarPlay", message: safeMessage)
         lock.lock()
         defer { lock.unlock() }
         var entries = UserDefaults.standard.stringArray(forKey: key) ?? []
-        entries.append("\(Date().ISO8601Format()) \(message)")
+        entries.append("\(Date().ISO8601Format()) \(safeMessage)")
         UserDefaults.standard.set(Array(entries.suffix(100)), forKey: key)
     }
 
     static var recentText: String {
-        lock.lock()
-        defer { lock.unlock() }
-        let info = Bundle.main.infoDictionary ?? [:]
-        let version = info["CFBundleShortVersionString"] as? String ?? "?"
-        let build = info["CFBundleVersion"] as? String ?? "?"
-        return "WudCar \(version) (\(build))\n" +
-            (UserDefaults.standard.stringArray(forKey: key) ?? []).joined(separator: "\n")
+        DiagnosticLog.shared.fullText
     }
 }
