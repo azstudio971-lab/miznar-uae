@@ -1,2 +1,5 @@
 "CFBundleDisplayName" = "WudCar";
 "CFBundleName" = "WudCar";
+
+"NSCameraUsageDescription" = "Scan QR codes to add a playlist quickly.";
+"NSLocalNetworkUsageDescription" = "WudCar uses the local network only to connect to media servers you add yourself (Jellyfin, Emby and Plex).";

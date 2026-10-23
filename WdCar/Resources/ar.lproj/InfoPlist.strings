@@ -1,2 +1,5 @@
 "CFBundleDisplayName" = "ود كار";
 "CFBundleName" = "ود كار";
+
+"NSCameraUsageDescription" = "لمسح رموز QR وإضافة قائمة تشغيل بسرعة.";
+"NSLocalNetworkUsageDescription" = "يستخدم WudCar الشبكة المحلية فقط للاتصال بخوادم الوسائط التي تضيفها بنفسك (Jellyfin وEmby وPlex).";

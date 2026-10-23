@@ -18,6 +18,7 @@ struct MediaLibraryView: View {
     @State private var query = ""
     @State private var filter = 0
     @AppStorage("wd.media.sort") private var sort = "recent"
+    @State private var folders = false
     @State private var files = false
     @State private var addLink = false
     @State private var photos = false
@@ -40,12 +41,15 @@ struct MediaLibraryView: View {
         NavigationStack {
             List {
                 Section {
+                    NavigationLink(tr("مصادري", "My sources")) { SourcesView() }
                     NavigationLink(tr("قوائم التشغيل", "Playlists")) { MediaPlaylistsView() }
                     NavigationLink(tr("القنوات وقوائم M3U وحسابات Xtream", "Channels, M3U playlists and Xtream")) { XtreamHomeView() }
                     Button { photos = true } label: { Label(tr("استيراد من الصور", "Import from Photos"), systemImage: "photo") }
                         .disabled(library.importProgress != nil)
                     Button { files = true } label: { Label(tr("استيراد من الملفات", "Import from Files"), systemImage: "folder") }
                         .disabled(library.importProgress != nil)
+                    Button { folders = true } label: { Label(tr("استيراد مجلد كامل", "Import a folder"), systemImage: "folder.badge.plus") }.disabled(library.importProgress != nil)
+                    if let summary = library.importSummary { Text(summary).font(.footnote) }
                     Button { addLink = true } label: { Label(tr("إضافة رابط وسائط", "Add media URL"), systemImage: "link") }
                     if let progress = library.importProgress { ProgressView(value: progress) }
                 } footer: {
@@ -81,6 +85,9 @@ struct MediaLibraryView: View {
                                 if item.favorite { Image(systemName: "star.fill") }
                             }
                         }
+                        .contextMenu {
+                            Button(tr("المفضلة", "Favorite")) { library.toggleFavorite(item.id) }
+                        }
                         .swipeActions(edge: .leading) {
                             Button { library.toggleFavorite(item.id) } label: { Label(tr("المفضلة", "Favorite"), systemImage: "star") }.tint(.orange)
                         }
@@ -95,6 +102,9 @@ struct MediaLibraryView: View {
             .searchable(text: $query)
             .sheet(isPresented: $files) {
                 MediaDocumentPicker { urls in files = false; Task { await library.importFiles(urls) } }
+            }
+            .sheet(isPresented: $folders) {
+                MediaDocumentPicker(folders: true) { urls in folders = false; Task { await library.importFolders(urls) } }
             }
             .sheet(isPresented: $photos) {
                 MediaPhotosPicker { urls, errors in

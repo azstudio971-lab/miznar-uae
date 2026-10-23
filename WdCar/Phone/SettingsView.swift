@@ -61,6 +61,7 @@ struct SettingsView: View {
                     LabeledContent(tr("الإصدار", "Version"), value: version)
                     NavigationLink(tr("سياسة الخصوصية", "Privacy Policy")) { LegalTextView(kind: .privacy) }
                     NavigationLink(tr("شروط الاستخدام", "Terms of Use")) { LegalTextView(kind: .terms) }
+                    NavigationLink(tr("تراخيص المكتبات المفتوحة", "Open source licenses")) { OpenSourceLicensesView() }
                 }
             }
             .navigationTitle("WudCar Media Player")

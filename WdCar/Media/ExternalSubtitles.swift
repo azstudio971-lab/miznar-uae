@@ -1,8 +1,9 @@
 import Foundation
 import CoreFoundation
 import Combine
+import CryptoKit
 
-struct SubtitleCue: Equatable {
+struct SubtitleCue: Codable, Equatable {
     let start: Double
     let end: Double
     let text: String
@@ -50,6 +51,24 @@ final class ExternalSubtitles: ObservableObject {
         guard !parsed.isEmpty else { throw CocoaError(.fileReadCorruptFile) }
         self.mediaURL = mediaURL
         cues = parsed
+        try persist()
+    }
+    func replaceTranslation(_ translated: [SubtitleCue], for media: URL, original: [SubtitleCue]) {
+        guard mediaURL == media, cues == original, translated.count == original.count else { return }
+        cues = translated
+        try? persist()
+    }
+    private func file(for media: URL) -> URL {
+        let hash = SHA256.hash(data: Data(media.absoluteString.utf8)).map { String(format: "%02x", $0) }.joined()
+        return MediaLibrary.directory.appendingPathComponent("subtitle-" + hash + ".json")
+    }
+    private func persist() throws {
+        guard let mediaURL else { return }
+        try JSONEncoder().encode(cues).write(to: file(for: mediaURL), options: [.atomic, .completeFileProtection])
+    }
+    func restore(for media: URL) {
+        mediaURL = media
+        cues = (try? JSONDecoder().decode([SubtitleCue].self, from: Data(contentsOf: file(for: media)))) ?? []
     }
     func text(at time: Double, mediaURL: URL?) -> String {
         guard self.mediaURL == mediaURL else { return "" }

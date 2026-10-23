@@ -30,6 +30,18 @@
         [
           "الخصوصية والدعم",
           "الملفات المستوردة تُنسخ إلى مساحة التطبيق ولا يُحذف الأصل عند إزالة نسخة التطبيق. تفضيلات وسجل التشغيل محفوظة محلياً. للاستفسارات: az.studio971@gmail.com. آخر تحديث: 2026-10-23."
+        ],
+        [
+          "الكاميرا والشبكة المحلية",
+          "تُستخدم الكاميرا فقط عند اختيار مسح QR. تُقرأ الصورة التي تختارها عبر منتقي النظام دون الوصول الكامل لمكتبة الصور. يتصل التطبيق مباشرة بخادم Jellyfin أو Emby أو Plex الذي تختاره، وتبقى بيانات دخوله في Keychain على الجهاز."
+        ],
+        [
+          "مشاركة الشاشة والميزات المحلية",
+          "تبدأ مشاركة الشاشة بعد موافقتك من واجهة ReplayKit التابعة للنظام. تُشارك إطارات الصورة محلياً بين التطبيق وإضافته عبر App Group، ولا تُرسل لخوادمنا ولا تُحفظ كسجل. قد يمنع النظام التقاط المحتوى المحمي أو العرض في الخلفية. تُحدّث أدوات الشاشة والنشاط المباشر محلياً دون إشعارات دفع."
+        ],
+        [
+          "ترجمة الترجمة",
+          "تُترجم ملفات الترجمة على الجهاز بواسطة إطار Apple Translation، وقد تحتاج تنزيل نماذج اللغات. لا يرسل WudCar نص الترجمة إلى خوادمنا."
         ]
       ]
     },
@@ -63,6 +75,18 @@
         [
           "Privacy and support",
           "Imported files are copied into app storage; deleting an app copy leaves the original intact. Preferences and playback history remain local. Contact: az.studio971@gmail.com. Updated: 2026-10-23."
+        ],
+        [
+          "Camera and local network",
+          "The camera is used only when you choose QR scanning. The system picker reads only the image you select, without full photo-library access. The app connects directly to the Jellyfin, Emby or Plex server you choose; login credentials stay in the device Keychain."
+        ],
+        [
+          "Screen sharing and local features",
+          "Screen sharing starts only with your consent in the system ReplayKit interface. Frames pass locally between the app and its extension through an App Group, are not sent to our servers, and are not kept as a history. The system may restrict protected capture or background presentation. Widgets and Live Activities update locally without push notifications."
+        ],
+        [
+          "Subtitle translation",
+          "External subtitle files are translated on-device using Apple Translation; language models may need downloading. WudCar does not send subtitle text to our servers."
         ]
       ]
     }
@@ -98,6 +122,18 @@
         [
           "الخصوصية والدعم",
           "الملفات المستوردة تُنسخ إلى مساحة التطبيق ولا يُحذف الأصل عند إزالة نسخة التطبيق. تفضيلات وسجل التشغيل محفوظة محلياً. للاستفسارات: az.studio971@gmail.com. آخر تحديث: 2026-10-23."
+        ],
+        [
+          "الكاميرا والشبكة المحلية",
+          "تُستخدم الكاميرا فقط عند اختيار مسح QR. تُقرأ الصورة التي تختارها عبر منتقي النظام دون الوصول الكامل لمكتبة الصور. يتصل التطبيق مباشرة بخادم Jellyfin أو Emby أو Plex الذي تختاره، وتبقى بيانات دخوله في Keychain على الجهاز."
+        ],
+        [
+          "مشاركة الشاشة والميزات المحلية",
+          "تبدأ مشاركة الشاشة بعد موافقتك من واجهة ReplayKit التابعة للنظام. تُشارك إطارات الصورة محلياً بين التطبيق وإضافته عبر App Group، ولا تُرسل لخوادمنا ولا تُحفظ كسجل. قد يمنع النظام التقاط المحتوى المحمي أو العرض في الخلفية. تُحدّث أدوات الشاشة والنشاط المباشر محلياً دون إشعارات دفع."
+        ],
+        [
+          "ترجمة الترجمة",
+          "تُترجم ملفات الترجمة على الجهاز بواسطة إطار Apple Translation، وقد تحتاج تنزيل نماذج اللغات. لا يرسل WudCar نص الترجمة إلى خوادمنا."
         ]
       ]
     },
@@ -131,6 +167,18 @@
         [
           "Privacy and support",
           "Imported files are copied into app storage; deleting an app copy leaves the original intact. Preferences and playback history remain local. Contact: az.studio971@gmail.com. Updated: 2026-10-23."
+        ],
+        [
+          "Camera and local network",
+          "The camera is used only when you choose QR scanning. The system picker reads only the image you select, without full photo-library access. The app connects directly to the Jellyfin, Emby or Plex server you choose; login credentials stay in the device Keychain."
+        ],
+        [
+          "Screen sharing and local features",
+          "Screen sharing starts only with your consent in the system ReplayKit interface. Frames pass locally between the app and its extension through an App Group, are not sent to our servers, and are not kept as a history. The system may restrict protected capture or background presentation. Widgets and Live Activities update locally without push notifications."
+        ],
+        [
+          "Subtitle translation",
+          "External subtitle files are translated on-device using Apple Translation; language models may need downloading. WudCar does not send subtitle text to our servers."
         ]
       ]
     }

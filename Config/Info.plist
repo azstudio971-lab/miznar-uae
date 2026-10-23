@@ -39,35 +39,34 @@
 		<key>UISceneConfigurations</key>
 		<dict>
 			<key>UIWindowSceneSessionRoleApplication</key>
-            <array>
-                <dict>
-                    <key>UISceneConfigurationName</key>
-                    <string>Default Configuration</string>
-                    <key>UISceneClassName</key>
-                    <string>UIWindowScene</string>
-                    <key>UISceneDelegateClassName</key>
-                    <string>$(PRODUCT_MODULE_NAME).PhoneSceneDelegate</string>
-                </dict>
-            </array>
-            <key>CPTemplateApplicationSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Default Configuration</string>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).PhoneSceneDelegate</string>
+				</dict>
+			</array>
+			<key>CPTemplateApplicationSceneSessionRoleApplication</key>
 			<array>
 				<dict>
 					<key>UISceneConfigurationName</key>
 					<string>CarPlay</string>
-                    <key>UISceneClassName</key>
-                    <string>CPTemplateApplicationScene</string>
+					<key>UISceneClassName</key>
+					<string>CPTemplateApplicationScene</string>
 					<key>UISceneDelegateClassName</key>
 					<string>$(PRODUCT_MODULE_NAME).CarSceneDelegate</string>
 				</dict>
 			</array>
-			<!-- التحديث 3: شاشة السيارة كشاشة خارجية (نفس إعداد CarTV) -->
 			<key>UIWindowSceneSessionRoleExternalDisplay</key>
 			<array>
 				<dict>
 					<key>UISceneConfigurationName</key>
 					<string>External Display</string>
-                    <key>UISceneClassName</key>
-                    <string>UIWindowScene</string>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
 					<key>UISceneDelegateClassName</key>
 					<string>$(PRODUCT_MODULE_NAME).CarExternalDisplaySceneDelegate</string>
 				</dict>
@@ -77,8 +76,8 @@
 				<dict>
 					<key>UISceneConfigurationName</key>
 					<string>External Display</string>
-                    <key>UISceneClassName</key>
-                    <string>UIWindowScene</string>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
 					<key>UISceneDelegateClassName</key>
 					<string>$(PRODUCT_MODULE_NAME).CarExternalDisplaySceneDelegate</string>
 				</dict>
@@ -116,5 +115,22 @@
 	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>لمسح رموز QR وإضافة قائمة تشغيل بسرعة.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>يستخدم WudCar الشبكة المحلية فقط للاتصال بخوادم الوسائط التي تضيفها بنفسك (Jellyfin وEmby وPlex).</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.azstudio.wudcar.cast</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>wudcar</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

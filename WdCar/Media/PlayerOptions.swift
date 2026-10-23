@@ -42,6 +42,7 @@ struct PlayerOptionsView: View {
     @AppStorage("wd.media.buffer") private var buffer = 0.0
     @AppStorage("wd.media.timeout") private var timeout = 30.0
     @AppStorage("wd.media.userAgent") private var userAgent = "WudCar/3.0.1"
+    @AppStorage("wd.media.softwareDecoding") private var softwareDecoding = "auto"
     @State private var importSubtitle = false
     @State private var sleepMinutes = 0
     @State private var error: String?
@@ -59,6 +60,7 @@ struct PlayerOptionsView: View {
                 Picker(tr("موضع الترجمة", "Subtitle position"), selection: $position) { Text(tr("أسفل", "Bottom")).tag(90.0); Text(tr("وسط", "Center")).tag(50.0); Text(tr("أعلى", "Top")).tag(10.0) }
                 Picker(tr("الترميز", "Encoding"), selection: $encoding) { Text("UTF-8").tag("utf8"); Text("Windows-1256").tag("windows1256") }
                 Button(tr("تحميل ملف SRT / VTT", "Load SRT / VTT")) { importSubtitle = true }.disabled(playback.current == nil)
+                NavigationLink(tr("ترجمة فورية للترجمة", "Translate subtitles")) { SubtitleTranslationView() }
                 MediaTrackPicker(characteristic: .legible)
                 Text(tr("الترجمة الخارجية تظهر على الهاتف فقط؛ للشاشة الخارجية استخدم الترجمة المدمجة.", "External subtitles display on iPhone only; use embedded subtitles for external screens.")).font(.footnote)
             }
@@ -68,6 +70,15 @@ struct PlayerOptionsView: View {
                 Button(tr("تحسين الحوار إن توفر مسار مخصص", "Use enhanced-dialogue track if available")) { playback.selectEnhancedDialogue() }.disabled(!playback.hasEnhancedDialogue)
             }
             Section(tr("العرض والتشغيل", "Display and playback")) {
+                Picker(tr("فك الترميز البرمجي — الهاتف فقط", "Software decoding — iPhone only"), selection: $softwareDecoding) {
+                    Text(tr("تلقائي", "Automatic")).tag("auto"); Text(tr("دائماً", "Always")).tag("always"); Text(tr("أبداً", "Never")).tag("never")
+                }
+                Menu(tr("الجودة", "Quality")) {
+                    Button("Auto") { playback.player.currentItem?.preferredPeakBitRate = 0; playback.player.currentItem?.preferredMaximumResolution = .zero }
+                    ForEach(playback.availableQualities) { quality in
+                        Button(quality.title) { playback.player.currentItem?.preferredPeakBitRate = quality.bandwidth; playback.player.currentItem?.preferredMaximumResolution = CGSize(width: quality.width, height: quality.height) }
+                    }
+                }.disabled(playback.isSoftwareDecoding || playback.current == nil)
                 Picker(tr("ملاءمة الصورة", "Video fit"), selection: $gravity) { Text("Fit").tag("fit"); Text("Fill").tag("fill"); Text("Stretch").tag("stretch") }
                 Toggle(tr("ملء الشاشة تلقائياً عند بدء التشغيل", "Auto full screen when playback begins"), isOn: $autoFullscreen)
                 Picker(tr("السرعة الافتراضية — الهاتف فقط", "Default rate — iPhone only"), selection: $rate) { ForEach([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2], id: \.self) { Text(String(format: "%.2g×", $0)).tag($0) } }

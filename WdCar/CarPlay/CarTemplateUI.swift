@@ -17,6 +17,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     private var sessionConfiguration: CPSessionConfiguration?
     private let home = CPListTemplate(title: carTr("المكتبة", "Library"), sections: [])
     private let entertainment = CPListTemplate(title: carTr("المفضلة", "Favorites"), sections: [])
+    private let cast = CPListTemplate(title: "Cast", sections: [])
     private let settings = CPListTemplate(title: carTr("الإعدادات", "Settings"), sections: [])
     private let television = CPListTemplate(title: carTr("التلفزيون TV", "TV"), sections: [])
     private var bag = Set<AnyCancellable>()
@@ -27,9 +28,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     private var tabBar: CPTabBarTemplate?
     private var browserWarningAccepted = false
     private var favoriteChannelRows: [CPListItem] = []
-    static let tabOrder = ["library", "tv", "favorites", "settings"]
+    static let tabOrder = ["library", "tv", "favorites", "cast"]
     static func makeTabBar(library: CPTemplate, tv: CPTemplate, favorites: CPTemplate, settings: CPTemplate) -> CPTabBarTemplate {
-        let values = ["library": library, "tv": tv, "favorites": favorites, "settings": settings]
+        let values = ["library": library, "tv": tv, "favorites": favorites, "cast": settings]
         return CPTabBarTemplate(templates: tabOrder.compactMap { values[$0] })
     }
 
@@ -84,13 +85,19 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         settings.tabTitle = carTr("الإعدادات", "Settings")
         settings.tabImage = UIImage(systemName: "gearshape.fill")
 
-        let tabs = Self.makeTabBar(library: home, tv: television, favorites: entertainment, settings: settings)
+        cast.tabTitle = "Cast"
+        cast.tabImage = UIImage(systemName: "airplay.video")
+        let tabs = Self.makeTabBar(library: home, tv: television, favorites: entertainment, settings: cast)
         tabs.delegate = self
         tabBar = tabs
         rebuildHome()
         rebuildEntertainment(ShortcutStore.shared.shortcuts)
         rebuildTelevision()
         rebuildSettings()
+        rebuildCast()
+        ScreenRelay.shared.$active.receive(on: RunLoop.main).sink { [weak self] _ in self?.rebuildCast() }.store(in: &bag)
+        SourceStore.shared.$sources.debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildHome(); self?.rebuildTelevision() }.store(in: &bag)
         interfaceController?.setRootTemplate(tabs, animated: false) { [weak self] success, error in
             WDLog.car("root template installed=\(success) error=\(String(describing: error))")
             guard !success, let self else { return }
@@ -147,7 +154,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                     case .home: template = self.home
                     case .entertainment: template = self.entertainment
                     case .television: template = self.television
-                    case .settings: template = self.settings
+                    case .settings: template = self.cast
                     }
                     self.tabBar?.select(template)
                 case .playPause:
@@ -173,7 +180,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                 self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
             }.store(in: &bag)
         DrivingMonitor.shared.$isMoving.receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.rebuildSettings() }.store(in: &bag)
+            .sink { [weak self] _ in self?.rebuildSettings(); self?.rebuildCast() }.store(in: &bag)
         WDLog.car("templates connected supportsVideo=\(supportsVideo)")
         startedAt = Date()
         refreshVideoSupport()
@@ -211,7 +218,64 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             mediaSection(carTr("الفيديوهات والملفات المحلية", "Local video and audio"), items: library.items.filter { $0.localFilename != nil }),
             mediaSection(carTr("روابط الوسائط", "Media URLs"), items: library.items.filter { $0.localFilename == nil })
         ]
-        home.updateSections(sections)
+        home.updateSections(bounded([sourceSection()] + sections))
+    }
+    private func bounded(_ sections: [CPListSection]) -> [CPListSection] {
+        var remaining = Self.maxItems
+        return sections.prefix(CPListTemplate.maximumSectionCount).compactMap { section in
+            guard remaining > 0 else { return nil }
+            let items = Array(section.items.prefix(remaining)); remaining -= items.count
+            return CPListSection(items: items, header: section.header, sectionIndexTitle: section.sectionIndexTitle)
+        }
+    }
+    private func rebuildCast() {
+        let route = CPListItem(text: carTr("AirPlay", "AirPlay"), detailText: PlaybackManager.shared.isAirPlayActive ? carTr("متصل بشاشة", "Connected to a display") : carTr("اختر جهاز الاستقبال من iPhone", "Choose a receiver on iPhone"), image: UIImage(systemName: "airplay.video"))
+        let mirroring = CPListItem(text: carTr("عكس الشاشة", "Screen mirroring"), detailText: ScreenRelay.shared.active ? carTr("العكس نشط", "Sharing active") : carTr("ابدأ العكس من iPhone أثناء التوقف", "Start sharing from iPhone while parked"))
+        let preferences = settingItem(carTr("الإعدادات", "Settings"), detail: nil, symbol: "gearshape") { [weak self] in
+            guard let self else { return }; self.rebuildSettings(); self.interfaceController?.pushTemplate(self.settings, animated: true, completion: nil)
+        }
+        cast.updateSections(bounded([CPListSection(items: [route, mirroring, videoStatusItem(), preferences])]))
+    }
+    private func sourceSection(liveOnly: Bool = false) -> CPListSection {
+        let rows = SourceStore.shared.sources.filter { !$0.hidden && (!liveOnly || [.playlist, .pasted, .stream].contains($0.kind)) }.prefix(Self.maxItems).map { source -> CPListItem in
+            let item = CPListItem(text: source.name, detailText: "\(source.count)", image: UIImage(systemName: "server.rack"))
+            item.accessoryType = .disclosureIndicator
+            item.handler = { [weak self] _, done in self?.showSource(source); done() }; return item
+        }
+        return CPListSection(items: Array(rows), header: carTr("المصادر", "Sources"), sectionIndexTitle: nil)
+    }
+    private func showSource(_ source: MediaSource, parent: String? = nil, title: String? = nil) {
+        let template = loadingTemplate(title: title ?? source.name)
+        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let items = try await SourceStore.shared.browse(source, parent: parent)
+                self.populateSource(template, source: source, items: items, offset: 0)
+            } catch { self.fail(template, error) }
+        }
+    }
+    private func populateSource(_ template: CPListTemplate, source: MediaSource, items: [SourceMedia], offset: Int) {
+        let capacity = max(1, Self.maxItems - 1)
+        var rows = items.dropFirst(offset).prefix(capacity).map { media -> CPListItem in
+            let row = CPListItem(text: media.title, detailText: media.group.isEmpty ? nil : media.group, image: UIImage(systemName: media.folder ? "folder" : "play.rectangle"))
+            loadImage(media.artwork, into: row)
+            if !media.folder { applyPlaybackConfiguration(to: row) }
+            row.handler = { [weak self] _, done in
+                if media.folder { self?.showSource(source, parent: media.id, title: media.title) }
+                else {
+                    SourceStore.shared.play(media, source: source, onPhone: false)
+                    if self?.supportsVideo != true { self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil) }
+                }
+                done()
+            }
+            return row
+        }
+        if offset + capacity < items.count {
+            let more = CPListItem(text: carTr("المزيد", "More"), detailText: nil)
+            more.handler = { [weak self] _, done in self?.populateSource(template, source: source, items: items, offset: offset + capacity); done() }; rows.append(more)
+        }
+        template.updateSections([CPListSection(items: rows)])
     }
     private func mediaSection(_ title: String, items: [LibraryMedia]) -> CPListSection {
         if #available(iOS 26.4, *), !items.isEmpty {
@@ -538,7 +602,8 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         var sections: [CPListSection] = []
         if !accounts.isEmpty { sections.append(CPListSection(items: accounts, header: "Xtream Codes", sectionIndexTitle: nil)) }
         if !playlists.isEmpty { sections.append(CPListSection(items: playlists, header: "M3U", sectionIndexTitle: nil)) }
-        television.updateSections(sections)
+        sections.append(sourceSection(liveOnly: true))
+        television.updateSections(bounded(sections))
     }
 
     private func showM3UEntries(for playlist: M3UPlaylist) {
@@ -561,7 +626,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                         }
                     }
                     template.emptyViewTitleVariants = [carTr("لا يوجد محتوى", "No content")]
-                    template.updateSections(sections)
+                    template.updateSections(bounded(sections))
                 }
             } catch {
                 await MainActor.run { self?.fail(template, error) }
@@ -618,7 +683,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                         sections.append(CPListSection(items: Array(items), header: kind.title, sectionIndexTitle: nil))
                     }
                     template.emptyViewTitleVariants = [carTr("لا يوجد محتوى", "No content")]
-                    template.updateSections(sections)
+                    template.updateSections(bounded(sections))
                 }
             } catch {
                 await MainActor.run { self?.fail(template, error) }

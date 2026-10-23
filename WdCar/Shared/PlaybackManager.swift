@@ -22,6 +22,9 @@ final class PlaybackManager: ObservableObject {
     }
 
     let player = AVPlayer()
+    @Published private(set) var isSoftwareDecoding = false
+    private(set) var software: SoftwareDecoder?
+    @Published private(set) var availableQualities: [HLSQuality] = []
 
     @Published private(set) var current: Item?
     @Published private(set) var isPlaying = false
@@ -52,6 +55,7 @@ final class PlaybackManager: ObservableObject {
         player.publisher(for: \.timeControlStatus)
             .receive(on: RunLoop.main)
             .sink { [weak self] status in
+                guard self?.isSoftwareDecoding != true else { return }
                 self?.isPlaying = (status == .playing)
                 self?.updateNowPlaying()
             }
@@ -68,7 +72,7 @@ final class PlaybackManager: ObservableObject {
             .store(in: &bag)
 
         periodicObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 1, preferredTimescale: 600), queue: .main) { [weak self] time in
-            guard let self else { return }
+            guard let self, !self.isSoftwareDecoding else { return }
             self.elapsed = time.seconds.isFinite ? time.seconds : 0
             let total = self.player.currentItem?.duration.seconds ?? 0
             self.duration = total.isFinite ? total : 0
@@ -98,6 +102,7 @@ final class PlaybackManager: ObservableObject {
             return
         }
         savePosition()
+        software?.stop(); software = nil; isSoftwareDecoding = false
         if item.url.scheme == "https" || item.url.scheme == "http" {
             try? MediaLibrary.shared.addRemote(title: item.title, url: item.url, isLive: item.isLive, sourceKey: item.sourceKey)
         }
@@ -113,6 +118,7 @@ final class PlaybackManager: ObservableObject {
         player.pause()
         player.replaceCurrentItem(with: nil)
         current = item
+        ExternalSubtitles.shared.restore(for: item.url)
         lastSaved = 0
         elapsed = 0
         duration = 0
@@ -120,6 +126,18 @@ final class PlaybackManager: ObservableObject {
         isExternalDisplayPlayback = !presentOnPhone
         artwork = UIImage(named: "LogoMark")
 
+        if presentOnPhone, !isAirPlayActive, PlayerPreferences.text("softwareDecoding", "auto") == "always" {
+            activateSoftware(for: item, position: savedPosition)
+            isMinimized = false; isPlayerPresented = true
+            return
+        }
+        availableQualities = []
+        if item.url.pathExtension.lowercased() == "m3u8" {
+            Task { @MainActor [weak self] in
+                let values = (try? await HLSQuality.load(item.url)) ?? []
+                if self?.current?.url == item.url { self?.availableQualities = values }
+            }
+        }
         let asset = AVURLAsset(url: item.url, options: [AVURLAssetHTTPUserAgentKey: PlayerPreferences.text("userAgent", "WudCar/3.0.1")])
         let playerItem = AVPlayerItem(asset: asset)
         playerItem.preferredForwardBufferDuration = PlayerPreferences.number("buffer", 0)
@@ -153,6 +171,10 @@ final class PlaybackManager: ObservableObject {
             errorMessage = tr("يلزم تفعيل الاشتراك أو استعادته من الإعدادات.", "Activate or restore your subscription in Settings.")
             return false
         }
+        if isSoftwareDecoding {
+            errorMessage = tr("البث للسيارة يحتاج صيغة يدعمها AVPlayer. اختر ملف MP4 أو HLS متوافقاً.", "Car playback requires an AVPlayer-compatible format. Choose compatible MP4 or HLS media.")
+            return false
+        }
         guard current != nil, let item = player.currentItem else {
             errorMessage = tr("اختر فيديو أو ملف صوت من المكتبة أو البث أولاً.", "Choose a video or audio item from Library or TV first.")
             return false
@@ -176,10 +198,12 @@ final class PlaybackManager: ObservableObject {
 
     func togglePlayPause() {
         guard SubscriptionStore.shared.hasAccess else { stop(); return }
+        if isSoftwareDecoding { software?.toggle(); return }
         if player.timeControlStatus == .paused { player.play() } else { player.pause() }
     }
 
     func seek(by seconds: Double) {
+        if isSoftwareDecoding { software?.seek(by: seconds); return }
         guard let item = player.currentItem, item.status == .readyToPlay else { return }
         let ranges = item.seekableTimeRanges.map { $0.timeRangeValue }
         guard let range = ranges.last else { return }
@@ -200,6 +224,7 @@ final class PlaybackManager: ObservableObject {
     }
 
     var canSeek: Bool {
+        if let software, isSoftwareDecoding { return software.player.isSeekable }
         guard let item = player.currentItem, item.status == .readyToPlay else { return false }
         return item.seekableTimeRanges.contains { value in
             let range = value.timeRangeValue
@@ -224,6 +249,7 @@ final class PlaybackManager: ObservableObject {
     }
 
     func setRate(_ rate: Float) {
+        if isSoftwareDecoding, !isExternalDisplayPlayback { software?.player.rate = rate; return }
         guard supportedRates.contains(rate), !AppState.shared.isCarConnected, !isExternalDisplayPlayback else { return }
         player.defaultRate = rate
         if isPlaying { player.rate = rate }
@@ -239,6 +265,10 @@ final class PlaybackManager: ObservableObject {
     func savePosition(completed: Bool = false) {
         guard let current else { return }
         if current.isLive { MediaLibrary.shared.record(url: current.url, position: 0); return }
+        if isSoftwareDecoding {
+            MediaLibrary.shared.record(url: current.url, position: completed ? 0 : elapsed, duration: duration)
+            lastSaved = elapsed; return
+        }
         let total = player.currentItem?.duration.seconds ?? 0
         let atEnd = total.isFinite && total > 0 && player.currentTime().seconds >= total - 1
         let position = (completed || atEnd) ? 0 : player.currentTime().seconds
@@ -256,7 +286,9 @@ final class PlaybackManager: ObservableObject {
     }
 
     func stop() {
+        PlaybackActivity.shared.end()
         savePosition()
+        software?.stop(); software = nil; isSoftwareDecoding = false
         startupTimeout?.cancel()
         sleepTimer?.invalidate()
         itemBag.removeAll()
@@ -277,6 +309,10 @@ final class PlaybackManager: ObservableObject {
     }
 
     func enforceSafety() {
+        if isSoftwareDecoding {
+            software?.setVideoBlocked(DrivingMonitor.shared.shouldBlockVideo && WDSettings.lockVideoWhileDriving)
+            return
+        }
         guard let item = player.currentItem else { return }
         let continueAudio = isPlaying
         let block = Self.blocksVideo(isMoving: DrivingMonitor.shared.shouldBlockVideo,
@@ -349,6 +385,9 @@ final class PlaybackManager: ObservableObject {
                     }
                 }
                 if status == .failed {
+                    if Self.permitsSoftwareDecoding(preference: PlayerPreferences.text("softwareDecoding", "auto"), external: self.isExternalDisplayPlayback, airPlay: self.isAirPlayActive), let current = self.current {
+                        self.activateSoftware(for: current, position: self.elapsed); return
+                    }
                     self.isLoading = false
                     let error = item.error as NSError?
                     let unsupported = error?.domain == AVFoundationErrorDomain && [AVError.Code.fileFormatNotRecognized.rawValue, AVError.Code.decoderNotFound.rawValue].contains(error?.code ?? 0)
@@ -357,6 +396,28 @@ final class PlaybackManager: ObservableObject {
                 self.updateNowPlaying()
             }
             .store(in: &itemBag)
+    }
+
+    static func permitsSoftwareDecoding(preference: String, external: Bool, airPlay: Bool) -> Bool {
+        preference != "never" && !external && !airPlay
+    }
+
+    private func activateSoftware(for media: Item, position: Double) {
+        guard !isExternalDisplayPlayback, !isAirPlayActive else { return }
+        startupTimeout?.cancel(); itemBag.removeAll(); player.pause(); player.replaceCurrentItem(with: nil)
+        software?.stop()
+        let decoder = SoftwareDecoder(); software = decoder; isSoftwareDecoding = true
+        isLoading = false; errorMessage = nil
+        decoder.progress = { [weak self, weak decoder] at, total, playing in
+            guard let self, self.software === decoder else { return }
+            self.elapsed = at; self.duration = total; self.isPlaying = playing
+            if abs(at - self.lastSaved) >= 5 { self.savePosition() }
+            self.updateNowPlaying()
+            if total > 0, at >= total - 0.25, PlayerPreferences.autoNext { self.next() }
+        }
+        decoder.failure = { [weak self] in self?.errorMessage = MediaImportError.unsupported.localizedDescription; self?.isPlaying = false }
+        decoder.play(media.url, position: PlayerPreferences.resume ? position : 0)
+        loadArtwork(for: media)
     }
 
     private func loadArtwork(for item: Item) {
@@ -381,7 +442,7 @@ final class PlaybackManager: ObservableObject {
             MPMediaItemPropertyAlbumTitle: current.subtitle,
             MPNowPlayingInfoPropertyIsLiveStream: current.isLive,
             MPNowPlayingInfoPropertyMediaType: (["mp3", "m4a", "aac", "wav", "aiff", "flac"].contains(current.url.pathExtension.lowercased()) ? MPNowPlayingInfoMediaType.audio : .video).rawValue,
-            MPNowPlayingInfoPropertyPlaybackRate: Double(player.rate)
+            MPNowPlayingInfoPropertyPlaybackRate: isSoftwareDecoding ? (isPlaying ? Double(software?.player.rate ?? 1) : 0) : Double(player.rate)
         ]
         let center = MPRemoteCommandCenter.shared()
         let canSeek = player.currentItem?.seekableTimeRanges.isEmpty == false
@@ -397,14 +458,15 @@ final class PlaybackManager: ObservableObject {
             center.nextTrackCommand.isEnabled = false
             center.previousTrackCommand.isEnabled = false
         }
-        let elapsed = player.currentTime().seconds
+        let elapsed = isSoftwareDecoding ? self.elapsed : player.currentTime().seconds
         if elapsed.isFinite { info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsed }
-        if let duration = player.currentItem?.duration.seconds, duration.isFinite, !current.isLive {
+        if let duration = isSoftwareDecoding ? self.duration : player.currentItem?.duration.seconds, duration.isFinite, !current.isLive {
             info[MPMediaItemPropertyPlaybackDuration] = duration
         }
         if let artwork {
             info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: artwork.size) { _ in artwork }
         }
+        PlaybackActivity.shared.update(title: current.title, elapsed: self.elapsed, duration: self.duration, playing: isPlaying, casting: isAirPlayActive)
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 

@@ -11,7 +11,9 @@ struct PlayerHomeView: View {
             List {
                 Section(tr("يعمل الآن", "Now playing")) {
                     if let item = playback.current {
-                        MiniMediaPlayer().frame(height: 180).clipShape(RoundedRectangle(cornerRadius: 12))
+                        if playback.isSoftwareDecoding, let decoder = playback.software {
+                            SoftwarePlayerView(decoder: decoder).frame(height: 180).clipShape(RoundedRectangle(cornerRadius: 12))
+                        } else { MiniMediaPlayer().frame(height: 180).clipShape(RoundedRectangle(cornerRadius: 12)) }
                         Button { playback.presentPlayer() } label: { Label(item.title, systemImage: "play.rectangle") }
                         HStack {
                             Button { playback.previous() } label: { Image(systemName: "backward.end.fill") }.disabled(!playback.canPlayPrevious)
@@ -27,6 +29,9 @@ struct PlayerHomeView: View {
                     ForEach(library.items.filter { $0.position > 0 }.sorted { ($0.lastPlayed ?? .distantPast) > ($1.lastPlayed ?? .distantPast) }) { item in
                         mediaButton(item)
                     }
+                }
+                Section(tr("المصادر", "Sources")) {
+                    NavigationLink(tr("مصادري", "My sources")) { SourcesView() }
                 }
                 Section(tr("قوائم التشغيل", "Playlists")) {
                     NavigationLink(tr("إدارة قوائم التشغيل", "Manage playlists")) { MediaPlaylistsView() }
@@ -50,6 +55,8 @@ struct CastView: View {
     @EnvironmentObject private var app: AppState
     @ObservedObject private var playback = PlaybackManager.shared
     @ObservedObject private var driving = DrivingMonitor.shared
+    @ObservedObject private var relay = ScreenRelay.shared
+    @State private var castMessage: String?
     var body: some View {
         NavigationStack {
             List {
@@ -63,6 +70,25 @@ struct CastView: View {
                         Text(tr("اختر وسائطك أولاً، ثم اختر جهاز الاستقبال.", "Choose your media, then choose a receiver."))
                     }
                     NavigationLink(tr("اختيار من المكتبة", "Choose from Library")) { MediaLibraryView() }
+                }
+                Section(tr("عكس الشاشة", "Screen mirroring")) {
+                    if relay.available {
+                        HStack {
+                            BroadcastPicker().frame(width: 60, height: 60)
+                            Text(relay.active ? tr("العكس نشط — الإنهاء من زر النظام", "Sharing active — stop using the system control") : tr("بدء مشاركة الشاشة عبر النظام", "Start sharing using the system control"))
+                        }
+                        Text(tr("يتطلب شاشة خارجية متصلة ومتوافقة. قد يمنع iOS التقاط المحتوى المحمي أو استمرار العرض في الخلفية.", "Requires a connected compatible external display. iOS may restrict protected content capture or background presentation.")).font(.footnote)
+                    } else { Text(tr("مشاركة الشاشة غير متاحة في هذا التثبيت.", "Screen sharing is unavailable in this installation.")) }
+                }
+                Section(tr("صفحة الويب الحالية", "Current web page")) {
+                    Button(tr("إرسال صفحة الهاتف إلى السيارة", "Send iPhone page to car")) {
+                        guard SubscriptionStore.shared.hasAccess else { castMessage = tr("الاشتراك مطلوب", "Subscription required"); return }
+                        guard let url = TabStore.phone.activeTab?.url else { castMessage = tr("افتح صفحة في متصفح الهاتف أولاً.", "Open a page in the iPhone browser first."); return }
+                        guard !TabStore.car.isFull else { castMessage = tr("وصلت إلى الحد الأقصى: 8 تبويبات. أغلق تبويباً من متصفح السيارة.", "The 8-tab limit is reached. Close a tab in the car browser."); return }
+                        TabStore.car.open(url, inNewTab: true)
+                        CarScreenLauncher.shared.launch()
+                    }
+                    if let castMessage { Text(castMessage).font(.footnote) }
                 }
                 Section("AirPlay") {
                     AirPlayButton().frame(height: 60).listRowBackground(Color.wdNavy)
@@ -86,7 +112,7 @@ struct CastView: View {
                     Text(error).font(.footnote).foregroundStyle(.red)
                 }
                 CarConnectionCard()
-            }.navigationTitle("Cast / AirPlay")
+            }.navigationTitle("Cast / AirPlay").onAppear { relay.monitor() }
         }
     }
 }

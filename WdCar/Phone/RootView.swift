@@ -70,6 +70,7 @@ struct MainTabView: View {
                 .tabItem { Label(tr("الإعدادات", "Settings"), systemImage: "gearshape") }
                 .tag(4)
         }
+        .onOpenURL { url in if url.scheme == "wudcar", url.host == "cast" { tab = 3 } }
         .fullScreenCover(isPresented: $playback.isPlayerPresented) {
             PlayerContainer()
                 .onDisappear { if !playback.isExternalDisplayPlayback && !playback.isPictureInPictureActive && !playback.isMinimized { playback.stop() } }
@@ -85,7 +86,9 @@ private struct PlayerContainer: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             Color.black.ignoresSafeArea()
-            PlayerScreen().ignoresSafeArea()
+            if playback.isSoftwareDecoding, let decoder = playback.software {
+                SoftwarePlayerView(decoder: decoder).ignoresSafeArea()
+            } else { PlayerScreen().ignoresSafeArea() }
             VStack {
                 if PlayerPreferences.number("subtitlePosition", 90) > 50 { Spacer() }
                 if PlayerPreferences.subtitles {

@@ -3,12 +3,14 @@ import PhotosUI
 import UniformTypeIdentifiers
 
 struct MediaDocumentPicker: UIViewControllerRepresentable {
+    var folders = false
     let completion: ([URL]) -> Void
     func makeCoordinator() -> Coordinator { Coordinator(completion: completion) }
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let m4a = UTType(filenameExtension: "m4a") ?? .audio
         let mp3 = UTType(filenameExtension: "mp3") ?? .audio
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.movie, .audio, .mpeg4Movie, .quickTimeMovie, mp3, m4a], asCopy: false)
+        let formats = ["mkv", "avi", "webm", "flac", "ogg", "ac3", "dts", "ts"].compactMap { UTType(filenameExtension: $0) }
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: folders ? [.folder] : [.movie, .audio, .mpeg4Movie, .quickTimeMovie, mp3, m4a] + formats, asCopy: false)
         picker.allowsMultipleSelection = true; picker.delegate = context.coordinator; return picker
     }
     func updateUIViewController(_ controller: UIDocumentPickerViewController, context: Context) {}

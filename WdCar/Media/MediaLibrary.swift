@@ -34,6 +34,7 @@ final class MediaLibrary: ObservableObject {
     @Published private(set) var items: [LibraryMedia] = []
     @Published private(set) var playlists: [MediaPlaylist] = []
     @Published var error: String?
+    @Published var importSummary: String?
     @Published var importProgress: Double?
     private var writable = true
     private var metadata: URL { Self.directory.appendingPathComponent("library.json") }
@@ -84,12 +85,37 @@ final class MediaLibrary: ObservableObject {
         importProgress = 0
         defer { importProgress = nil }
         var failures: [String] = []
+        var success = 0
+        importSummary = nil
         for (index, url) in urls.enumerated() {
-            do { try await importFile(url) }
+            do { try await importFile(url); success += 1 }
             catch { failures.append("\(url.lastPathComponent): \(error.localizedDescription)") }
             importProgress = Double(index + 1) / Double(max(1, urls.count))
         }
+        importSummary = tr("تم استيراد \(success) ملف وسائط", "Imported \(success) media files")
         if !failures.isEmpty { error = failures.joined(separator: "\n") }
+    }
+
+    @MainActor func importFolders(_ roots: [URL]) async {
+        guard importProgress == nil else { return }
+        var urls: [URL] = []
+        for root in roots {
+            let access = root.startAccessingSecurityScopedResource()
+            defer { if access { root.stopAccessingSecurityScopedResource() } }
+            let keys: [URLResourceKey] = [.isRegularFileKey, .isSymbolicLinkKey]
+            guard let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles, .skipsPackageDescendants]) else { continue }
+            urls = enumerator.compactMap { $0 as? URL }.filter { url in
+                let values = try? url.resourceValues(forKeys: Set(keys))
+                return values?.isRegularFile == true && values?.isSymbolicLink != true && ["mp4", "mov", "m4v", "mp3", "m4a", "aac", "wav", "aiff", "mkv", "avi", "webm", "flac", "ogg", "ac3", "dts", "ts"].contains(url.pathExtension.lowercased())
+            }.sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+            let before = Set(items.map(\.id))
+            await importFiles(urls)
+            let imported = items.filter { !before.contains($0.id) }.map(\.id)
+            if !imported.isEmpty {
+                createPlaylist(root.lastPathComponent)
+                if let list = playlists.last { setMembers(imported, in: list.id) }
+            }
+        }
     }
 
     @MainActor func importFile(_ url: URL) async throws {
@@ -99,22 +125,28 @@ final class MediaLibrary: ObservableObject {
         var item = LibraryMedia(title: url.deletingPathExtension().lastPathComponent)
         let filename = item.id.uuidString + "." + url.pathExtension
         let destination = Self.directory.appendingPathComponent(filename)
+        let required = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        let free = (try? Self.directory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]).volumeAvailableCapacityForImportantUsage) ?? Int64.max
+        guard Int64(required) < free else { throw CocoaError(.fileWriteOutOfSpace) }
         // File copy is off the UI thread; picker originals are never modified.
         try await Task.detached(priority: .userInitiated) {
             try FileManager.default.copyItem(at: url, to: destination)
         }.value
         do {
             let asset = AVURLAsset(url: destination)
-            guard try await asset.load(.isPlayable) else { throw MediaImportError.unsupported }
-            let duration = try await asset.load(.duration).seconds
-            item.duration = duration.isFinite ? duration : nil
+            let nativePlayable = (try? await asset.load(.isPlayable)) == true
+            let softwareFormat = ["mkv", "avi", "webm", "flac", "ogg", "ac3", "dts", "ts"].contains(url.pathExtension.lowercased())
+            guard nativePlayable || (softwareFormat && PlayerPreferences.text("softwareDecoding", "auto") != "never") else { throw MediaImportError.unsupported }
             item.localFilename = filename
-            let generator = AVAssetImageGenerator(asset: asset)
-            generator.appliesPreferredTrackTransform = true
-            generator.maximumSize = CGSize(width: 320, height: 180)
-            if let (cgImage, _) = try? await generator.image(at: .zero),
-               let data = UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.75) {
-                try? data.write(to: thumbnailURL(item.id), options: .atomic)
+            if nativePlayable {
+                let duration = try await asset.load(.duration).seconds
+                item.duration = duration.isFinite ? duration : nil
+                let generator = AVAssetImageGenerator(asset: asset)
+                generator.appliesPreferredTrackTransform = true
+                generator.maximumSize = CGSize(width: 320, height: 180)
+                if let (cgImage, _) = try? await generator.image(at: .zero), let data = UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.75) {
+                    try? data.write(to: thumbnailURL(item.id), options: .atomic)
+                }
             }
             var values = URLResourceValues()
             values.isExcludedFromBackup = true

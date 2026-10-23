@@ -1,4 +1,5 @@
 import UIKit
+import SwiftUI
 
 /// External media routes must not replace CarPlay's native template interface.
 /// The unchanged browser is mounted only following an explicit browser request.
@@ -16,6 +17,18 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
     static func presentBrowserIfConnected() -> Bool {
         guard let delegate = connectedDelegate, delegate.connectedScene != nil else { return false }
         delegate.presentBrowser()
+        return true
+    }
+
+    static func presentRelayIfConnected() -> Bool {
+        guard let delegate = connectedDelegate, let scene = delegate.connectedScene else { return false }
+        WebViewPool.car.pauseAllMedia()
+        AppState.shared.carScreenDisconnected()
+        let window = delegate.window ?? UIWindow(windowScene: scene)
+        window.rootViewController = UIHostingController(rootView: RelayDisplay())
+        window.backgroundColor = .black
+        delegate.window = window
+        window.makeKeyAndVisible()
         return true
     }
 
@@ -47,6 +60,7 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
         self.interactive = interactive
         Self.connectedDelegate = self
         AppState.shared.externalDisplayConnected()
+        ScreenRelay.shared.monitor()
         // Connecting AirPlay or playing native media is never a browser request.
         if CarScreenLauncher.shared.isLaunching {
             presentBrowser()
