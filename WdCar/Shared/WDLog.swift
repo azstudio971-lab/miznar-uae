@@ -18,6 +18,6 @@ enum WDLog {
     }
 
     static var recentText: String {
-        DiagnosticLog.shared.fullText
+        DiagnosticLog.shared.fullText()
     }
 }

@@ -64,6 +64,8 @@ final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
         WDLog.car("application scene visible external=\(externalDisplay)")
         DiagnosticLog.recordScreens(event: "application scene connected")
         if externalDisplay {
+            let bounds = windowScene.coordinateSpace.bounds
+            WDLog.car("external app-role scene connected role=\(session.role.rawValue) size=\(Int(bounds.width))x\(Int(bounds.height)) scale=\(windowScene.traitCollection.displayScale) interactive=true")
             DiagnosticLog.shared.markExternalDisplayConnected()
             AppState.shared.carScreenConnected(interactive: true)
             CarScreenLauncher.shared.externalDisplayDidConnect()
