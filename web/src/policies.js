@@ -1,4 +1,12 @@
 export const policies={
+  support: {
+    ar: {title: 'الدعم والمساعدة', sections: [['تواصل معنا', 'للمساعدة في WudCar، تواصل معنا على az.studio971@gmail.com.'], ['مصادرك وخصوصيتك', 'لا ترسل كلمات المرور أو روابط الاشتراك الخاصة بك. WudCar مشغّل فقط ولا يوفر قنوات أو محتوى.']]},
+    en: {title: 'Support', sections: [['Contact us', 'For help with WudCar, contact az.studio971@gmail.com.'], ['Sources and privacy', 'Do not send passwords or private subscription URLs. WudCar is a player only and provides no channels or content.']]}
+  },
+  delete: {
+    ar: {title: 'حذف البيانات والحساب', sections: [['البيانات المحلية', 'احذف المصادر والملفات المستوردة والسجل من التطبيق. حذف النسخة المستوردة لا يحذف الملف الأصلي.'], ['طلب حذف الحساب', 'لطلب حذف حسابك وبياناته، تواصل معنا من بريد الحساب على az.studio971@gmail.com دون إرسال كلمة المرور.'], ['الاشتراك', 'حذف الحساب أو التطبيق لا يلغي اشتراك Apple. أدر اشتراكك من إعدادات iPhone ← اسمك ← الاشتراكات ← WudCar.']]},
+    en: {title: 'Delete data and account', sections: [['Local data', 'Remove sources, imported files and history in the app. Removing an imported copy leaves the original intact.'], ['Account deletion request', 'To request deletion of your account and its data, contact az.studio971@gmail.com from your account email without sending your password.'], ['Subscription', 'Deleting your account or app does not cancel your Apple subscription. Manage it in iPhone Settings → your name → Subscriptions → WudCar.']]}
+  },
   "privacy": {
     "ar": {
       "title": "سياسة الخصوصية",
