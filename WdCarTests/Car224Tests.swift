@@ -57,7 +57,7 @@ final class Car224Tests: XCTestCase {
         PlaybackManager.shared.stop()
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let delegate = CarExternalDisplaySceneDelegate()
-        delegate.scene(scene, willConnectTo: scene.session, options: UIScene.ConnectionOptions())
+        delegate.connect(to: scene, interactive: false)
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
         XCTAssertNil(delegate.window, "Connecting an external surface must not cover the native CarPlay media root")
         delegate.sceneDidDisconnect(scene)

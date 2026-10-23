@@ -17,8 +17,12 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
                options connectionOptions: UIScene.ConnectionOptions) {
         guard let scene = scene as? UIWindowScene else { return }
+        connect(to: scene, interactive: session.role.rawValue != Self.nonInteractiveRole)
+    }
+
+    func connect(to scene: UIWindowScene, interactive: Bool) {
         displayScene = scene
-        interactive = session.role.rawValue != Self.nonInteractiveRole
+        self.interactive = interactive
         WDLog.car("external display connected; main navigation remains native templates")
         CarScreenLauncher.shared.$browserRequested
             .combineLatest(PlaybackManager.shared.$current)
