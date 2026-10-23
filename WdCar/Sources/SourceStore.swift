@@ -16,7 +16,7 @@ import CryptoKit
         self.network = network
         self.customDirectory = directory
         do {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: self.directory, withIntermediateDirectories: true)
             if FileManager.default.fileExists(atPath: index.path) { sources = try JSONDecoder().decode([MediaSource].self, from: Data(contentsOf: index)) }
         } catch { writable = false; self.error = error.localizedDescription }
     }
@@ -102,9 +102,10 @@ import CryptoKit
         }
     }
     func addConfig(_ text: String, name: String) async -> (added: Int, failed: Int) {
-        let urls = SourceInput.links(text)
+        let parsed = SourceInput.configLinks(text)
+        let urls = parsed.urls
         guard text.utf8.count <= 15 * 1024 * 1024, urls.count <= 100 else { error = SourceFailure.tooLarge.localizedDescription; return (0, max(1, urls.count)) }
-        var added = 0; var failed = 0
+        var added = 0; var failed = parsed.invalid
         for (index, url) in urls.enumerated() {
             do {
                 if sources.contains(where: { credentials($0)?.address == url.absoluteString }) { continue }

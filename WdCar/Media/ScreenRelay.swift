@@ -9,17 +9,24 @@ final class ScreenRelay: ObservableObject {
     private var timer: Timer?
     private var presented = false
     private var lastFrame: Date?
+    private var lastStateRead = Date.distantPast
+    private var relayState: CastShared.RelayState?
     var available: Bool { CastShared.directory != nil }
     func monitor() {
         guard timer == nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 12.0, repeats: true) { [weak self] _ in self?.refresh() }
     }
     private func refresh() {
-        let state = CastShared.state.flatMap { try? Data(contentsOf: $0) }.flatMap { try? JSONDecoder().decode(CastShared.RelayState.self, from: $0) }
+        if Date().timeIntervalSince(lastStateRead) >= 1 {
+            lastStateRead = Date()
+            relayState = CastShared.state.flatMap { try? Data(contentsOf: $0) }.flatMap { try? JSONDecoder().decode(CastShared.RelayState.self, from: $0) }
+        }
+        let state = relayState
         let broadcasting = state?.active == true && Date().timeIntervalSince(state?.updated ?? .distantPast) < 3
         if broadcasting != active { active = broadcasting }
-        if !broadcasting {
+        if !broadcasting || !SubscriptionStore.shared.hasAccess {
             image = nil
+            if !broadcasting, let frame = CastShared.frame, FileManager.default.fileExists(atPath: frame.path) { try? FileManager.default.removeItem(at: frame) }
             if presented { CarExternalDisplaySceneDelegate.returnToTemplates(); presented = false }
             return
         }
@@ -45,7 +52,9 @@ struct RelayDisplay: View {
     var body: some View {
         ZStack {
             Color.black
-            if driving.shouldBlockVideo {
+            if !SubscriptionStore.shared.hasAccess {
+                Text(tr("الاشتراك مطلوب", "Subscription required")).foregroundStyle(.white)
+            } else if driving.shouldBlockVideo {
                 Text(tr("الفيديو متوقف أثناء حركة السيارة", "Video paused while the vehicle is moving")).foregroundStyle(.white)
             } else if let image = relay.image { Image(uiImage: image).resizable().scaledToFit() }
             else { Text(tr("بانتظار صورة من iPhone", "Waiting for iPhone frames")).foregroundStyle(.white) }

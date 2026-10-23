@@ -410,7 +410,8 @@ struct XtreamAccountView: View {
         defer { loading = false }
         let client = XtreamClient(account: account)
         do {
-            if info == nil { info = try await client.authenticate() }
+            if info == nil { info = try await client.accountInfo() }
+            guard info?.status.lowercased() == "active", info?.authenticated == true else { throw XtreamError.expired }
             categories = try await client.categories(kind)
         } catch {
             self.error = error.localizedDescription

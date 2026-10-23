@@ -11,7 +11,9 @@ struct PlayerHomeView: View {
             List {
                 Section(tr("يعمل الآن", "Now playing")) {
                     if let item = playback.current {
-                        if playback.isSoftwareDecoding, let decoder = playback.software {
+                        if ["mp3", "m4a", "aac", "wav", "aiff", "flac", "ogg"].contains(item.url.pathExtension.lowercased()) {
+                            AudioVisualizer().frame(height: 180).clipShape(RoundedRectangle(cornerRadius: 12))
+                        } else if playback.isSoftwareDecoding, let decoder = playback.software {
                             SoftwarePlayerView(decoder: decoder).frame(height: 180).clipShape(RoundedRectangle(cornerRadius: 12))
                         } else { MiniMediaPlayer().frame(height: 180).clipShape(RoundedRectangle(cornerRadius: 12)) }
                         Button { playback.presentPlayer() } label: { Label(item.title, systemImage: "play.rectangle") }
@@ -32,6 +34,7 @@ struct PlayerHomeView: View {
                 }
                 Section(tr("المصادر", "Sources")) {
                     NavigationLink(tr("مصادري", "My sources")) { SourcesView() }
+                    NavigationLink(tr("بحث في جميع الوسائط", "Search all media")) { MediaSearchView() }
                 }
                 Section(tr("قوائم التشغيل", "Playlists")) {
                     NavigationLink(tr("إدارة قوائم التشغيل", "Manage playlists")) { MediaPlaylistsView() }
@@ -72,11 +75,14 @@ struct CastView: View {
                     NavigationLink(tr("اختيار من المكتبة", "Choose from Library")) { MediaLibraryView() }
                 }
                 Section(tr("عكس الشاشة", "Screen mirroring")) {
-                    if relay.available {
+                    if !SubscriptionStore.shared.hasAccess {
+                        NavigationLink(tr("تفعيل الاشتراك", "Activate subscription")) { SubscriptionView() }
+                    } else if relay.available {
                         HStack {
                             BroadcastPicker().frame(width: 60, height: 60)
-                            Text(relay.active ? tr("العكس نشط — الإنهاء من زر النظام", "Sharing active — stop using the system control") : tr("بدء مشاركة الشاشة عبر النظام", "Start sharing using the system control"))
+                            Text(relay.active ? tr("التقاط الشاشة نشط — الإنهاء من زر النظام", "Capture active — stop using the system control") : tr("بدء مشاركة الشاشة عبر النظام", "Start sharing using the system control"))
                         }
+                        Text(app.externalDisplayActive ? tr("شاشة خارجية متصلة", "External display connected") : tr("بانتظار شاشة خارجية متوافقة", "Waiting for a compatible external display")).font(.footnote)
                         Text(tr("يتطلب شاشة خارجية متصلة ومتوافقة. قد يمنع iOS التقاط المحتوى المحمي أو استمرار العرض في الخلفية.", "Requires a connected compatible external display. iOS may restrict protected content capture or background presentation.")).font(.footnote)
                     } else { Text(tr("مشاركة الشاشة غير متاحة في هذا التثبيت.", "Screen sharing is unavailable in this installation.")) }
                 }

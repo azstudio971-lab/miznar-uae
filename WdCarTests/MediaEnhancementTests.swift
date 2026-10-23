@@ -31,10 +31,11 @@ import VLCKit
         defer { try? FileManager.default.removeItem(at: folder) }
         let original = try XCTUnwrap(Bundle.main.url(forResource: "intro_day", withExtension: "mp4"))
         for name in ["B.mp4", "A.mp4"] { try FileManager.default.copyItem(at: original, to: folder.appendingPathComponent(name)) }
-        let before = Set(library.items.map(\.id)); let lists = Set(library.playlists.map(\.id))
+        let before = Set(library.items.map(\.id)); let lists = Set(library.playlists.map(\.id)); let folderIDs = Set(MediaFolders.shared.folders.map(\.id))
         defer {
             for media in library.items where !before.contains(media.id) { library.remove(media.id) }
             for list in library.playlists where !lists.contains(list.id) { library.deletePlaylist(list.id) }
+            for folder in MediaFolders.shared.folders where !folderIDs.contains(folder.id) { MediaFolders.shared.remove(folder.id) }
         }
         await library.importFolders([folder])
         let imported = library.items.filter { !before.contains($0.id) }

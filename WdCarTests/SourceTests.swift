@@ -126,6 +126,37 @@ final class SourceTestProtocol: URLProtocol {
         do { _ = try await store.add(name: "Website", kind: .playlist, credentials: SourceCredentials(address: "https://web.test")); XCTFail("HTML accepted") } catch {}
         XCTAssertEqual(store.sources.count, before)
     }
+    func testCategoryMappingAndExpiredXtreamMetadata() throws {
+        XCTAssertEqual(MediaCategory.classify("Kids"), .kids)
+        XCTAssertEqual(MediaCategory.classify("أخبار"), .news)
+        XCTAssertEqual(MediaCategory.classify("Uncategorized"), .other)
+        let info = try XtreamClient.decodeAccountInfo(["auth": 0, "status": "Expired", "exp_date": "1700000000"])
+        XCTAssertEqual(info.status, "Expired"); XCTAssertFalse(info.authenticated); XCTAssertNotNil(info.expiry)
+        XCTAssertThrowsError(try XtreamClient.decodeAccountInfo(["auth": 0, "status": "Active"]))
+    }
+    func testLocalSearchHistoryAndFolderOrdering() async throws {
+        let library = MediaLibrary.shared
+        let before = Set(library.items.map(\.id))
+        try library.addRemote(title: "Unique-search-fixture", url: URL(string: "https://example.test/" + UUID().uuidString + ".mp4")!, isLive: false)
+        let item = try XCTUnwrap(library.items.first { !before.contains($0.id) })
+        defer { library.remove(item.id) }
+        let search = MediaSearch()
+        let history = UserDefaults.standard.object(forKey: "wd.media.searchHistory")
+        defer { if let history { UserDefaults.standard.set(history, forKey: "wd.media.searchHistory") } else { UserDefaults.standard.removeObject(forKey: "wd.media.searchHistory") } }
+        search.remember("fixture"); search.remember("fixture")
+        XCTAssertEqual(search.history.filter { $0 == "fixture" }.count, 1)
+        await search.search("Unique-search-fixture", includeNetwork: false)
+        XCTAssertEqual(search.results.count, 1)
+        search.clear(); XCTAssertTrue(search.history.isEmpty)
+        let folders = MediaFolders.shared
+        folders.create("Test folder"); let folder = try XCTUnwrap(folders.folders.last)
+        defer { folders.remove(folder.id) }
+        folders.add([item.id], to: folder.id)
+        XCTAssertEqual(folders.members(folder.id).map(\.id), [item.id])
+        folders.rename(folder.id, name: "Renamed")
+        XCTAssertEqual(folders.folders.first { $0.id == folder.id }?.name, "Renamed")
+        folders.setMembers([], in: folder.id); XCTAssertTrue(folders.members(folder.id).isEmpty)
+    }
     func testQRImageAndNativeCastTabOrder() throws {
         let filter = CIFilter(name: "CIQRCodeGenerator")!
         filter.setValue(Data("https://example.test/list.m3u".utf8), forKey: "inputMessage")

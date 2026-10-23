@@ -141,6 +141,7 @@ final class PlaybackManager: ObservableObject {
         let asset = AVURLAsset(url: item.url, options: [AVURLAssetHTTPUserAgentKey: PlayerPreferences.text("userAgent", "WudCar/3.0.1")])
         let playerItem = AVPlayerItem(asset: asset)
         playerItem.preferredForwardBufferDuration = PlayerPreferences.number("buffer", 0)
+        playerItem.preferredPeakBitRate = PlayerPreferences.number("qualityBandwidth", 0)
         startupTimeout?.cancel()
         let timeout = DispatchWorkItem { [weak self, weak playerItem] in
             guard let self, self.player.currentItem === playerItem, playerItem?.status != .readyToPlay else { return }
@@ -411,11 +412,15 @@ final class PlaybackManager: ObservableObject {
         decoder.progress = { [weak self, weak decoder] at, total, playing in
             guard let self, self.software === decoder else { return }
             self.elapsed = at; self.duration = total; self.isPlaying = playing
+            self.enforceSafety()
             if abs(at - self.lastSaved) >= 5 { self.savePosition() }
             self.updateNowPlaying()
             if total > 0, at >= total - 0.25, PlayerPreferences.autoNext { self.next() }
         }
-        decoder.failure = { [weak self] in self?.errorMessage = MediaImportError.unsupported.localizedDescription; self?.isPlaying = false }
+        decoder.failure = { [weak self, weak decoder] in
+            guard let self, self.software === decoder else { return }
+            self.errorMessage = MediaImportError.unsupported.localizedDescription; self.isPlaying = false
+        }
         decoder.play(media.url, position: PlayerPreferences.resume ? position : 0)
         loadArtwork(for: media)
     }
@@ -537,11 +542,13 @@ struct PlayerScreen: UIViewControllerRepresentable {
         controller.videoGravity = PlayerPreferences.gravity
         controller.entersFullScreenWhenPlaybackBegins = PlayerPreferences.flag("autoFullscreen", true)
         controller.exitsFullScreenWhenPlaybackEnds = true
+        PlayerZoomOverlay.apply(to: controller)
         return controller
     }
 
     func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {
         controller.videoGravity = PlayerPreferences.gravity
+        PlayerZoomOverlay.apply(to: controller)
         controller.allowsPictureInPicturePlayback = PlayerPreferences.flag("pip", true)
     }
 }

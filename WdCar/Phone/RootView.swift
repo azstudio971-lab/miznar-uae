@@ -29,6 +29,7 @@ struct RootView: View {
         .environment(\.layoutDirection, language == AppLanguage.ar.rawValue ? .rightToLeft : .leftToRight)
         .environment(\.locale, Locale(identifier: language))
         .preferredColorScheme(AppAppearance(rawValue: appearance)?.colorScheme)
+        .sheet(isPresented: $app.showMediaSearch) { NavigationStack { MediaSearchView() }.environmentObject(app) }
         .sheet(isPresented: $bridge.isPhoneEditorPresented) {
             PhoneCarKeyboardSheet()
                 .presentationDetents([.large])

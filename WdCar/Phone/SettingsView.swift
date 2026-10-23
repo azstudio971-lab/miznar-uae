@@ -56,6 +56,10 @@ struct SettingsView: View {
                     }
                 }
 
+                Section(tr("المساعدة", "Help")) {
+                    NavigationLink(tr("الأسئلة الشائعة", "Frequently asked questions")) { MediaHelpView() }
+                    Link(tr("تواصل معنا", "Contact us"), destination: URL(string: "https://wudcar.netlify.app/support/")!)
+                }
                 Section(tr("حول", "About")) {
                     LabeledContent(tr("التطبيق", "App"), value: "WudCar Media Player")
                     LabeledContent(tr("الإصدار", "Version"), value: version)

@@ -179,11 +179,23 @@ struct SourceBrowserView: View {
     @ObservedObject private var store = SourceStore.shared
     @State private var items: [SourceMedia] = []
     @State private var query = ""
+    @State private var category = MediaCategory.all
+    @State private var group = ""
     @State private var error: String?
     @State private var loading = false
-    private var visible: [SourceMedia] { query.isEmpty ? items : items.filter { $0.title.localizedCaseInsensitiveContains(query) || $0.group.localizedCaseInsensitiveContains(query) } }
+    private var visible: [SourceMedia] { items.filter { item in
+        (query.isEmpty || item.title.localizedCaseInsensitiveContains(query) || item.group.localizedCaseInsensitiveContains(query)) &&
+        (category == .all || MediaCategory.classify(item.group) == category) && (group.isEmpty || item.group == group)
+    } }
     var body: some View {
         List {
+            if items.contains(where: { !$0.group.isEmpty }) {
+                Picker(tr("الفئة", "Category"), selection: $category) { ForEach(MediaCategory.allCases) { Text($0.title).tag($0) } }
+                Picker(tr("المجموعة", "Group"), selection: $group) {
+                    Text(tr("الكل", "All")).tag("")
+                    ForEach(Array(Set(items.map(\.group).filter { !$0.isEmpty })).sorted(), id: \.self) { Text($0).tag($0) }
+                }
+            }
             if loading { ProgressView() }
             if let error { Text(error).foregroundStyle(.red); Button(tr("إعادة المحاولة", "Retry")) { Task { await load() } } }
             ForEach(visible) { item in

@@ -21,18 +21,21 @@ struct XtreamClient {
     // MARK: الطلبات
 
     func authenticate() async throws -> XtreamAccountInfo {
-        let json = try await request([:])
-        guard let root = json as? [String: Any], let user = root["user_info"] as? [String: Any] else {
-            throw XtreamError.badResponse
-        }
-        if Self.string(user["auth"]) != "1" { throw XtreamError.unauthorized }
+        let info = try await accountInfo()
+        guard info.status.lowercased() == "active" else { throw XtreamError.expired }
+        guard info.authenticated else { throw XtreamError.unauthorized }
+        return info
+    }
+    func accountInfo() async throws -> XtreamAccountInfo {
+        guard let root = try await request([:]) as? [String: Any], let user = root["user_info"] as? [String: Any] else { throw XtreamError.badResponse }
+        return try Self.decodeAccountInfo(user)
+    }
+    static func decodeAccountInfo(_ user: [String: Any]) throws -> XtreamAccountInfo {
         let status = Self.string(user["status"]) ?? "Active"
-        if status.lowercased() != "active" { throw XtreamError.expired }
-        var expiry: Date?
-        if let raw = Self.string(user["exp_date"]), let seconds = TimeInterval(raw) {
-            expiry = Date(timeIntervalSince1970: seconds)
-        }
-        return XtreamAccountInfo(status: status, expiry: expiry, maxConnections: Self.string(user["max_connections"]))
+        let authenticated = Self.string(user["auth"]) == "1"
+        guard authenticated || ["expired", "banned", "disabled"].contains(status.lowercased()) else { throw XtreamError.unauthorized }
+        let expiry = Self.string(user["exp_date"]).flatMap(TimeInterval.init).map { Date(timeIntervalSince1970: $0) }
+        return XtreamAccountInfo(status: status, expiry: expiry, maxConnections: Self.string(user["max_connections"]), authenticated: authenticated)
     }
 
     func categories(_ kind: XtreamKind) async throws -> [XtreamCategory] {

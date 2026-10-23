@@ -87,6 +87,8 @@ struct MediaPlaylistDetail: View {
                         }
                 }
                 Section(tr("إضافة وإزالة الوسائط", "Add and remove media")) {
+                    Button(tr("تحديد الكل", "Select all")) { library.setMembers(library.items.map(\.id), in: id) }
+                    Button(tr("إلغاء التحديد", "Deselect all")) { library.setMembers([], in: id) }
                     ForEach(library.items) { item in
                         Toggle(item.title, isOn: Binding(get: { list.itemIDs.contains(item.id) }, set: { selected in
                             var ids = list.itemIDs; ids.removeAll { $0 == item.id }; if selected { ids.append(item.id) }; library.setMembers(ids, in: id)

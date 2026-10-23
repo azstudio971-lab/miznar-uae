@@ -74,6 +74,13 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
             .sink { [weak self] _, _ in self?.rebuildHome(); self?.rebuildEntertainment(self?.currentShortcuts ?? []) }.store(in: &bag)
 
+        let search = CPBarButton(type: .image) { [weak self] _ in
+            AppState.shared.showMediaSearch = true
+            self?.showAlert([carTr("اكتب على iPhone أثناء التوقف", "Search on iPhone while parked")])
+        }
+        search.image = UIImage(systemName: "magnifyingglass")
+        home.trailingNavigationBarButtons = [search]
+        television.trailingNavigationBarButtons = [search]
         home.tabTitle = carTr("المكتبة", "Library")
         home.tabImage = UIImage(systemName: "play.rectangle.on.rectangle")
         entertainment.tabTitle = carTr("المفضلة", "Favorites")
@@ -210,7 +217,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                         }
                         return row
                     }
-                    let template = CPListTemplate(title: list.name, sections: [CPListSection(items: rows)])
+                    let template = CPListTemplate(title: list.name, sections: bounded([CPListSection(items: rows)]))
                     self?.interfaceController?.pushTemplate(template, animated: true, completion: nil); done()
                 }
                 return item
@@ -319,7 +326,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             item.handler = { _, done in PlaybackManager.shared.playQueue(PlaybackManager.shared.queue, startingAt: media.url, presentOnPhone: false); done() }
             return item
         }
-        interfaceController?.pushTemplate(CPListTemplate(title: carTr("التالي", "Up next"), sections: [CPListSection(items: items)]), animated: true, completion: nil)
+        interfaceController?.pushTemplate(CPListTemplate(title: carTr("التالي", "Up next"), sections: bounded([CPListSection(items: items)])), animated: true, completion: nil)
     }
 
     private func rebuildSettings() {
@@ -430,11 +437,11 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         browser.handler = { [weak self] _, done in self?.confirmBrowserLaunch(); done() }
         let media = MediaLibrary.shared.items.filter { $0.favorite && !$0.isLive }.map(mediaItem)
         let channels = favoriteChannelRows + MediaLibrary.shared.items.filter { $0.favorite && $0.isLive }.map(mediaItem)
-        entertainment.updateSections([
+        entertainment.updateSections(bounded([
             CPListSection(items: channels, header: carTr("القنوات المفضلة", "Favorite channels"), sectionIndexTitle: nil),
             CPListSection(items: media, header: carTr("الوسائط المفضلة", "Favorite media"), sectionIndexTitle: nil),
             CPListSection(items: [browser] + Array(items) + [videoStatusItem()], header: carTr("تشغيل من الويب", "Play from web"), sectionIndexTitle: nil)
-        ])
+        ]))
     }
 
     private func refreshFavoriteChannels() {

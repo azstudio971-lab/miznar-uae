@@ -137,6 +137,7 @@ struct XtreamAccountInfo {
     let status: String
     let expiry: Date?
     let maxConnections: String?
+    var authenticated = true
 }
 
 enum XtreamError: LocalizedError {

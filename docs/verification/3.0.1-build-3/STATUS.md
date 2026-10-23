@@ -13,3 +13,10 @@ No assertion of vehicle support or successful physical casting. ReplayKit captur
 Native compile, tests, image inspection, signed capabilities and build3 upload are pending. The earlier3.0.1(2) job finished and uploaded successfully (6adb82f74a72334e32e472d4); it does not contain these additions.
 
 Outstanding work under review: full cross-source search/history/voice UI; complete logical local folders/bulk selection; external subtitle rendering on remote AirPlay; software playback track/display edge cases; vehicle-specific CarPlay search availability; screenshots and updated store drafts. No claim that the entire attached specification is complete.
+
+## Second implementation checkpoint
+
+- Validation job6adb96844a72334e32e478df compiled the new targets until one SourceStore initializer error (optional directory parameter shadowing the computed directory). Fixed with self.directory; no native tests ran in that attempt.
+- Added cross-source search and local search history/voice UI, logical folders and bulk selection, general/group filters, expired Xtream account status parsing, audio playback animations, native player-only zoom/actual size controls and saved quality preference.
+- Registered group.com.azstudio.wudcar and associated the main app plus com.azstudio.wudcar.ScreenRelay and com.azstudio.wudcar.CastWidget. Generated App Store profiles with the existing October16 certificate, imported to Codemagic as wudcar-303-main, wudcar-303-relay and wudcar-303-widget. Existing certificates were retained.
+- CarPlay search currently uses the explicit iPhone-search fallback. CPSearchTemplate audio/video-category eligibility on iOS27 has not been verified on an available SDK/device; do not assert it is implemented or Apple-forbidden. External subtitle overlays are phone-only; remote AirPlay still requires embedded subtitle tracks.

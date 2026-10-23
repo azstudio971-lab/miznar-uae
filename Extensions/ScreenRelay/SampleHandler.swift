@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 final class SampleHandler: RPBroadcastSampleHandler {
     private let context = CIContext(options: [.cacheIntermediates: false])
     private var lastFrame = Date.distantPast
+    private var lastState = Date.distantPast
     private func state(_ active: Bool) {
         guard let url = CastShared.state else { return }
         try? JSONEncoder().encode(CastShared.RelayState(active: active, updated: Date())).write(to: url, options: [.atomic, .completeFileProtection])
@@ -28,7 +29,8 @@ final class SampleHandler: RPBroadcastSampleHandler {
             let factor = min(1, 1280 / max(image.extent.width, image.extent.height))
             image = image.transformed(by: CGAffineTransform(scaleX: factor, y: factor))
             if let data = context.jpegRepresentation(of: image, colorSpace: CGColorSpaceCreateDeviceRGB(), options: [CIImageRepresentationOption(rawValue: kCGImageDestinationLossyCompressionQuality as String): 0.65]) {
-                try? data.write(to: destination, options: [.atomic, .completeFileProtection]); state(true)
+                try? data.write(to: destination, options: [.atomic, .completeFileProtection])
+                if Date().timeIntervalSince(lastState) >= 1 { lastState = Date(); state(true) }
             }
         }
     }

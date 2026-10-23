@@ -12,7 +12,7 @@ final class SoftwareDecoder: NSObject, VLCMediaPlayerDelegate {
     private var blockedVideo = false
     override init() { super.init(); player.delegate = self }
     func play(_ url: URL, position: Double) {
-        initialPosition = position; resumed = false
+        initialPosition = position; resumed = false; player.delegate = self
         player.media = VLCMedia(url: url)
         player.media?.addOption(":network-caching=\(Int(PlayerPreferences.number("buffer", 5) * 1000))")
         player.media?.addOption(":http-user-agent=\(PlayerPreferences.text("userAgent", "WudCar/3.0.1"))")
@@ -29,15 +29,15 @@ final class SoftwareDecoder: NSObject, VLCMediaPlayerDelegate {
         }
     }
     func setVideoBlocked(_ blocked: Bool) {
-        guard blocked != blockedVideo else { return }; blockedVideo = blocked
-        if blocked { player.deselectAllVideoTracks() } else { player.videoTracks.first?.isSelectedExclusively = true }
+        if blocked { blockedVideo = true; player.deselectAllVideoTracks() }
+        else if blockedVideo { blockedVideo = false; player.videoTracks.first?.isSelectedExclusively = true }
     }
     func seek(by seconds: Double) {
         guard player.isSeekable else { return }
         if seconds >= 0 { player.jumpForward(seconds) } else { player.jumpBackward(-seconds) }
     }
     func toggle() { if player.isPlaying { player.pause() } else { player.play() } }
-    func stop() { timer?.invalidate(); timer = nil; player.stop(); player.drawable = nil }
+    func stop() { timer?.invalidate(); timer = nil; player.delegate = nil; player.stop(); player.drawable = nil }
     func mediaPlayerStateChanged(_ newState: VLCMediaPlayerState) {
         if newState == .error { DispatchQueue.main.async { [weak self] in self?.failure?() } }
     }

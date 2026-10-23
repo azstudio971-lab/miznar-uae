@@ -112,6 +112,8 @@ final class MediaLibrary: ObservableObject {
             await importFiles(urls)
             let imported = items.filter { !before.contains($0.id) }.map(\.id)
             if !imported.isEmpty {
+                MediaFolders.shared.create(root.lastPathComponent)
+                if let folder = MediaFolders.shared.folders.last { MediaFolders.shared.setMembers(imported, in: folder.id) }
                 createPlaylist(root.lastPathComponent)
                 if let list = playlists.last { setMembers(imported, in: list.id) }
             }

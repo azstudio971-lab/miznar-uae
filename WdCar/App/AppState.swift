@@ -30,6 +30,7 @@ final class AppState: ObservableObject {
     /// طلب من CarPlay لعرض نافذة «شاشة السيارة» على الهاتف
     @Published var showCarScreenHelp = false
     @Published var showLocationExplanation = false
+    @Published var showMediaSearch = false
 
     var carScreenText: String {
         guard carScreenActive else { return tr("غير معروض", "Not shown") }

@@ -42,6 +42,10 @@ struct PlayerOptionsView: View {
     @AppStorage("wd.media.buffer") private var buffer = 0.0
     @AppStorage("wd.media.timeout") private var timeout = 30.0
     @AppStorage("wd.media.userAgent") private var userAgent = "WudCar/3.0.1"
+    @AppStorage("wd.media.videoZoom") private var videoZoom = 1.0
+    @AppStorage("wd.media.actualSize") private var actualSize = false
+    @AppStorage("wd.media.visualizer") private var visualizer = "wave"
+    @AppStorage("wd.media.qualityBandwidth") private var qualityBandwidth = 0.0
     @AppStorage("wd.media.softwareDecoding") private var softwareDecoding = "auto"
     @State private var importSubtitle = false
     @State private var sleepMinutes = 0
@@ -65,6 +69,9 @@ struct PlayerOptionsView: View {
                 Text(tr("الترجمة الخارجية تظهر على الهاتف فقط؛ للشاشة الخارجية استخدم الترجمة المدمجة.", "External subtitles display on iPhone only; use embedded subtitles for external screens.")).font(.footnote)
             }
             Section(tr("الصوت", "Audio")) {
+                Picker(tr("المؤثر البصري", "Visual effect"), selection: $visualizer) {
+                    Text(tr("موجة", "Wave")).tag("wave"); Text(tr("نقاط", "Dots")).tag("dots"); Text(tr("نيون", "Neon")).tag("neon")
+                }
                 Picker(tr("لغة الصوت المفضلة", "Preferred audio language"), selection: $audioLanguage) { Text("العربية").tag("ar"); Text("English").tag("en") }
                 MediaTrackPicker(characteristic: .audible)
                 Button(tr("تحسين الحوار إن توفر مسار مخصص", "Use enhanced-dialogue track if available")) { playback.selectEnhancedDialogue() }.disabled(!playback.hasEnhancedDialogue)
@@ -74,12 +81,15 @@ struct PlayerOptionsView: View {
                     Text(tr("تلقائي", "Automatic")).tag("auto"); Text(tr("دائماً", "Always")).tag("always"); Text(tr("أبداً", "Never")).tag("never")
                 }
                 Menu(tr("الجودة", "Quality")) {
-                    Button("Auto") { playback.player.currentItem?.preferredPeakBitRate = 0; playback.player.currentItem?.preferredMaximumResolution = .zero }
+                    Button("Auto") { qualityBandwidth = 0; playback.player.currentItem?.preferredPeakBitRate = 0; playback.player.currentItem?.preferredMaximumResolution = .zero }
                     ForEach(playback.availableQualities) { quality in
-                        Button(quality.title) { playback.player.currentItem?.preferredPeakBitRate = quality.bandwidth; playback.player.currentItem?.preferredMaximumResolution = CGSize(width: quality.width, height: quality.height) }
+                        Button(quality.title) { qualityBandwidth = quality.bandwidth; playback.player.currentItem?.preferredPeakBitRate = quality.bandwidth; playback.player.currentItem?.preferredMaximumResolution = CGSize(width: quality.width, height: quality.height) }
                     }
                 }.disabled(playback.isSoftwareDecoding || playback.current == nil)
                 Picker(tr("ملاءمة الصورة", "Video fit"), selection: $gravity) { Text("Fit").tag("fit"); Text("Fill").tag("fill"); Text("Stretch").tag("stretch") }
+                Toggle(tr("الحجم الفعلي — الهاتف", "Actual size — iPhone"), isOn: $actualSize)
+                Slider(value: $videoZoom, in: 0.5...3, step: 0.1) { Text(tr("تكبير الفيديو", "Video zoom")) }
+                Text("\(Int(videoZoom * 100))%")
                 Toggle(tr("ملء الشاشة تلقائياً عند بدء التشغيل", "Auto full screen when playback begins"), isOn: $autoFullscreen)
                 Picker(tr("السرعة الافتراضية — الهاتف فقط", "Default rate — iPhone only"), selection: $rate) { ForEach([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2], id: \.self) { Text(String(format: "%.2g×", $0)).tag($0) } }
                 Toggle(tr("صورة داخل صورة", "Picture in Picture"), isOn: $pip)

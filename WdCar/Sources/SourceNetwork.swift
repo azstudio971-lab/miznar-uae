@@ -94,12 +94,27 @@ struct SourceNetwork {
             }
         }
     }
+    func search(_ source: MediaSource, credentials: SourceCredentials, query: String) async throws -> [SourceMedia] {
+        let base = try SourceInput.url(credentials.address)
+        if source.kind == .plex {
+            let payload = try await json(Self.endpoint(base, "hubs/search", query: [URLQueryItem(name: "query", value: query), URLQueryItem(name: "limit", value: "100")]), headers: ["X-Plex-Token": credentials.token, "X-Plex-Client-Identifier": Self.clientID])
+            let root = payload["MediaContainer"] as? [String: Any] ?? [:]
+            let hubs = root["Hub"] as? [[String: Any]] ?? []
+            let entries = hubs.flatMap { $0["Metadata"] as? [[String: Any]] ?? [] }
+            return try decodePlexEntries(entries, base: base, token: credentials.token)
+        }
+        let payload = try await json(Self.endpoint(base, "Users/\(credentials.userID)/Items", query: [URLQueryItem(name: "SearchTerm", value: query), URLQueryItem(name: "Recursive", value: "true"), URLQueryItem(name: "Limit", value: "3000"), URLQueryItem(name: "IncludeItemTypes", value: "Movie,Episode,Video,Audio")]), headers: ["X-Emby-Token": credentials.token, "X-Emby-Authorization": Self.embyAuthorization])
+        return try Self.decodeEmby(payload, base: base, token: credentials.token)
+    }
     private func plexBrowse(_ base: URL, token: String, parent: String?) async throws -> [SourceMedia] {
         let path = parent ?? "library/sections"
         guard !path.contains(".."), !path.contains("://") else { throw SourceFailure.invalidURL }
         let payload = try await json(Self.endpoint(base, path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))), headers: ["X-Plex-Token": token, "X-Plex-Client-Identifier": Self.clientID])
         guard let container = payload["MediaContainer"] as? [String: Any] else { throw SourceFailure.badResponse }
         let entries = container["Metadata"] as? [[String: Any]] ?? container["Directory"] as? [[String: Any]] ?? []
+        return try decodePlexEntries(entries, base: base, token: token)
+    }
+    private func decodePlexEntries(_ entries: [[String: Any]], base: URL, token: String) throws -> [SourceMedia] {
         return try entries.compactMap { entry in
             guard let title = entry["title"] as? String, let key = entry["key"] as? String else { return nil }
             let folder = ["show", "season", "movie", "artist", "photo"].contains(entry["type"] as? String ?? "") && entry["Media"] == nil

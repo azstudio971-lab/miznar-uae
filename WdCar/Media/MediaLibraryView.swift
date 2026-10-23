@@ -14,7 +14,10 @@ struct ImportedMovie: Transferable {
 }
 
 struct MediaLibraryView: View {
+    @ObservedObject private var foldersStore = MediaFolders.shared
     @ObservedObject private var library = MediaLibrary.shared
+    @State private var selecting = false
+    @State private var selected = Set<UUID>()
     @State private var query = ""
     @State private var filter = 0
     @AppStorage("wd.media.sort") private var sort = "recent"
@@ -39,9 +42,11 @@ struct MediaLibraryView: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            List(selection: $selected) {
                 Section {
                     NavigationLink(tr("مصادري", "My sources")) { SourcesView() }
+                    NavigationLink(tr("بحث في جميع الوسائط", "Search all media")) { MediaSearchView() }
+                    NavigationLink(tr("المجلدات", "Folders")) { MediaFoldersView() }
                     NavigationLink(tr("قوائم التشغيل", "Playlists")) { MediaPlaylistsView() }
                     NavigationLink(tr("القنوات وقوائم M3U وحسابات Xtream", "Channels, M3U playlists and Xtream")) { XtreamHomeView() }
                     Button { photos = true } label: { Label(tr("استيراد من الصور", "Import from Photos"), systemImage: "photo") }
@@ -67,6 +72,7 @@ struct MediaLibraryView: View {
                         Text(tr("الاسم", "Name")).tag("name")
                     }
                     ForEach(visible) { item in
+                        if selecting { Label(item.title, systemImage: "film").tag(item.id) } else {
                         Button {
                             PlaybackManager.shared.playQueue(visible.compactMap(\.playbackItem), startingAt: item.url, presentOnPhone: true)
                         } label: {
@@ -95,10 +101,22 @@ struct MediaLibraryView: View {
                             Button(role: .destructive) { removal = item } label: { Label(tr("إزالة", "Remove"), systemImage: "trash") }
                         }
                     }
+                    }
                     if visible.isEmpty { Text(tr("أضف ملفًا أو رابطًا للبدء", "Add a file or URL to begin")).foregroundStyle(.secondary) }
                 }
             }
             .navigationTitle(tr("مكتبة الوسائط", "Media library"))
+            .environment(\.editMode, .constant(selecting ? .active : .inactive))
+            .toolbar {
+                Button(selecting ? tr("تم", "Done") : tr("تحديد", "Select")) { selecting.toggle(); selected = [] }
+                if selecting {
+                    Menu(tr("الاختيار", "Selection")) {
+                        Button(tr("تحديد الكل", "Select all")) { selected = Set(visible.map(\.id)) }
+                        Button(tr("إلغاء التحديد", "Deselect all")) { selected = [] }
+                        ForEach(foldersStore.folders) { folder in Button(tr("إضافة إلى ", "Add to ") + folder.name) { foldersStore.add(selected, to: folder.id); selected = []; selecting = false } }
+                    }
+                }
+            }
             .searchable(text: $query)
             .sheet(isPresented: $files) {
                 MediaDocumentPicker { urls in files = false; Task { await library.importFiles(urls) } }

@@ -619,8 +619,12 @@ workflows:
       groups:
       - wudcar
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.azstudio.wudcar
+        provisioning_profiles:
+        - wudcar-303-main
+        - wudcar-303-widget
+        - wudcar-303-relay
+        certificates:
+        - wudcar-distribution-20261017
       vars:
         XCODE_PROJECT: WdCar.xcodeproj
         XCODE_SCHEME: WdCar
@@ -721,8 +725,12 @@ workflows:
       groups:
       - wudcar
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.azstudio.wudcar
+        provisioning_profiles:
+        - wudcar-303-main
+        - wudcar-303-widget
+        - wudcar-303-relay
+        certificates:
+        - wudcar-distribution-20261017
       vars:
         XCODE_PROJECT: WdCar.xcodeproj
         XCODE_SCHEME: WdCar

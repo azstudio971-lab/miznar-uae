@@ -56,6 +56,24 @@ enum SourceInput {
             guard let range = Range($0.range, in: text), let url = try? url(String(text[range]).trimmingCharacters(in: CharacterSet(charactersIn: ",;"))), seen.insert(url.absoluteString).inserted else { return nil }; return url
         }
     }
+    static func configLinks(_ text: String) -> (urls: [URL], invalid: Int) {
+        var candidates: [String] = []
+        func walk(_ value: Any, expected: Bool = false) {
+            if let string = value as? String { if expected || string.hasPrefix("http") { candidates.append(string) } }
+            else if let values = value as? [Any] { values.forEach { walk($0, expected: true) } }
+            else if let values = value as? [String: Any] {
+                for (key, value) in values { walk(value, expected: ["url", "urls", "link", "links", "playlist", "playlists", "address", "sources"].contains(key.lowercased())) }
+            }
+        }
+        if let object = try? JSONSerialization.jsonObject(with: Data(text.utf8)) { walk(object, expected: true) }
+        else { candidates = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty && !$0.hasPrefix("#") } }
+        var urls: [URL] = []; var invalid = 0; var seen = Set<String>()
+        for candidate in candidates {
+            if let value = try? url(candidate) { if seen.insert(value.absoluteString).inserted { urls.append(value) } }
+            else { invalid += 1 }
+        }
+        return (urls, invalid)
+    }
     static func playlist(_ text: String) throws -> [SourceMedia] {
         guard text.utf8.count <= 15 * 1024 * 1024 else { throw SourceFailure.tooLarge }
         let lower = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
