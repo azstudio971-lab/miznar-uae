@@ -10,13 +10,9 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         CarPlayLaunchDiagnostics.shared.record("app-launched")
-        let audio = AVAudioSession.sharedInstance()
-        do {
-            try audio.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo, options: [])
-            try audio.setActive(true)
-        } catch {
-            WDLog.car("Audio session setup failed: \(error.localizedDescription)")
-        }
+        // A media audio session is activated by PlaybackManager only when the
+        // user starts real content. Launching the browser/library must not claim
+        // a long-form video route with an empty player.
         _ = PlaybackManager.shared
         return true
     }

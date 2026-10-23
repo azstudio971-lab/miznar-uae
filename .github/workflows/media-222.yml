@@ -3,6 +3,9 @@ on:
   push:
     branches: [develop/wudcar-2.2.2-media]
   workflow_dispatch:
+concurrency:
+  group: media-native-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

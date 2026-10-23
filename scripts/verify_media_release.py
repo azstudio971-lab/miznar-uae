@@ -38,3 +38,6 @@ manifest = plistlib.loads((root / 'Config/Info.plist').read_bytes())['UIApplicat
 assert set(manifest) == {'UIWindowSceneSessionRoleApplication', 'CPTemplateApplicationSceneSessionRoleApplication'}
 assert 'CarExternalDisplaySceneDelegate' not in (root / 'WdCar/App/WdCarApp.swift').read_text()
 print('Only phone and native CarPlay scene routes are declared; no empty external scene is registered.')
+
+assert '.setActive(true)' not in (root / 'WdCar/App/WdCarApp.swift').read_text()
+print('Startup does not activate an empty long-form video session.')
