@@ -45,7 +45,9 @@ Date: 23 October 2026 (Dubai). This candidate is not approved for App Review sub
 - Local static checks passed: bundle/team/version, audio-only default, plist parsing, bootstrap removal, protected source hashes; Python scripts compile; whitespace diff check passed.
 - First native CI run: https://github.com/azstudio971-lab/miznar-uae/actions/runs/39876378533 . Xcode 26.6, iPhone 17 Pro simulator, iOS 26.4.1. Full app/test target compiled; 4 media unit tests passed, 0 failures. This run covers commit `937883a58d00c53aace3827786570121f56b64ec`, not later changes.
 - Expanded run https://github.com/azstudio971-lab/miznar-uae/actions/runs/39876898916 compiled and exported 8 UI attachments, but visual inspection found them blank because the test window lacked a scene. The capture test was corrected to attach to a scene and reject blank images. The run also failed: StoreKit returned `notEntitled`, and an older baseline toolbar test assumed square SF Symbols. The newer build-17 test correction is incorporated without changing browser code. A stable iOS 18.5 StoreKit runtime is selected for the next run; success is not assumed.
-- Expanded validation is tracked in GitHub Actions. It adds imported-file playback/queue/removal, UI render attachments, previous shortcut tests and StoreKit subscription tests. Record final run/commit/results below after completion.
+- Final application-source validation passed: https://github.com/azstudio971-lab/miznar-uae/actions/runs/39878005499 , commit `ed5f145db1b788cb59d963d0f5900641a6d42b0a`. Xcode 26.6, iPhone 16 Pro simulator, iOS 18.5: **10 tests, 0 failures**, 337.264 seconds. Includes imported-copy readiness/queue/removal, SRT/VTT parsing, metadata credential isolation, 3 build-17 shortcut/toolbar regressions, and the complete existing StoreKit lifecycle test. This is not physical video-output or manual resume verification.
+- Corrected screenshot capture produced 8 nonblank library/player-settings images in Arabic/English and light/dark appearances. Arabic light library and English dark player settings were visually inspected. The library is shown empty after test cleanup; these are technical UI captures, not final App Store marketing or physical-car screenshots.
+- Download test results/screenshots: https://github.com/azstudio971-lab/miznar-uae/actions/runs/39878005499/artifacts/12469204404 . Artifact expires 21 January 2027. Filtered logs are preserved in `docs/verification/222/RESULTS.txt`.
 - Signed audit has not run: no candidate signed IPA supplied or generated in this session yet. Certificates and developer account are unchanged.
 - Codemagic/Apple credentials are not exposed through the available tools; preparing its workflow does not establish that TestFlight received a build.
 
@@ -54,3 +56,9 @@ Date: 23 October 2026 (Dubai). This candidate is not approved for App Review sub
 Record exact commit, signed build, iPhone/iOS, car/head-unit model and firmware, connection type, video capability, stationary/blocked/unknown conditions, expected result and actual result. Test Audio/Video/Combined separately with identical content and identity. Include native stream, imported local video, phone AirPlay, browser, reconnect and subscription restore. Receiver/screen-sharing tests are N/A until implemented; do not mark them passed.
 
 Do not submit this candidate to review or production merely because a simulator build succeeds.
+
+## Primary API references
+
+- Apple CarPlay Developer Guide: https://developer.apple.com/download/files/CarPlay-Developer-Guide.pdf
+- Video capability is not current playback permission: https://developer.apple.com/documentation/carplay/cpsessionconfiguration/supportsvideoplayback
+- Native route picker: https://developer.apple.com/documentation/avkit/avroutepickerview
