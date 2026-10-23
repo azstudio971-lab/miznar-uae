@@ -18,12 +18,6 @@ struct MediaSettingsView: View {
     @AppStorage("wd.media.autoNext") private var autoNext = false
     @AppStorage("wd.media.subtitles") private var subtitles = true
     @AppStorage("wd.media.subtitleLanguage") private var subtitleLanguage = "ar"
-    @AppStorage("wd.media.fill") private var fill = false
-    @AppStorage("wd.media.externalSubtitles") private var externalSubtitles = true
-    @AppStorage("wd.media.subtitleSize") private var subtitleSize = 22.0
-    @AppStorage("wd.media.subtitleDelay") private var subtitleDelay = 0.0
-    @AppStorage("wd.media.subtitleYellow") private var subtitleYellow = false
-    @AppStorage("wd.media.subtitleBackground") private var subtitleBackground = true
     @ObservedObject private var library = MediaLibrary.shared
 
     var body: some View {

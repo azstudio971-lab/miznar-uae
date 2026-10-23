@@ -201,7 +201,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     }
     private func mediaSection(_ title: String, items: [LibraryMedia]) -> CPListSection {
         if #available(iOS 26.4, *), !items.isEmpty {
-            let visible = Array(items.prefix(12))
+            let visible = Array(items.prefix(min(12, Int(CPMaximumNumberOfGridImages))))
             let cards = visible.map { media in
                 let image = UIImage(contentsOfFile: MediaLibrary.shared.thumbnailURL(media.id).path) ?? UIImage(systemName: "play.rectangle")!
                 let card = CPListImageRowItemCardElement(image: image, showsImageFullHeight: false, title: media.title, subtitle: media.isLive ? carTr("مباشر", "Live") : nil, tintColor: .darkGray)
@@ -216,7 +216,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                 done()
             }
             var rows: [CPListTemplateItem] = [row]
-            rows.append(contentsOf: items.dropFirst(12).map(mediaItem))
+            rows.append(contentsOf: items.dropFirst(visible.count).map(mediaItem))
             return CPListSection(items: rows)
         }
         return CPListSection(items: items.map(mediaItem), header: title, sectionIndexTitle: nil)
