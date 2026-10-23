@@ -1,5 +1,6 @@
 import SwiftUI
 import AVKit
+import CoreLocation
 
 struct PlayerHomeView: View {
     @ObservedObject private var library = MediaLibrary.shared
@@ -47,18 +48,44 @@ struct PlayerHomeView: View {
 
 struct CastView: View {
     @EnvironmentObject private var app: AppState
+    @ObservedObject private var playback = PlaybackManager.shared
+    @ObservedObject private var driving = DrivingMonitor.shared
     var body: some View {
         NavigationStack {
             List {
-                Section {
+                Section(tr("الوسائط", "Media")) {
+                    if let item = playback.current {
+                        Label(item.title, systemImage: "play.rectangle")
+                        Button(tr("تشغيل الوسائط على الجهاز المختار", "Play media on the selected device")) {
+                            playback.castCurrentMedia()
+                        }.accessibilityIdentifier("cast.play.current")
+                    } else {
+                        Text(tr("اختر وسائطك أولاً، ثم اختر جهاز الاستقبال.", "Choose your media, then choose a receiver."))
+                    }
+                    NavigationLink(tr("اختيار من المكتبة", "Choose from Library")) { MediaLibraryView() }
+                }
+                Section("AirPlay") {
                     AirPlayButton().frame(height: 60).listRowBackground(Color.wdNavy)
-                    Text(tr("اختر شاشة السيارة أو التلفزيون", "Choose the car display or television"))
-                    Text(tr("يتطلب جهاز استقبال متوافقاً مع AirPlay. لا يتضمن التطبيق Google Cast.", "Requires an AirPlay-compatible receiver. Google Cast is not included.")).font(.footnote).foregroundStyle(.secondary)
-                    Text(app.carScreenText)
-                    Button(tr("فتح المتصفح على شاشة السيارة", "Open browser on car screen")) { app.showCarScreenHelp = true }
+                    Text(playback.isAirPlayActive ? tr("البث نشط", "Streaming active") : tr("اختر جهاز الاستقبال من زر AirPlay", "Choose a receiver using the AirPlay button"))
+                        .accessibilityIdentifier("cast.route.status")
+                    Text(tr("تظهر السيارة هنا إذا كانت تدعم استقبال الفيديو عبر AirPlay. اتصال CarPlay وحده لا يضمن دعم بث الفيديو.", "The car appears here if it supports AirPlay video reception. CarPlay connection alone does not guarantee video streaming support."))
+                        .font(.footnote).foregroundStyle(.secondary)
+                    if app.isCarConnected && app.carVideoSupport == .unsupported {
+                        Text(tr("السيارة المتصلة لا تعلن دعم الفيديو؛ يتاح تشغيل الصوت.", "The connected car does not report video support; audio playback is available."))
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                if app.isCarConnected && driving.authorization == .notDetermined {
+                    Section {
+                        Button(tr("تفعيل مراقبة الحركة", "Enable motion monitoring")) {
+                            driving.requestMonitoringPermission()
+                        }
+                    }
+                }
+                if let error = playback.errorMessage {
+                    Text(error).font(.footnote).foregroundStyle(.red)
                 }
                 CarConnectionCard()
-                Text(tr("للركاب فقط — لا تشاهد أثناء القيادة", "Passengers only — do not watch while driving"))
             }.navigationTitle("Cast / AirPlay")
         }
     }

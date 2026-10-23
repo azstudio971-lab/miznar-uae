@@ -44,12 +44,15 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Toggle(tr("إيقاف الفيديو أثناء القيادة", "Pause video while driving"), isOn: $lockVideo)
+                    Toggle(tr("إيقاف فيديو الهاتف أثناء القيادة", "Pause iPhone video while driving"), isOn: $lockVideo)
+                        .onChange(of: lockVideo) { _, enabled in
+                            if enabled { DrivingMonitor.shared.requestMonitoringPermission() }
+                            PlaybackManager.shared.enforceSafety()
+                        }
                 } header: {
                     Text(tr("الفيديو على الهاتف", "Video on iPhone"))
                 } footer: {
-                    Text(tr("مفروض دائماً على شاشة السيارة. يؤثر المفتاح على فيديو الهاتف فقط. للركاب فقط — لا تشاهد أثناء القيادة.",
-                            "Always enforced on the car display. This switch affects iPhone video only. Passengers only — do not watch while driving."))
+                    Text(tr("اتبع ارشادات وقوانين المرور في بلدك", "Follow the traffic guidance and laws in your country"))
                 }
 
                 Section(tr("المتصفح", "Browser")) {

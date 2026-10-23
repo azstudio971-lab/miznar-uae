@@ -10,6 +10,7 @@ final class CarSceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
                                   didConnect interfaceController: CPInterfaceController) {
         WDLog.car("CarPlay template scene connected")
         self.interfaceController = interfaceController
+        CarExternalDisplaySceneDelegate.returnToTemplates()
         let ui = CarTemplateUI(interfaceController: interfaceController)
         templateUI = ui
         AppState.shared.carConnected(mode: .templates)

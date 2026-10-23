@@ -10,6 +10,7 @@ import UIKit
 /// - ينشر معلومات Now Playing وأوامر التحكم، وهي ما يعتمد عليه CarPlay Video لعرض الفيديو أو تحويله لصوت أثناء القيادة.
 final class PlaybackManager: ObservableObject {
     static let shared = PlaybackManager()
+    static let carPlaybackRequested = Notification.Name("WudCar.carPlaybackRequested")
 
     struct Item: Equatable {
         let title: String
@@ -26,6 +27,7 @@ final class PlaybackManager: ObservableObject {
     @Published private(set) var isPlaying = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var isExternalDisplayPlayback = false
+    @Published private(set) var isAirPlayActive = false
     @Published var isPlayerPresented = false
     @Published var isPictureInPictureActive = false
     @Published private(set) var isMinimized = false
@@ -57,7 +59,12 @@ final class PlaybackManager: ObservableObject {
 
         player.publisher(for: \.isExternalPlaybackActive)
             .removeDuplicates()
-            .sink { active in WDLog.car("player externalPlaybackActive=\(active)") }
+            .receive(on: RunLoop.main)
+            .sink { [weak self] active in
+                self?.isAirPlayActive = active
+                self?.enforceSafety()
+                WDLog.car("player externalPlaybackActive=\(active)")
+            }
             .store(in: &bag)
 
         periodicObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 1, preferredTimescale: 600), queue: .main) { [weak self] time in
@@ -137,6 +144,35 @@ final class PlaybackManager: ObservableObject {
 
     func minimize() { isMinimized = true; isPlayerPresented = false }
     func presentPlayer() { isMinimized = false; isPlayerPresented = true }
+
+    /// Prepare the current, real AVPlayer item for the user's selected route.
+    /// AVRoutePickerView remains responsible for receiver selection.
+    @discardableResult
+    func castCurrentMedia() -> Bool {
+        guard SubscriptionStore.shared.hasAccess else {
+            errorMessage = tr("يلزم تفعيل الاشتراك أو استعادته من الإعدادات.", "Activate or restore your subscription in Settings.")
+            return false
+        }
+        guard current != nil, let item = player.currentItem else {
+            errorMessage = tr("اختر فيديو أو ملف صوت من المكتبة أو البث أولاً.", "Choose a video or audio item from Library or TV first.")
+            return false
+        }
+        guard item.status != .failed else { return false }
+        CarExternalDisplaySceneDelegate.returnToTemplates()
+        player.allowsExternalPlayback = true
+        player.usesExternalPlaybackWhileExternalScreenIsActive = true
+        isExternalDisplayPlayback = AppState.shared.isCarConnected || isAirPlayActive
+        isPlayerPresented = false
+        isMinimized = true
+        DrivingMonitor.shared.requestMonitoringPermission()
+        enforceSafety()
+        player.play()
+        updateNowPlaying()
+        if AppState.shared.isCarConnected {
+            NotificationCenter.default.post(name: Self.carPlaybackRequested, object: nil)
+        }
+        return true
+    }
 
     func togglePlayPause() {
         guard SubscriptionStore.shared.hasAccess else { stop(); return }
@@ -243,7 +279,9 @@ final class PlaybackManager: ObservableObject {
     func enforceSafety() {
         guard let item = player.currentItem else { return }
         let continueAudio = isPlaying
-        let block = DrivingMonitor.shared.shouldBlockVideo && (AppState.shared.isCarConnected || WDSettings.lockVideoWhileDriving)
+        let block = Self.blocksVideo(isMoving: DrivingMonitor.shared.shouldBlockVideo,
+                                    carConnected: isAirPlayActive || (isExternalDisplayPlayback && AppState.shared.isCarConnected),
+                                    phonePreference: WDSettings.lockVideoWhileDriving)
         for track in item.tracks where track.assetTrack?.mediaType == .video { track.isEnabled = !block }
         // The legacy external dashboard pauses when notified; retain audio by applying its safety state first.
         if block, continueAudio, isExternalDisplayPlayback, current != nil {
@@ -252,6 +290,10 @@ final class PlaybackManager: ObservableObject {
                 self.player.play()
             }
         }
+    }
+
+    static func blocksVideo(isMoving: Bool, carConnected: Bool, phonePreference: Bool) -> Bool {
+        isMoving && (carConnected || phonePreference)
     }
 
     func setSleepTimer(minutes: Int) {

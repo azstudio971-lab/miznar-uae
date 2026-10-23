@@ -123,28 +123,9 @@ struct CarConnectionCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("CarPlay").font(.headline)
                 Text(app.carStatusText).font(.subheadline).foregroundStyle(.secondary)
-                if app.isCarConnected {
-                    Text(tr("الفيديو في السيارة: ", "Video in car: ") + app.carVideoText)
-                        .font(.subheadline)
-                        .foregroundStyle(app.carVideoSupport == .unsupported ? Color.orange : .secondary)
-                }
-                if app.isCarConnected || app.carScreenActive {
-                    Text(tr("شاشة السيارة: ", "Car screen: ") + app.carScreenText)
-                        .font(.subheadline)
-                        .foregroundStyle(app.carScreenActive ? Color.green : .secondary)
-                }
+                    .accessibilityIdentifier("car.connection.status")
             }
             Spacer()
-            if app.isCarConnected || app.carScreenActive {
-                Button { app.showCarScreenHelp = true } label: {
-                    Image(systemName: "safari")
-                        .font(.title2)
-                        .foregroundStyle(.white)
-                        .frame(width: 46, height: 46)
-                        .background(Circle().fill(Color.wdNavy))
-                }
-                .buttonStyle(.plain)
-            }
         }
         .padding(16)
         .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color(.secondarySystemBackground)))

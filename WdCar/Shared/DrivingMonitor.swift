@@ -29,12 +29,18 @@ final class DrivingMonitor: NSObject, ObservableObject, CLLocationManagerDelegat
         guard !running else { return }
         running = true
         if manager.authorizationStatus == .notDetermined {
-            AppState.shared.showLocationExplanation = true
             refreshAuthorizationFallback()
             return
         }
         refreshAuthorizationFallback()
         if manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways { manager.startUpdatingLocation() }
+    }
+
+    /// Permission explanation follows a user action, never the connection itself.
+    func requestMonitoringPermission() {
+        guard AppState.shared.isCarConnected else { return }
+        start()
+        if manager.authorizationStatus == .notDetermined { AppState.shared.showLocationExplanation = true }
     }
 
     func requestAuthorizationAfterExplanation() {

@@ -1,8 +1,7 @@
 import UIKit
 
-/// التحديث 3 — نفس آلية CarTV:
-/// مع ميزة الفيديو في CarPlay (iOS 26.4+) تظهر شاشة السيارة للتطبيق كـ «شاشة خارجية» عبر AirPlay.
-/// عندما يُنشئ النظام هذا المشهد نرسم عليه متصفح ود كار الكامل (تبويبات، كيبورد، ملء شاشة الفيديو).
+/// External media routes must not replace CarPlay's native template interface.
+/// The unchanged browser is mounted only following an explicit browser request.
 final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     static let interactiveRole = "UIWindowSceneSessionRoleExternalDisplay"
@@ -10,6 +9,24 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
     static let roles: Set<String> = [interactiveRole, nonInteractiveRole]
 
     var window: UIWindow?
+    private static weak var connectedDelegate: CarExternalDisplaySceneDelegate?
+    private weak var connectedScene: UIWindowScene?
+    private var interactive = false
+
+    static func presentBrowserIfConnected() -> Bool {
+        guard let delegate = connectedDelegate, delegate.connectedScene != nil else { return false }
+        delegate.presentBrowser()
+        return true
+    }
+
+    static func returnToTemplates() {
+        guard let delegate = connectedDelegate else { return }
+        WebViewPool.car.pauseAllMedia()
+        delegate.window?.isHidden = true
+        delegate.window?.rootViewController = nil
+        delegate.window = nil
+        AppState.shared.carScreenDisconnected()
+    }
 
     func scene(_ scene: UIScene,
                willConnectTo session: UISceneSession,
@@ -22,17 +39,32 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
         let bounds = windowScene.coordinateSpace.bounds
         WDLog.car("external display CONNECTED role=\(role) size=\(Int(bounds.width))x\(Int(bounds.height)) scale=\(windowScene.traitCollection.displayScale)")
 
-        let window = UIWindow(windowScene: windowScene)
+        connect(to: windowScene, interactive: role == Self.interactiveRole)
+    }
+
+    func connect(to windowScene: UIWindowScene, interactive: Bool) {
+        connectedScene = windowScene
+        self.interactive = interactive
+        Self.connectedDelegate = self
+        AppState.shared.externalDisplayConnected()
+        // Connecting AirPlay or playing native media is never a browser request.
+        if CarScreenLauncher.shared.isLaunching {
+            presentBrowser()
+            CarScreenLauncher.shared.externalDisplayDidConnect()
+        }
+    }
+
+    private func presentBrowser() {
+        guard let scene = connectedScene else { return }
+        let window = window ?? UIWindow(windowScene: scene)
         window.backgroundColor = .black
         window.overrideUserInterfaceStyle = .dark
-        window.rootViewController = CarDashboardViewController()
-        window.isHidden = false
-        window.makeKeyAndVisible()
+        if !(window.rootViewController is CarBrowserViewController) {
+            window.rootViewController = CarBrowserViewController()
+        }
         self.window = window
-
-        AppState.shared.carScreenConnected(interactive: role == Self.interactiveRole)
-        // مقطع التشغيل الذي فتح وضع الفيديو لم يعد مطلوباً بعد ظهور الشاشة
-        CarScreenLauncher.shared.externalDisplayDidConnect()
+        window.makeKeyAndVisible()
+        AppState.shared.carScreenConnected(interactive: interactive)
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {
@@ -48,6 +80,8 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
         WebViewPool.car.pauseAllMedia()
         window?.rootViewController = nil
         window = nil
-        AppState.shared.carScreenDisconnected()
+        connectedScene = nil
+        if Self.connectedDelegate === self { Self.connectedDelegate = nil }
+        AppState.shared.externalDisplayDisconnected()
     }
 }

@@ -41,7 +41,7 @@ struct RootView: View {
             }
         }
         .animation(.spring(duration: 0.35), value: app.toast)
-        .alert(tr("الفيديو أثناء التوقف فقط", "Video while parked only"), isPresented: $app.showLocationExplanation) {
+        .alert(tr("إذن الموقع", "Location permission"), isPresented: $app.showLocationExplanation) {
             Button(tr("متابعة", "Continue")) { DrivingMonitor.shared.requestAuthorizationAfterExplanation() }
         } message: {
             Text(tr("يستخدم WudCar السرعة لحظياً لإيقاف الفيديو عند الحركة دون تخزين موقعك أو إرساله. عند رفض الإذن يُمنع فيديو السيارة إلا إذا أعلنت السيارة دعم الفيديو؛ ويظل تحكم النظام سارياً.", "WudCar uses speed in real time to stop video when moving, without storing or sending location. If denied, car video remains blocked unless the car reports video support; system restrictions always apply."))

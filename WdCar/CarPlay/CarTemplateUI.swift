@@ -141,6 +141,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                 guard let self, let input = value else { return }
                 switch input {
                 case .selectSection(let section):
+                    CarExternalDisplaySceneDelegate.returnToTemplates()
                     let template: CPTemplate
                     switch section {
                     case .home: template = self.home
@@ -165,6 +166,12 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         M3UStore.shared.objectWillChange.debounce(for: .milliseconds(500), scheduler: RunLoop.main)
             .sink { [weak self] _ in self?.refreshFavoriteChannels() }.store(in: &bag)
         refreshFavoriteChannels()
+        NotificationCenter.default.publisher(for: PlaybackManager.carPlaybackRequested)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard self?.interfaceController?.topTemplate !== CPNowPlayingTemplate.shared else { return }
+                self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+            }.store(in: &bag)
         DrivingMonitor.shared.$isMoving.receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildSettings() }.store(in: &bag)
         WDLog.car("templates connected supportsVideo=\(supportsVideo)")

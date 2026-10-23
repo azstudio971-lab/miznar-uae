@@ -26,6 +26,7 @@ final class AppState: ObservableObject {
     /// التحديث 3: متصفح ود كار معروض على شاشة السيارة كشاشة خارجية (مثل CarTV)
     @Published private(set) var carScreenActive = false
     @Published private(set) var carScreenInteractive = false
+    @Published private(set) var externalDisplayActive = false
     /// طلب من CarPlay لعرض نافذة «شاشة السيارة» على الهاتف
     @Published var showCarScreenHelp = false
     @Published var showLocationExplanation = false
@@ -38,11 +39,12 @@ final class AppState: ObservableObject {
 
     func carScreenConnected(interactive: Bool) {
         onMain {
+            let wasConnected = self.isCarConnected
             self.carScreenActive = true
             self.carScreenInteractive = interactive
             self.showCarScreenHelp = false
             DrivingMonitor.shared.start()
-            self.showToast(tr("المتصفح يعمل على شاشة السيارة 🚗", "Browser is on the car screen 🚗"))
+            if !wasConnected { self.showToast(tr("تم الاتصال", "Connected")) }
         }
     }
 
@@ -50,19 +52,31 @@ final class AppState: ObservableObject {
         onMain {
             self.carScreenActive = false
             self.carScreenInteractive = false
-            if self.carMode == .none { DrivingMonitor.shared.stop() }
+            if !self.isCarConnected { DrivingMonitor.shared.stop() }
+        }
+    }
+    func externalDisplayConnected() {
+        onMain {
+            let wasConnected = self.isCarConnected
+            self.externalDisplayActive = true
+            DrivingMonitor.shared.start()
+            if !wasConnected { self.showToast(tr("تم الاتصال", "Connected")) }
+        }
+    }
+    func externalDisplayDisconnected() {
+        onMain {
+            self.externalDisplayActive = false
+            self.carScreenActive = false
+            self.carScreenInteractive = false
+            if !self.isCarConnected { DrivingMonitor.shared.stop() }
         }
     }
     @Published private(set) var toast: String?
 
-    var isCarConnected: Bool { carMode != .none || carScreenActive }
+    var isCarConnected: Bool { carMode != .none || externalDisplayActive || carScreenActive }
 
     var carStatusText: String {
-        switch carMode {
-        case .none: return carScreenActive ? tr("متصل — شاشة خارجية", "Connected — external display") : tr("غير متصل", "Not connected")
-        case .window: return tr("متصل — المتصفح الكامل", "Connected — full browser")
-        case .templates: return tr("متصل — وضع القوالب (الفيديو عبر AirPlay)", "Connected — templates mode (video via AirPlay)")
-        }
+        isCarConnected ? tr("متصل", "Connected") : tr("غير متصل", "Not connected")
     }
 
     /// نص حالة دعم الفيديو في السيارة (للإعدادات والرئيسية)
@@ -77,9 +91,11 @@ final class AppState: ObservableObject {
 
     func carConnected(mode: CarDisplayMode) {
         onMain {
+            let wasConnected = self.isCarConnected
             self.carMode = mode
             self.carVideoSupport = .unknown
             DrivingMonitor.shared.start()
+            if !wasConnected { self.showToast(tr("تم الاتصال", "Connected")) }
         }
     }
 
@@ -87,7 +103,7 @@ final class AppState: ObservableObject {
         onMain {
             self.carMode = .none
             self.carVideoSupport = .unknown
-            if !self.carScreenActive { DrivingMonitor.shared.stop() }
+            if !self.isCarConnected { DrivingMonitor.shared.stop() }
             CarKeyboardBridge.shared.cancel()
         }
     }
@@ -99,10 +115,6 @@ final class AppState: ObservableObject {
             guard self.carVideoSupport != newValue else { return }
             self.carVideoSupport = newValue
             DrivingMonitor.shared.refreshAuthorizationFallback()
-            if !supported {
-                self.showToast(tr("السيارة لا تعلن دعم الفيديو — سيصل الصوت فقط",
-                                  "The car does not report video support — audio only"))
-            }
         }
     }
 

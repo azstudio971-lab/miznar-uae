@@ -18,6 +18,14 @@ final class CarScreenLauncher {
             WDLog.car("launcher: car screen already active")
             return
         }
+        // A route may already exist for media. Reuse it only after this explicit
+        // browser action; connection itself must keep the native CarPlay tabs.
+        if CarExternalDisplaySceneDelegate.presentBrowserIfConnected() {
+            // Keep the existing media route alive, as the original bootstrap
+            // path does; replacing its item can disconnect the external scene.
+            PlaybackManager.shared.player.pause()
+            return
+        }
         guard let url = Bundle.main.url(forResource: "intro_night", withExtension: "mp4") else {
             WDLog.car("launcher: intro clip missing")
             return
