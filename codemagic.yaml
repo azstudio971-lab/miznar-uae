@@ -295,7 +295,7 @@ workflows:
     - build/160-verification/**/*
     - /tmp/WudCar160.xcresult/**/*
   wudcar-222-media-validation:
-    name: WudCar 2.2.2 - internal media validation
+    name: WudCar 2.2.2 - internal Audio + Video
     max_build_duration: 90
     instance_type: mac_mini_m2
     integrations:
@@ -308,10 +308,14 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.azstudio.wudcar
       vars:
-        CARPLAY_MODE: Audio
+        CARPLAY_MODE: Combined
     scripts:
     - name: Generate project
       script: 'set -euo pipefail
+
+        case "$CARPLAY_MODE" in Audio|Video|Combined) ;; *) exit 1 ;; esac
+
+        cp "Config/CarPlay${CARPLAY_MODE}.entitlements" Config/WdCar.entitlements
 
         brew install xcodegen
 
@@ -321,9 +325,9 @@ workflows:
     - name: Verify tested source and compile for device
       script: "set -euo pipefail\nTESTED_SOURCE=ed5f145db1b788cb59d963d0f5900641a6d42b0a\nif ! git cat-file -e \"$TESTED_SOURCE^{commit}\"\
         ; then\n  git fetch origin \"$TESTED_SOURCE\" --depth=1\nfi\ngit diff --exit-code \"$TESTED_SOURCE\" -- WdCar WdCarTests\
-        \ Config project.yml\necho \"Application sources match the 10-test passing GitHub run 39878005499\"\nxcodebuild -project\
-        \ WdCar.xcodeproj -scheme WdCar -sdk iphoneos -destination 'generic/platform=iOS' -configuration Release CODE_SIGNING_ALLOWED=NO\
-        \ build"
+        \ Config project.yml ':(exclude)Config/WdCar.entitlements'\necho \"Application sources match the 10-test passing GitHub\
+        \ run 39878005499\"\nxcodebuild -project WdCar.xcodeproj -scheme WdCar -sdk iphoneos -destination 'generic/platform=iOS'\
+        \ -configuration Release CODE_SIGNING_ALLOWED=NO build"
     - name: Verify identity and select entitlement experiment
       script: 'set -euo pipefail
 
@@ -343,7 +347,7 @@ workflows:
 
         NEXT=$((LATEST + 1))
 
-        if [ "$NEXT" -lt 222 ]; then NEXT=222; fi
+        if [ "$NEXT" -lt 223 ]; then NEXT=223; fi
 
         agvtool new-version -all "$NEXT"
 
