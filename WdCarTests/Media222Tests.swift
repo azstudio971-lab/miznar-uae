@@ -5,7 +5,7 @@ import StoreKitTest
 @testable import WdCar
 
 final class Media222Tests: XCTestCase {
-    @MainActor func testLibraryAndSettingsRender() {
+    @MainActor func testLibraryAndSettingsRender() throws {
         for language in ["ar", "en"] {
             let old = UserDefaults.standard.object(forKey: WDKeys.language)
             UserDefaults.standard.set(language, forKey: WDKeys.language)
@@ -16,16 +16,22 @@ final class Media222Tests: XCTestCase {
             for dark in [false, true] {
                 for (name, view) in [("library", AnyView(MediaLibraryView())), ("player-settings", AnyView(NavigationStack { MediaSettingsView() }))] {
                     let controller = UIHostingController(rootView: view.environment(\.layoutDirection, language == "ar" ? .rightToLeft : .leftToRight))
-                    let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+                    let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+                    let window = UIWindow(windowScene: scene)
+                    window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
                     window.overrideUserInterfaceStyle = dark ? .dark : .light
                     window.rootViewController = controller
                     window.makeKeyAndVisible()
                     controller.view.layoutIfNeeded()
                     RunLoop.main.run(until: Date().addingTimeInterval(0.3))
                     let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
-                        window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+                        XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
                     }
                     XCTAssertEqual(image.size.width, 390)
+                    let pixels = try XCTUnwrap(image.cgImage?.dataProvider?.data)
+                    let bytes = try XCTUnwrap(CFDataGetBytePtr(pixels))
+                    let samples = stride(from: 0, to: CFDataGetLength(pixels), by: 97).map { bytes[$0] }
+                    XCTAssertGreaterThan(Set(samples).count, 8, "A blank rendering is not a valid screenshot")
                     let attachment = XCTAttachment(image: image)
                     attachment.name = "222-\(name)-\(language)-\(dark ? "dark" : "light")"
                     attachment.lifetime = .keepAlways

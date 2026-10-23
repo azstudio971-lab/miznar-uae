@@ -12,11 +12,11 @@ with tempfile.TemporaryDirectory(prefix='wudcar-audit-') as temp:
     info = plistlib.loads((app / 'Info.plist').read_bytes())
     signed = plistlib.loads(subprocess.check_output(['codesign', '-d', '--entitlements', ':-', str(app)], stderr=subprocess.DEVNULL))
     profile = plistlib.loads(subprocess.check_output(['security', 'cms', '-D', '-i', str(app / 'embedded.mobileprovision')]))
-    assert info['CFBundleIdentifier'] == 'com.azpixel.wudcar', 'Bundle identity mismatch'
+    assert info['CFBundleIdentifier'] == 'com.azstudio.wudcar', 'Bundle identity mismatch'
     assert info['CFBundleShortVersionString'] == '2.2.2'
     assert int(info['CFBundleVersion']) >= 222
     assert signed['com.apple.developer.team-identifier'] == 'QS29RVJPUT'
-    assert signed['application-identifier'] == 'QS29RVJPUT.com.azpixel.wudcar'
+    assert signed['application-identifier'] == 'QS29RVJPUT.com.azstudio.wudcar'
     actual = {k for k, v in signed.items() if k.startswith('com.apple.developer.carplay-') and v is True}
     assert actual == expected, f'Entitlement experiment mismatch: {actual}'
     for key in expected:

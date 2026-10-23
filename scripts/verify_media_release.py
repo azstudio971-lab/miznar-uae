@@ -6,7 +6,7 @@ import plistlib, hashlib, json
 root = Path(__file__).resolve().parents[1]
 project = (root / 'project.yml').read_text()
 assert 'MARKETING_VERSION: "2.2.2"' in project
-assert 'PRODUCT_BUNDLE_IDENTIFIER: com.azpixel.wudcar' in project
+assert 'PRODUCT_BUNDLE_IDENTIFIER: com.azstudio.wudcar' in project
 assert 'DEVELOPMENT_TEAM: "QS29RVJPUT"' in project
 assert plistlib.loads((root / 'Config/WdCar.entitlements').read_bytes()) == {'com.apple.developer.carplay-audio': True}
 launcher = (root / 'WdCar/CarPlay/CarScreenLauncher.swift').read_text()

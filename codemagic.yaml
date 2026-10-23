@@ -306,7 +306,7 @@ workflows:
       - wudcar
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.azpixel.wudcar
+        bundle_identifier: com.azstudio.wudcar
       vars:
         CARPLAY_MODE: Audio
     scripts:

@@ -9,9 +9,9 @@ Date: 23 October 2026 (Dubai). This candidate is not approved for App Review sub
 - Base `project.yml`: marketing version 1.6.0, build 17.
 - New branch: `develop/wudcar-2.2.2-media`; previous branches remain unchanged.
 - Target: 2.2.2, source build floor 222. Inspected active project branches contained builds through 19. The legacy project generator also contains build 111. The final signed build number must be allocated from verified App Store Connect data: max(222, latest TestFlight build + 1). No final signed build is claimed yet.
-- Requested identity configured: `com.azpixel.wudcar`, team `QS29RVJPUT`.
-- **Identity discrepancy:** build 17's active project and Codemagic workflows specify `com.azstudio.wudcar` and a runtime team variable. The source configuration is not evidence of the previously distributed app's signed identity. Compare the existing App Store record and signed IPA before uploading. If the actual installed app uses a different bundle ID, this configuration would not preserve its container or update identity; do not upload until resolved.
-- Existing StoreKit product ID `com.azstudio.wudcar.premium.monthly`, prices, access logic and subscription source are unchanged. Its association with the requested App Store record must be verified, not renamed speculatively.
+- Final identity confirmed by the user on 23 October 2026: `com.azstudio.wudcar`, team `QS29RVJPUT`. This matches the build-17 delivery report and existing App Store application rather than the `com.azpixel.wudcar` identifier initially requested. Configuration and signing audit now preserve that existing identity.
+- Existing StoreKit product ID `com.azstudio.wudcar.premium.monthly`, prices, access logic and subscription source are unchanged.
+
 
 ## Implemented in source
 
@@ -44,7 +44,7 @@ Date: 23 October 2026 (Dubai). This candidate is not approved for App Review sub
 
 - Local static checks passed: bundle/team/version, audio-only default, plist parsing, bootstrap removal, protected source hashes; Python scripts compile; whitespace diff check passed.
 - First native CI run: https://github.com/azstudio971-lab/miznar-uae/actions/runs/39876378533 . Xcode 26.6, iPhone 17 Pro simulator, iOS 26.4.1. Full app/test target compiled; 4 media unit tests passed, 0 failures. This run covers commit `937883a58d00c53aace3827786570121f56b64ec`, not later changes.
-- Expanded run https://github.com/azstudio971-lab/miznar-uae/actions/runs/39876898916 compiled and produced 8 new UI attachments, but failed: StoreKit returned `notEntitled`, and an older baseline toolbar test assumed square SF Symbols. The newer build-17 test correction is incorporated without changing browser code. A stable iOS 18.5 StoreKit runtime is selected for the next run; success is not assumed.
+- Expanded run https://github.com/azstudio971-lab/miznar-uae/actions/runs/39876898916 compiled and exported 8 UI attachments, but visual inspection found them blank because the test window lacked a scene. The capture test was corrected to attach to a scene and reject blank images. The run also failed: StoreKit returned `notEntitled`, and an older baseline toolbar test assumed square SF Symbols. The newer build-17 test correction is incorporated without changing browser code. A stable iOS 18.5 StoreKit runtime is selected for the next run; success is not assumed.
 - Expanded validation is tracked in GitHub Actions. It adds imported-file playback/queue/removal, UI render attachments, previous shortcut tests and StoreKit subscription tests. Record final run/commit/results below after completion.
 - Signed audit has not run: no candidate signed IPA supplied or generated in this session yet. Certificates and developer account are unchanged.
 - Codemagic/Apple credentials are not exposed through the available tools; preparing its workflow does not establish that TestFlight received a build.
