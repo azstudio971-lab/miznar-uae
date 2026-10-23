@@ -3,7 +3,7 @@ import VLCKit
 
 /// Phone-only software decoder. Vehicle output remains AVPlayer/AirPlay.
 final class SoftwareDecoder: NSObject, VLCMediaPlayerDelegate {
-    let player = VLCMediaPlayer(options: ["--avcodec-hw=none", "--no-video-title-show", "--no-osd"])
+    let player = VLCMediaPlayer(options: ["--no-hw-dec", "--no-video-title-show", "--no-osd"])
     var progress: ((Double, Double, Bool) -> Void)?
     var failure: (() -> Void)?
     private var timer: Timer?

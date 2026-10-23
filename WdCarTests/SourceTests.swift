@@ -163,7 +163,10 @@ final class SourceTestProtocol: URLProtocol {
         let filter = CIFilter(name: "CIQRCodeGenerator")!
         filter.setValue(Data("https://example.test/list.m3u".utf8), forKey: "inputMessage")
         let image = try XCTUnwrap(filter.outputImage).transformed(by: CGAffineTransform(scaleX: 8, y: 8))
-        let cg = try XCTUnwrap(CIContext().createCGImage(image, from: image.extent))
+        let bounds = image.extent.insetBy(dx: -32, dy: -32)
+        let background = CIImage(color: CIColor.white).cropped(to: bounds)
+        let bordered = image.composited(over: background)
+        let cg = try XCTUnwrap(CIContext().createCGImage(bordered, from: bounds))
         let request = VNDetectBarcodesRequest(); request.symbologies = [.qr]
         try VNImageRequestHandler(cgImage: cg).perform([request])
         XCTAssertEqual(request.results?.first?.payloadStringValue, "https://example.test/list.m3u")

@@ -18,7 +18,9 @@ import VLCKit
         decoder.play(fixture, position: 0)
         for _ in 0..<200 where elapsed < 0.2 && !failed { try await Task.sleep(for: .milliseconds(100)) }
         XCTAssertFalse(failed); XCTAssertGreaterThan(elapsed, 0.1, "Decoder time must actually advance for the MKV fixture")
-        decoder.stop(); XCTAssertFalse(decoder.player.isPlaying)
+        decoder.stop()
+        for _ in 0..<50 where decoder.player.isPlaying { try await Task.sleep(for: .milliseconds(100)) }
+        XCTAssertFalse(decoder.player.isPlaying)
         XCTAssertTrue(PlaybackManager.permitsSoftwareDecoding(preference: "auto", external: false, airPlay: false))
         XCTAssertFalse(PlaybackManager.permitsSoftwareDecoding(preference: "never", external: false, airPlay: false))
         XCTAssertFalse(PlaybackManager.permitsSoftwareDecoding(preference: "always", external: true, airPlay: false))
@@ -62,7 +64,9 @@ import VLCKit
         XCTAssertEqual(item.preferredPeakBitRate, 800000)
     }
     func testNativeHLSPlaybackAdvances() async throws {
-        let player = AVPlayer(url: URL(string: "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8")!)
+        let server = try await HLSTestServer.start()
+        defer { server.stop() }
+        let player = AVPlayer(url: server.url)
         defer { player.pause(); player.replaceCurrentItem(with: nil) }
         player.play()
         for _ in 0..<450 where player.currentTime().seconds < 0.2 && player.currentItem?.status != .failed { try await Task.sleep(for: .milliseconds(100)) }
