@@ -17,6 +17,7 @@ final class PlaybackManager: ObservableObject {
         let url: URL
         let isLive: Bool
         let artworkURL: URL?
+        var sourceKey: String? = nil
     }
 
     let player = AVPlayer()
@@ -86,8 +87,10 @@ final class PlaybackManager: ObservableObject {
         }
         savePosition()
         if item.url.scheme == "https" || item.url.scheme == "http" {
-            try? MediaLibrary.shared.addRemote(title: item.title, url: item.url, isLive: item.isLive)
+            try? MediaLibrary.shared.addRemote(title: item.title, url: item.url, isLive: item.isLive, sourceKey: item.sourceKey)
         }
+        let savedPosition = MediaLibrary.shared.items.first(where: { $0.url == item.url })?.position ?? 0
+        MediaLibrary.shared.record(url: item.url, position: savedPosition)
         let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo, options: [])
@@ -167,6 +170,14 @@ final class PlaybackManager: ObservableObject {
         guard position.isFinite else { return }
         MediaLibrary.shared.record(url: current.url, position: position)
         lastSaved = position
+    }
+
+    func carDisconnected() {
+        guard isExternalDisplayPlayback else { return }
+        savePosition()
+        player.pause()
+        isExternalDisplayPlayback = false
+        // Reconnection never resumes media without a new user action.
     }
 
     func stop() {

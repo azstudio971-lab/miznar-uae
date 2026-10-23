@@ -17,3 +17,8 @@ For Build 17:
 - Verify visually that no icon overflows or is clipped on the phone and CarPlay; retain the current shortcuts design.
 
 Status: recorded for the next update; no implementation, build or upload requested in this feedback message. Do not change the marketing version solely because the requested next build is 17; verify build-number availability before uploading. No production approval is implied.
+
+
+## Implementation update — 2026-10-22
+
+Toolbar overflow fix implemented in build 17 alongside the subsequently requested entertainment redesign/catalog. Signed Codemagic verification passed all 8 selected tests; Apple upload completed. Original feedback above is retained as history. Final availability and complete verification results are recorded in WUDCAR-BUILD-17-STATUS.md.

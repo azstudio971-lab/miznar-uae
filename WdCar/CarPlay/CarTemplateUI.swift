@@ -479,7 +479,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                                                   subtitle: playlist.name,
                                                   url: entry.url,
                                                   isLive: true,
-                                                  artworkURL: entry.logo),
+                                                  artworkURL: entry.logo, sourceKey: "m3u-\(playlist.id.uuidString)"),
                                             presentOnPhone: false)
                 if !self.supportsVideo {
                     self.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
@@ -575,7 +575,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                                           subtitle: account.name,
                                           url: url,
                                           isLive: stream.kind == .live,
-                                          artworkURL: stream.icon),
+                                          artworkURL: stream.icon, sourceKey: "xtream-\(account.id.uuidString)"),
                                     presentOnPhone: false)
         // مع دعم الفيديو يعرض CarPlay المشغل تلقائياً. بدونه نعرض شاشة التشغيل الحالي (صوت).
         if !supportsVideo {

@@ -14,6 +14,7 @@ struct LibraryMedia: Codable, Identifiable, Equatable {
     var lastPlayed: Date?
     var added = Date()
     var isLive = false
+    var sourceKey: String?
 
     var url: URL? {
         if let localFilename { return MediaLibrary.directory.appendingPathComponent(localFilename) }
@@ -21,7 +22,7 @@ struct LibraryMedia: Codable, Identifiable, Equatable {
     }
     var playbackItem: PlaybackManager.Item? {
         guard let url else { return nil }
-        return .init(title: title, subtitle: localFilename == nil ? tr("مصدر إنترنت", "Internet source") : tr("ملف مستورد", "Imported file"), url: url, isLive: isLive, artworkURL: nil)
+        return .init(title: title, subtitle: localFilename == nil ? tr("مصدر إنترنت", "Internet source") : tr("ملف مستورد", "Imported file"), url: url, isLive: isLive, artworkURL: nil, sourceKey: sourceKey)
     }
 }
 
@@ -54,10 +55,10 @@ final class MediaLibrary: ObservableObject {
         catch { self.error = error.localizedDescription }
     }
 
-    func addRemote(title: String, url: URL, isLive: Bool) throws {
+    func addRemote(title: String, url: URL, isLive: Bool, sourceKey: String? = nil) throws {
         guard writable, ["http", "https"].contains(url.scheme?.lowercased() ?? ""), url.host != nil else { throw M3UError.invalidURL }
         if items.contains(where: { $0.url == url }) { return }
-        let item = LibraryMedia(title: title.isEmpty ? url.lastPathComponent : title, isLive: isLive)
+        let item = LibraryMedia(title: title.isEmpty ? url.lastPathComponent : title, isLive: isLive, sourceKey: sourceKey)
         KeychainStore.set(url.absoluteString, for: "media-\(item.id.uuidString)")
         items.append(item)
         save()
@@ -137,6 +138,10 @@ final class MediaLibrary: ObservableObject {
             items.removeAll { $0.id == id }
             save()
         } catch { self.error = error.localizedDescription }
+    }
+    func removeCachedSource(_ sourceKey: String) {
+        let ids = items.filter { $0.sourceKey == sourceKey }.map(\.id)
+        for id in ids { remove(id) }
     }
     var importedBytes: Int64 {
         items.compactMap { $0.localFilename }.reduce(0) { sum, filename in

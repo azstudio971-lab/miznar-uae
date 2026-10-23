@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Static release invariants. This is not an iOS compile or device test."""
 from pathlib import Path
-import plistlib
+import plistlib, hashlib, json
 
 root = Path(__file__).resolve().parents[1]
 project = (root / 'project.yml').read_text()
@@ -15,3 +15,9 @@ assert 'PlaybackManager.shared.play' not in launcher
 for path in (root / 'Config').glob('*.plist'):
     plistlib.loads(path.read_bytes())
 print('Static identity, entitlement, plist and bootstrap checks passed; device tests remain separate.')
+
+for name, expected in json.loads((root / 'docs/releases/2.2.2/preserved-source.json').read_text()).items():
+    content = (root / name).read_bytes()
+    actual = hashlib.sha1(b'blob ' + str(len(content)).encode() + b'\0' + content).hexdigest()
+    assert actual == expected, f'Protected browser/subscription/branding source changed: {name}'
+print('Protected browser, shortcuts, subscription, intro and mouse sources match build 17.')

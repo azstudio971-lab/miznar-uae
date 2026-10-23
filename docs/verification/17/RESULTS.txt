@@ -1,0 +1,47 @@
+2026-10-22T08:41:52.9694270Z Test Suite 'Selected tests' started at 2026-10-22 08:41:52.136.
+2026-10-22T08:41:53.3928330Z Test Suite 'WdCarTests.xctest' started at 2026-10-22 08:41:52.137.
+2026-10-22T08:41:54.5057840Z Test Suite 'Release150Tests' started at 2026-10-22 08:41:52.137.
+2026-10-22T08:41:54.9418110Z Test Case '-[WdCarTests.Release150Tests test150DesktopPreferenceAppliesToBothBrowsers]' started.
+2026-10-22T08:41:55.2120500Z Test Case '-[WdCarTests.Release150Tests test150DesktopPreferenceAppliesToBothBrowsers]' passed (0.145 seconds).
+2026-10-22T08:41:55.8347600Z Test Case '-[WdCarTests.Release150Tests test150EntertainmentLayoutSnapshots]' started.
+2026-10-22T08:42:03.1426900Z Test Case '-[WdCarTests.Release150Tests test150EntertainmentLayoutSnapshots]' passed (6.345 seconds).
+2026-10-22T08:42:03.2142890Z Test Case '-[WdCarTests.Release150Tests test150ExistingShortcutDecodesWithoutOptionalArtwork]' started.
+2026-10-22T08:42:03.2144900Z Test Case '-[WdCarTests.Release150Tests test150ExistingShortcutDecodesWithoutOptionalArtwork]' passed (0.007 seconds).
+2026-10-22T08:42:03.2150800Z Test Case '-[WdCarTests.Release150Tests test150NativeToolbarHotspotAndMenu]' started.
+2026-10-22T08:42:03.2151530Z Test Case '-[WdCarTests.Release150Tests test150NativeToolbarHotspotAndMenu]' passed (0.533 seconds).
+2026-10-22T08:42:03.2156050Z Test Case '-[WdCarTests.Release150Tests test150SeasonalArtworkValidation]' started.
+2026-10-22T08:42:03.2156790Z Test Case '-[WdCarTests.Release150Tests test150SeasonalArtworkValidation]' passed (0.016 seconds).
+2026-10-22T08:42:03.2159970Z Test Suite 'Release150Tests' passed at 2026-10-22 08:41:59.187.
+2026-10-22T08:42:03.2161910Z 	 Executed 5 tests, with 0 failures (0 unexpected) in 7.046 (7.050) seconds
+2026-10-22T08:42:11.3932610Z Test Suite 'Release160Tests' started at 2026-10-22 08:41:59.188.
+2026-10-22T08:42:11.4624310Z Test Case '-[WdCarTests.Release160Tests testChromePrimaryActivationAndExistingRemoteRoutingWithoutMenu]' started.
+2026-10-22T08:42:11.5044460Z Test Case '-[WdCarTests.Release160Tests testChromePrimaryActivationAndExistingRemoteRoutingWithoutMenu]' passed (0.325 seconds).
+2026-10-22T08:42:11.5163770Z Test Case '-[WdCarTests.Release160Tests testDesktopViewportZoomNavigationAndResizeOnPhoneThenCar]' started.
+2026-10-22T08:42:22.7043360Z Test Case '-[WdCarTests.Release160Tests testDesktopViewportZoomNavigationAndResizeOnPhoneThenCar]' passed (23.180 seconds).
+2026-10-22T08:42:22.7174420Z Test Case '-[WdCarTests.Release160Tests testLiveYouTubePhoneBeforeCarProbe]' started.
+2026-10-22T08:42:43.4779780Z WUDCAR160 LIVE phone: Optional({"url":"https://www.youtube.com/results?search_query=NASA&app=desktop&persist_app=1","title":"NASA - YouTube","width":1280,"desktop":true,"mobile":false,"videos":93,"meta":"width=device-width, initial-scale=1","client":1280,"visual":1280}); native bounds=(0.0, 0.0, 1280.0, 1686.974358974359); fit=CGAffineTransform(a: 0.3046875, b: 0.0, c: 0.0, d: 0.3046875, tx: 0.0, ty: 0.0); pageZoom=1.0
+2026-10-22T08:43:10.2215630Z WUDCAR160 STABLE phone: channelWidth=1280.0, channelStable=true, backStable=true, pageZoom=1.0
+2026-10-22T08:43:44.5629060Z WUDCAR160 LIVE car: Optional({"url":"https://www.youtube.com/results?search_query=NASA&app=desktop&persist_app=1","title":"NASA - YouTube","width":1280,"desktop":true,"mobile":false,"videos":91,"meta":"width=device-width, initial-scale=1","client":1280,"visual":1280}); native bounds=(0.0, 0.0, 1280.0, 557.3333333333334); fit=CGAffineTransform(a: 0.75, b: 0.0, c: 0.0, d: 0.75, tx: 0.0, ty: 0.0); pageZoom=1.0
+2026-10-22T08:44:01.2489610Z WUDCAR160 STABLE car: channelWidth=1280.0, channelStable=true, backStable=true, pageZoom=1.0
+2026-10-22T08:44:01.3534200Z Test Case '-[WdCarTests.Release160Tests testLiveYouTubePhoneBeforeCarProbe]' passed (98.651 seconds).
+2026-10-22T08:44:01.4969490Z Test Case '-[WdCarTests.Release160Tests testYouTubeViewportFallbackIsScopedAndRespectsAuthorMetadata]' started.
+2026-10-22T08:44:03.8734450Z Test Case '-[WdCarTests.Release160Tests testYouTubeViewportFallbackIsScopedAndRespectsAuthorMetadata]' passed (2.498 seconds).
+2026-10-22T08:44:03.9422010Z Test Case '-[WdCarTests.Release160Tests testZoomUpgradeIsOnceAndManualPreferenceSurvives]' started.
+2026-10-22T08:44:04.3724930Z Test Case '-[WdCarTests.Release160Tests testZoomUpgradeIsOnceAndManualPreferenceSurvives]' passed (0.014 seconds).
+2026-10-22T08:44:04.3731560Z Test Suite 'Release160Tests' passed at 2026-10-22 08:44:03.864.
+2026-10-22T08:44:04.3835560Z 	 Executed 5 tests, with 0 failures (0 unexpected) in 124.668 (124.676) seconds
+2026-10-22T08:44:04.3949800Z Test Suite 'Release17Tests' started at 2026-10-22 08:44:03.865.
+2026-10-22T08:44:04.4091040Z Test Case '-[WdCarTests.Release17Tests testCatalogOrderAndLosslessLegacyUpgrade]' started.
+2026-10-22T08:44:04.4212040Z Test Case '-[WdCarTests.Release17Tests testCatalogOrderAndLosslessLegacyUpgrade]' passed (0.007 seconds).
+2026-10-22T08:44:04.4318590Z Test Case '-[WdCarTests.Release17Tests testGridCardsScrollAndCustomCardMatchesAtAllSizes]' started.
+2026-10-22T08:44:18.7305840Z Test Case '-[WdCarTests.Release17Tests testGridCardsScrollAndCustomCardMatchesAtAllSizes]' passed (14.758 seconds).
+2026-10-22T08:44:18.7410390Z Test Case '-[WdCarTests.Release17Tests testToolbarSymbolsFitInArabicAndEnglishAtAllSizes]' started.
+2026-10-22T08:44:27.2825440Z Test Case '-[WdCarTests.Release17Tests testToolbarSymbolsFitInArabicAndEnglishAtAllSizes]' passed (8.527 seconds).
+2026-10-22T08:44:27.2833030Z Test Suite 'Release17Tests' passed at 2026-10-22 08:44:27.160.
+2026-10-22T08:44:27.3013390Z 	 Executed 3 tests, with 0 failures (0 unexpected) in 23.292 (23.295) seconds
+2026-10-22T08:44:27.3169540Z Test Suite 'WdCarTests.xctest' passed at 2026-10-22 08:44:27.161.
+2026-10-22T08:44:27.3292560Z 	 Executed 13 tests, with 0 failures (0 unexpected) in 155.006 (155.024) seconds
+2026-10-22T08:44:27.3293330Z Test Suite 'Selected tests' passed at 2026-10-22 08:44:27.162.
+2026-10-22T08:44:27.3407320Z 	 Executed 13 tests, with 0 failures (0 unexpected) in 155.006 (155.026) seconds
+2026-10-22T08:44:30.7857940Z ** TEST SUCCEEDED **
+
