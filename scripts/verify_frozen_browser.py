@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Release gate: the owner's browser baseline is immutable."""
 import subprocess
+import re
 from pathlib import Path
 BASE = '6ca24bc877495dbaed55ff2aa833e687fa4e058f'
 PATHS = [
@@ -39,7 +40,8 @@ before=subprocess.check_output(['git','show',f'{BASE}:{path}'],text=True)
 after=Path(path).read_text()
 for name in ['carScreenItem','startCarScreen','applyPlaybackConfiguration']:
     assert method(before,name)==method(after,name), f'LAUNCH METHOD CHANGED: {name}'
-report=Path('docs/verification/3.0.1-build-3');report.mkdir(parents=True,exist_ok=True)
+build=re.search(r"CURRENT_PROJECT_VERSION:\s*['\"]?(\d+)",Path('project.yml').read_text()).group(1)
+report=Path('docs/verification/3.0.1-build-'+build);report.mkdir(parents=True,exist_ok=True)
 stat=subprocess.check_output(['git','diff','--stat',BASE,'--',*CORE_PATHS],text=True)
 assert not stat,stat
 (report/'browser-diff-stat.txt').write_text(stat)

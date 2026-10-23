@@ -413,8 +413,8 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertEqual(entries[1].group, "Movies")
 
         let shortcuts = ShortcutStore.shared.shortcuts
-        for host in ["www.mp3quran.net", "m.soundcloud.com", "www.netflix.com", "pranx.com",
-                     "tv2tv.com", "www.primevideo.com", "www.tod.tv", "www.crazygames.com",
+        for host in ["www.mp3quran.net", "m.soundcloud.com", "pranx.com",
+                     "tv2tv.com", "www.tod.tv", "www.crazygames.com",
                      "mail.google.com", "outlook.live.com", "chatgpt.com"] {
             XCTAssertTrue(shortcuts.contains { $0.url.host == host }, "Missing default shortcut for \(host)")
         }

@@ -128,7 +128,7 @@ final class PlaybackManager: ObservableObject {
 
         if presentOnPhone, !isAirPlayActive, PlayerPreferences.text("softwareDecoding", "auto") == "always" {
             activateSoftware(for: item, position: savedPosition)
-            isMinimized = false; isPlayerPresented = true
+            applyPhonePresentationPreference()
             return
         }
         availableQualities = []
@@ -158,7 +158,15 @@ final class PlaybackManager: ObservableObject {
         updateNowPlaying()
         loadArtwork(for: item)
 
-        if presentOnPhone { isMinimized = false; isPlayerPresented = true }
+        if presentOnPhone { applyPhonePresentationPreference() }
+    }
+
+    /// The SwiftUI presentation owns full-screen entry; the native preference
+    /// must also control whether playback starts in the app's mini player.
+    func applyPhonePresentationPreference() {
+        let fullscreen = PlayerPreferences.flag("autoFullscreen", true)
+        isMinimized = !fullscreen
+        isPlayerPresented = fullscreen
     }
 
     func minimize() { isMinimized = true; isPlayerPresented = false }
@@ -264,7 +272,7 @@ final class PlaybackManager: ObservableObject {
         let onPhone = !isExternalDisplayPlayback
         let wasPresented = isPlayerPresented
         play(queue[index + offset], presentOnPhone: onPhone)
-        if onPhone && !wasPresented { isPlayerPresented = false; isMinimized = true }
+        if onPhone { isPlayerPresented = wasPresented; isMinimized = !wasPresented }
     }
 
     func savePosition(completed: Bool = false) {

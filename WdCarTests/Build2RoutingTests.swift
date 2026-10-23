@@ -43,12 +43,30 @@ final class Build2RoutingTests: XCTestCase {
         XCTAssertTrue(CarExternalDisplaySceneDelegate.presentBrowserIfConnected())
         XCTAssertTrue(delegate.window?.rootViewController is CarBrowserViewController)
         XCTAssertTrue(AppState.shared.carScreenActive)
-        CarExternalDisplaySceneDelegate.returnToTemplates()
+        let browser = try XCTUnwrap(delegate.window?.rootViewController as? CarBrowserViewController)
+        let exit = try XCTUnwrap(browser.onExitEntertainment, "The existing close button must have a real return action")
+        exit()
         XCTAssertNil(delegate.window)
         XCTAssertFalse(AppState.shared.carScreenActive)
         XCTAssertTrue(AppState.shared.isCarConnected)
         XCTAssertEqual(AppState.shared.carStatusText, tr("متصل", "Connected"))
     }
+    func testAutoFullscreenPreferenceControlsRealPhonePresentationState() {
+        let key = "wd.media.autoFullscreen"
+        let previous = UserDefaults.standard.object(forKey: key)
+        defer {
+            if let previous { UserDefaults.standard.set(previous, forKey: key) }
+            else { UserDefaults.standard.removeObject(forKey: key) }
+            PlaybackManager.shared.stop()
+        }
+        for enabled in [false, true] {
+            UserDefaults.standard.set(enabled, forKey: key)
+            PlaybackManager.shared.applyPhonePresentationPreference()
+            XCTAssertEqual(PlaybackManager.shared.isPlayerPresented, enabled)
+            XCTAssertEqual(PlaybackManager.shared.isMinimized, !enabled)
+        }
+    }
+
     func testPhonePreferenceCannotUnlockMovingCarVideo() {
         for preference in [false, true] {
             XCTAssertTrue(PlaybackManager.blocksVideo(isMoving: true, carConnected: true, phonePreference: preference))

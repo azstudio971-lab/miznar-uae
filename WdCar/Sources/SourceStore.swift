@@ -17,6 +17,11 @@ import CryptoKit
         self.customDirectory = directory
         do {
             try FileManager.default.createDirectory(at: self.directory, withIntermediateDirectories: true)
+            // CarPlay remains usable after the phone locks. Cached URLs stay
+            // AES-GCM encrypted and their keys remain in the device-only Keychain.
+            for file in (try? FileManager.default.contentsOfDirectory(at: self.directory, includingPropertiesForKeys: nil)) ?? [] where file.pathExtension == "sealed" || file.lastPathComponent == "index.json" {
+                try? FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: file.path)
+            }
             if FileManager.default.fileExists(atPath: index.path) { sources = try JSONDecoder().decode([MediaSource].self, from: Data(contentsOf: index)) }
         } catch { writable = false; self.error = error.localizedDescription }
     }
@@ -47,11 +52,11 @@ import CryptoKit
     private func saveCache(_ items: [SourceMedia], source: MediaSource) throws {
         let sealed = try AES.GCM.seal(JSONEncoder().encode(items), using: key(source, create: true))
         guard let data = sealed.combined else { throw CocoaError(.fileWriteUnknown) }
-        try data.write(to: cacheURL(source), options: [.atomic, .completeFileProtection])
+        try data.write(to: cacheURL(source), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
     private func persist() throws {
         guard writable else { throw CocoaError(.fileWriteNoPermission) }
-        try JSONEncoder().encode(sources).write(to: index, options: [.atomic, .completeFileProtection])
+        try JSONEncoder().encode(sources).write(to: index, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
     func add(name: String, kind: MediaSource.Kind, credentials: SourceCredentials) async throws -> MediaSource {
         guard writable else { throw CocoaError(.fileWriteNoPermission) }

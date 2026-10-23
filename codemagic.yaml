@@ -615,7 +615,7 @@ workflows:
         submit_to_testflight: false
         submit_to_app_store: false
   wudcar-303-internal:
-    name: WudCar 3.0.1 (3) — sources, media and Cast verification
+    name: WudCar 3.0.1 (4) — final media and browser exit verification
     max_build_duration: 90
     instance_type: mac_mini_m2
     integrations:
@@ -692,36 +692,51 @@ workflows:
 
         agvtool new-marketing-version 3.0.1
 
-        agvtool new-version -all 3
+        agvtool new-version -all 4
 
         '
     - name: Archive signed release
       script: xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
     - name: Verify signed Audio and Video entitlements
-      script: 'set -euo pipefail
-
-        IPA=$(find build/ios/ipa -name ''*.ipa'' -print -quit)
-
-        mkdir -p /tmp/wudcar303-ipa
-
-        unzip -q "$IPA" -d /tmp/wudcar303-ipa
-
-        APP=$(find /tmp/wudcar303-ipa/Payload -maxdepth 1 -name ''*.app'' -print -quit)
-
-        python3 scripts/verify_signed_303.py "$APP"
-
-        '
+      script: "set -euo pipefail\nIPA=$(find build/ios/ipa -name '*.ipa' -print -quit)\nmkdir -p /tmp/wudcar303-ipa\n\
+        unzip -q \"$IPA\" -d /tmp/wudcar303-ipa\nAPP=$(find /tmp/wudcar303-ipa/Payload -maxdepth 1 -name '*.app'\
+        \ -print -quit)\nif ! python3 scripts/verify_signed_303.py \"$APP\"; then\n          mv \"$IPA\" \"$IPA.rejected\"\
+        \n          exit 1\n        fi\n        touch build/304-verified.ok\n"
     artifacts:
     - build/ios/ipa/*.ipa
     - /tmp/wudcar303-tests.log
     - /tmp/xcodebuild_logs/*.log
     - build/303-screenshots/**/*
-    - docs/verification/3.0.1-build-3/**/*
+    - docs/verification/3.0.1-build-4/**/*
+    - build/304-testflight-status/*.json
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: false
         submit_to_app_store: false
+      scripts:
+      - name: Confirm internal TestFlight availability only
+        script: if [ -f build/304-verified.ok ]; then python3 scripts/verify_internal_303.py; else echo "No verified
+          archive; internal distribution skipped"; fi
+    triggering:
+      events:
+      - push
+      branch_patterns:
+      - pattern: release/wudcar-3.0.1
+        include: true
+      cancel_previous_builds: false
+    when:
+      changeset:
+        includes:
+        - WdCar/
+        - Extensions/
+        - Config/
+        - project.yml
+        - codemagic.yaml
+        - scripts/
+        - WdCarTests/
+        excludes:
+        - docs/
   wudcar-303-validation:
     name: WudCar 3.0.1 additions — native validation only
     max_build_duration: 90

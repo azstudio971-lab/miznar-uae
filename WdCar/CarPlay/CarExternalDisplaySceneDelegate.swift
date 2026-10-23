@@ -74,7 +74,9 @@ final class CarExternalDisplaySceneDelegate: UIResponder, UIWindowSceneDelegate 
         window.backgroundColor = .black
         window.overrideUserInterfaceStyle = .dark
         if !(window.rootViewController is CarBrowserViewController) {
-            window.rootViewController = CarBrowserViewController()
+            let browser = CarBrowserViewController()
+            browser.onExitEntertainment = { Self.returnToTemplates() }
+            window.rootViewController = browser
         }
         self.window = window
         window.makeKeyAndVisible()

@@ -10,7 +10,7 @@ settings:
     SWIFT_VERSION: '5.0'
     SWIFT_STRICT_CONCURRENCY: minimal
     MARKETING_VERSION: 3.0.1
-    CURRENT_PROJECT_VERSION: '3'
+    CURRENT_PROJECT_VERSION: '4'
     VERSIONING_SYSTEM: apple-generic
 packages:
   VLCKit:
