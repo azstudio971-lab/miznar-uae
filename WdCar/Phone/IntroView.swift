@@ -15,6 +15,7 @@ struct IntroView: View {
                 .id(isDark)
                 .ignoresSafeArea()
         }
+        .overlay(alignment: .bottom) { Text("WudCar Media Player").font(.headline).padding(.bottom, 32) }
         .contentShape(Rectangle())
         .onTapGesture(perform: onFinish)
         .accessibilityLabel("WudCar")

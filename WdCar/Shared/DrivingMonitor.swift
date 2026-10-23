@@ -8,6 +8,7 @@ final class DrivingMonitor: NSObject, ObservableObject, CLLocationManagerDelegat
     @Published private(set) var isMoving = false
 
     private let manager = CLLocationManager()
+    @Published private(set) var authorization: CLAuthorizationStatus = .notDetermined
     private var running = false
     private var movingSamples = 0
     private var stillSamples = 0
@@ -22,15 +23,29 @@ final class DrivingMonitor: NSObject, ObservableObject, CLLocationManagerDelegat
         manager.activityType = .automotiveNavigation
     }
 
-    var shouldBlockVideo: Bool { isMoving && WDSettings.lockVideoWhileDriving }
+    var shouldBlockVideo: Bool { isMoving }
 
     func start() {
         guard !running else { return }
         running = true
         if manager.authorizationStatus == .notDetermined {
-            manager.requestWhenInUseAuthorization()
+            AppState.shared.showLocationExplanation = true
+            refreshAuthorizationFallback()
+            return
         }
-        manager.startUpdatingLocation()
+        refreshAuthorizationFallback()
+        if manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways { manager.startUpdatingLocation() }
+    }
+
+    func requestAuthorizationAfterExplanation() {
+        guard running else { return }
+        manager.requestWhenInUseAuthorization()
+    }
+    func refreshAuthorizationFallback() {
+        authorization = manager.authorizationStatus
+        guard running else { return }
+        let permission = authorization == .authorizedWhenInUse || authorization == .authorizedAlways
+        if !permission { isMoving = AppState.shared.carVideoSupport != .supported }
     }
 
     func stop() {
@@ -42,7 +57,11 @@ final class DrivingMonitor: NSObject, ObservableObject, CLLocationManagerDelegat
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        if running { manager.startUpdatingLocation() }
+        authorization = manager.authorizationStatus
+        if running {
+            refreshAuthorizationFallback()
+            if authorization == .authorizedWhenInUse || authorization == .authorizedAlways { manager.startUpdatingLocation() }
+        }
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {

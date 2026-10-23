@@ -82,7 +82,40 @@ struct HomeView: View {
         }
     }
 
-    private var carStatus: some View {
+    private var carStatus: some View { CarConnectionCard() }
+}
+
+private struct HomeCard: View {
+    let symbol: String
+    let title: String
+    let subtitle: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: symbol)
+                    .font(.title2)
+                    .foregroundStyle(.white)
+                    .frame(width: 52, height: 52)
+                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.wdNavy))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title).font(.headline).foregroundStyle(.primary)
+                    Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.forward").foregroundStyle(.tertiary)
+            }
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color(.secondarySystemBackground)))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct CarConnectionCard: View {
+    @EnvironmentObject private var app: AppState
+    var body: some View {
         HStack(spacing: 12) {
             Image(systemName: app.isCarConnected ? "car.fill" : "car")
                 .font(.title2)
@@ -115,33 +148,5 @@ struct HomeView: View {
         }
         .padding(16)
         .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color(.secondarySystemBackground)))
-    }
-}
-
-private struct HomeCard: View {
-    let symbol: String
-    let title: String
-    let subtitle: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                Image(systemName: symbol)
-                    .font(.title2)
-                    .foregroundStyle(.white)
-                    .frame(width: 52, height: 52)
-                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.wdNavy))
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.headline).foregroundStyle(.primary)
-                    Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.forward").foregroundStyle(.tertiary)
-            }
-            .padding(14)
-            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color(.secondarySystemBackground)))
-        }
-        .buttonStyle(.plain)
     }
 }

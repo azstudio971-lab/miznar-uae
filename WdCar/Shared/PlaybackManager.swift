@@ -17,6 +17,7 @@ final class PlaybackManager: ObservableObject {
         let url: URL
         let isLive: Bool
         let artworkURL: URL?
+        var sourceKey: String? = nil
     }
 
     let player = AVPlayer()
@@ -27,6 +28,14 @@ final class PlaybackManager: ObservableObject {
     @Published private(set) var isExternalDisplayPlayback = false
     @Published var isPlayerPresented = false
 
+    @Published private(set) var queue: [Item] = []
+    @Published private(set) var elapsed: Double = 0
+    @Published private(set) var duration: Double = 0
+    @Published private(set) var isLoading = false
+    private var periodicObserver: Any?
+    private var lastSaved: Double = 0
+    private var sleepTimer: Timer?
+    private var startupTimeout: DispatchWorkItem?
     private var artwork: UIImage?
     private var bag = Set<AnyCancellable>()
     private var itemBag = Set<AnyCancellable>()
@@ -49,6 +58,26 @@ final class PlaybackManager: ObservableObject {
             .sink { active in WDLog.car("player externalPlaybackActive=\(active)") }
             .store(in: &bag)
 
+        periodicObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 1, preferredTimescale: 600), queue: .main) { [weak self] time in
+            guard let self else { return }
+            self.elapsed = time.seconds.isFinite ? time.seconds : 0
+            let total = self.player.currentItem?.duration.seconds ?? 0
+            self.duration = total.isFinite ? total : 0
+            self.isLoading = self.player.timeControlStatus == .waitingToPlayAtSpecifiedRate
+            if abs(self.elapsed - self.lastSaved) >= 5 { self.savePosition() }
+            self.updateNowPlaying()
+        }
+        NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] note in
+                guard let self, let item = note.object as? AVPlayerItem, item === self.player.currentItem else { return }
+                self.savePosition(completed: true)
+                if PlayerPreferences.autoNext { self.next() }
+            }.store(in: &bag)
+        NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.savePosition() }.store(in: &bag)
+        DrivingMonitor.shared.$isMoving.receive(on: RunLoop.main).sink { [weak self] _ in self?.enforceSafety() }.store(in: &bag)
         setupRemoteCommands()
     }
 
@@ -59,21 +88,45 @@ final class PlaybackManager: ObservableObject {
             errorMessage = tr("يلزم اشتراك ود كار. فعّله أو استعده من إعدادات الهاتف.", "WudCar Premium is required. Subscribe or restore in iPhone settings.")
             return
         }
+        savePosition()
+        if item.url.scheme == "https" || item.url.scheme == "http" {
+            try? MediaLibrary.shared.addRemote(title: item.title, url: item.url, isLive: item.isLive, sourceKey: item.sourceKey)
+        }
+        let savedPosition = MediaLibrary.shared.items.first(where: { $0.url == item.url })?.position ?? 0
+        MediaLibrary.shared.record(url: item.url, position: savedPosition)
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo, options: [])
-        try? session.setActive(true)
+        do {
+            try session.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo, options: [])
+            try session.setActive(true)
+        } catch { errorMessage = error.localizedDescription; return }
 
         errorMessage = nil
         player.pause()
         player.replaceCurrentItem(with: nil)
         current = item
+        lastSaved = 0
+        elapsed = 0
+        duration = 0
+        isLoading = true
         isExternalDisplayPlayback = !presentOnPhone
         artwork = nil
 
-        let playerItem = AVPlayerItem(url: item.url)
+        let asset = AVURLAsset(url: item.url, options: [AVURLAssetHTTPUserAgentKey: PlayerPreferences.text("userAgent", "WudCar/3.0.1")])
+        let playerItem = AVPlayerItem(asset: asset)
+        playerItem.preferredForwardBufferDuration = PlayerPreferences.number("buffer", 0)
+        startupTimeout?.cancel()
+        let timeout = DispatchWorkItem { [weak self, weak playerItem] in
+            guard let self, self.player.currentItem === playerItem, playerItem?.status != .readyToPlay else { return }
+            self.player.pause()
+            self.isLoading = false
+            self.errorMessage = tr("انتهت مهلة الاتصال بالمصدر. تحقق من الرابط والشبكة ثم أعد المحاولة.", "Source connection timed out. Check the URL and network, then retry.")
+        }
+        startupTimeout = timeout
+        DispatchQueue.main.asyncAfter(deadline: .now() + PlayerPreferences.number("timeout", 30), execute: timeout)
         observe(playerItem)
         player.replaceCurrentItem(with: playerItem)
-        player.playImmediately(atRate: 1)
+        player.defaultRate = presentOnPhone && !AppState.shared.isCarConnected ? Float(PlayerPreferences.number("rate", 1)) : 1
+        player.play()
         updateNowPlaying()
         loadArtwork(for: item)
 
@@ -86,23 +139,138 @@ final class PlaybackManager: ObservableObject {
     }
 
     func seek(by seconds: Double) {
-        guard current?.isLive == false else { return }
-        let target = max(0, player.currentTime().seconds + seconds)
+        guard let item = player.currentItem, item.status == .readyToPlay else { return }
+        let ranges = item.seekableTimeRanges.map { $0.timeRangeValue }
+        guard let range = ranges.last else { return }
+        let lower = range.start.seconds
+        let upper = CMTimeRangeGetEnd(range).seconds
+        guard lower.isFinite, upper.isFinite, upper > lower else { return }
+        // Live streams are seekable only when the source exposes a time-shift window.
+        let target = min(upper, max(lower, player.currentTime().seconds + seconds))
         player.seek(to: CMTime(seconds: target, preferredTimescale: 600))
     }
 
+    func playQueue(_ items: [Item], startingAt url: URL?, presentOnPhone: Bool) {
+        queue = items
+        guard let first = items.first(where: { $0.url == url }) ?? items.first else { return }
+        play(first, presentOnPhone: presentOnPhone)
+    }
+
+    var canSeek: Bool {
+        guard let item = player.currentItem, item.status == .readyToPlay else { return false }
+        return item.seekableTimeRanges.contains { value in
+            let range = value.timeRangeValue
+            return range.duration.seconds.isFinite && range.duration.seconds > 0
+        }
+    }
+    var canPlayNext: Bool {
+        guard let current, let index = queue.firstIndex(of: current) else { return false }
+        return queue.indices.contains(index + 1)
+    }
+    var canPlayPrevious: Bool {
+        guard let current, let index = queue.firstIndex(of: current) else { return false }
+        return index > 0
+    }
+
+    var supportedRates: [Float] {
+        guard current?.isLive == false, let item = player.currentItem, item.status == .readyToPlay else { return [1] }
+        var rates: [Float] = [1]
+        if item.canPlaySlowForward { rates.insert(0.5, at: 0) }
+        if item.canPlayFastForward { rates += [1.5, 2] }
+        return rates
+    }
+
+    func setRate(_ rate: Float) {
+        guard supportedRates.contains(rate), !AppState.shared.isCarConnected, !isExternalDisplayPlayback else { return }
+        player.defaultRate = rate
+        if isPlaying { player.rate = rate }
+    }
+
+    func next() { moveQueue(by: 1) }
+    func previous() { moveQueue(by: -1) }
+    private func moveQueue(by offset: Int) {
+        guard let current, let index = queue.firstIndex(of: current), queue.indices.contains(index + offset) else { return }
+        play(queue[index + offset], presentOnPhone: isPlayerPresented)
+    }
+
+    func savePosition(completed: Bool = false) {
+        guard let current else { return }
+        if current.isLive { MediaLibrary.shared.record(url: current.url, position: 0); return }
+        let total = player.currentItem?.duration.seconds ?? 0
+        let atEnd = total.isFinite && total > 0 && player.currentTime().seconds >= total - 1
+        let position = (completed || atEnd) ? 0 : player.currentTime().seconds
+        guard position.isFinite else { return }
+        MediaLibrary.shared.record(url: current.url, position: position)
+        lastSaved = position
+    }
+
+    func carDisconnected() {
+        guard isExternalDisplayPlayback else { return }
+        savePosition()
+        player.pause()
+        isExternalDisplayPlayback = false
+        // Reconnection never resumes media without a new user action.
+    }
+
     func stop() {
+        savePosition()
+        startupTimeout?.cancel()
+        sleepTimer?.invalidate()
         itemBag.removeAll()
         player.pause()
         player.replaceCurrentItem(with: nil)
         artwork = nil
         isPlaying = false
+        isLoading = false
+        elapsed = 0
+        duration = 0
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         current = nil
         isExternalDisplayPlayback = false
         errorMessage = nil
         isPlayerPresented = false
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    }
+
+    func enforceSafety() {
+        guard let item = player.currentItem else { return }
+        let continueAudio = isPlaying
+        let block = DrivingMonitor.shared.shouldBlockVideo && (AppState.shared.isCarConnected || WDSettings.lockVideoWhileDriving)
+        for track in item.tracks where track.assetTrack?.mediaType == .video { track.isEnabled = !block }
+        // The legacy external dashboard pauses when notified; retain audio by applying its safety state first.
+        if block, continueAudio, isExternalDisplayPlayback, current != nil {
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.player.currentItem === item else { return }
+                self.player.play()
+            }
+        }
+    }
+
+    func setSleepTimer(minutes: Int) {
+        sleepTimer?.invalidate()
+        guard minutes > 0 else { return }
+        sleepTimer = Timer.scheduledTimer(withTimeInterval: Double(minutes * 60), repeats: false) { [weak self] _ in self?.player.pause() }
+    }
+    func applyPreferences() {
+        guard let item = player.currentItem else { return }
+        item.textStyleRules = PlayerPreferences.styleRules
+        item.preferredForwardBufferDuration = PlayerPreferences.number("buffer", 0)
+        if let group = item.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) {
+            let preferred = group.options.first { $0.extendedLanguageTag?.hasPrefix(PlayerPreferences.text("audioLanguage", "ar")) == true }
+            if let preferred { item.select(preferred, in: group) }
+        }
+        if let group = item.asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
+            let preferred = group.options.first { $0.extendedLanguageTag?.hasPrefix(PlayerPreferences.subtitleLanguage) == true }
+            item.select(PlayerPreferences.subtitles ? (preferred ?? group.defaultOption) : nil, in: group)
+        }
+    }
+    var hasEnhancedDialogue: Bool {
+        player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .audible)?.options.contains { $0.hasMediaCharacteristic(.enhancesSpeechIntelligibility) } ?? false
+    }
+    func selectEnhancedDialogue() {
+        guard let item = player.currentItem, let group = item.asset.mediaSelectionGroup(forMediaCharacteristic: .audible),
+              let option = group.options.first(where: { $0.hasMediaCharacteristic(.enhancesSpeechIntelligibility) }) else { return }
+        item.select(option, in: group)
     }
 
     // MARK: داخلي
@@ -113,9 +281,26 @@ final class PlaybackManager: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] status in
                 guard let self, self.player.currentItem === item else { return }
+                if status == .readyToPlay {
+                    self.startupTimeout?.cancel()
+                    self.isLoading = false
+                    self.applyPreferences()
+                    self.enforceSafety()
+                    if PlayerPreferences.resume, self.current?.isLive == false,
+                       let url = self.current?.url,
+                       let saved = MediaLibrary.shared.items.first(where: { $0.url == url }), saved.position > 0,
+                       item.duration.seconds.isFinite, saved.position < item.duration.seconds - 3 {
+                        self.player.seek(to: CMTime(seconds: saved.position, preferredTimescale: 600))
+                    }
+                    if let group = item.asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
+                        let language = PlayerPreferences.subtitleLanguage
+                        let preferred = group.options.first { $0.extendedLanguageTag?.hasPrefix(language) == true }
+                        item.select(PlayerPreferences.subtitles ? (preferred ?? group.defaultOption) : nil, in: group)
+                    }
+                }
                 if status == .failed {
-                    self.errorMessage = item.error?.localizedDescription
-                        ?? tr("تعذّر تشغيل هذا المحتوى.", "This content could not be played.")
+                    self.isLoading = false
+                    self.errorMessage = MediaImportError.unsupported.localizedDescription + "\n" + (item.error?.localizedDescription ?? "")
                 }
                 self.updateNowPlaying()
             }
@@ -138,10 +323,25 @@ final class PlaybackManager: ObservableObject {
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: current.title,
             MPMediaItemPropertyArtist: current.subtitle,
+            MPMediaItemPropertyAlbumTitle: current.subtitle,
             MPNowPlayingInfoPropertyIsLiveStream: current.isLive,
             MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.video.rawValue,
             MPNowPlayingInfoPropertyPlaybackRate: Double(player.rate)
         ]
+        let center = MPRemoteCommandCenter.shared()
+        let canSeek = player.currentItem?.seekableTimeRanges.isEmpty == false
+        center.skipForwardCommand.isEnabled = canSeek
+        center.skipBackwardCommand.isEnabled = canSeek
+        center.changePlaybackPositionCommand.isEnabled = canSeek && !current.isLive
+        center.skipForwardCommand.preferredIntervals = [NSNumber(value: PlayerPreferences.skip)]
+        center.skipBackwardCommand.preferredIntervals = [NSNumber(value: PlayerPreferences.skip)]
+        if let index = queue.firstIndex(of: current) {
+            center.nextTrackCommand.isEnabled = index + 1 < queue.count
+            center.previousTrackCommand.isEnabled = index > 0
+        } else {
+            center.nextTrackCommand.isEnabled = false
+            center.previousTrackCommand.isEnabled = false
+        }
         let elapsed = player.currentTime().seconds
         if elapsed.isFinite { info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsed }
         if let duration = player.currentItem?.duration.seconds, duration.isFinite, !current.isLive {
@@ -155,7 +355,15 @@ final class PlaybackManager: ObservableObject {
 
     private func setupRemoteCommands() {
         let center = MPRemoteCommandCenter.shared()
+        center.changePlaybackRateCommand.supportedPlaybackRates = [0.5, 1, 1.5, 2]
+        center.changePlaybackRateCommand.addTarget { [weak self] event in
+            guard let event = event as? MPChangePlaybackRateCommandEvent, !AppState.shared.isCarConnected else { return .commandFailed }
+            self?.setRate(event.playbackRate); return .success
+        }
+        center.nextTrackCommand.addTarget { [weak self] _ in self?.next(); return .success }
+        center.previousTrackCommand.addTarget { [weak self] _ in self?.previous(); return .success }
         center.playCommand.addTarget { [weak self] _ in
+            guard SubscriptionStore.shared.hasAccess else { return .commandFailed }
             self?.player.play(); return .success
         }
         center.pauseCommand.addTarget { [weak self] _ in
@@ -164,17 +372,18 @@ final class PlaybackManager: ObservableObject {
         center.togglePlayPauseCommand.addTarget { [weak self] _ in
             self?.togglePlayPause(); return .success
         }
-        center.skipForwardCommand.preferredIntervals = [15]
+        center.skipForwardCommand.preferredIntervals = [NSNumber(value: PlayerPreferences.skip)]
         center.skipForwardCommand.addTarget { [weak self] _ in
-            self?.seekRemote(by: 15); return .success
+            self?.seekRemote(by: Double(PlayerPreferences.skip)); return .success
         }
-        center.skipBackwardCommand.preferredIntervals = [15]
+        center.skipBackwardCommand.preferredIntervals = [NSNumber(value: PlayerPreferences.skip)]
         center.skipBackwardCommand.addTarget { [weak self] _ in
-            self?.seekRemote(by: -15); return .success
+            self?.seekRemote(by: -Double(PlayerPreferences.skip)); return .success
         }
         center.changePlaybackPositionCommand.addTarget { [weak self] event in
             guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
-            self?.player.seek(to: CMTime(seconds: event.positionTime, preferredTimescale: 600))
+            guard let self, self.current?.isLive == false else { return .commandFailed }
+            self.seek(by: event.positionTime - self.player.currentTime().seconds)
             return .success
         }
     }
@@ -190,12 +399,18 @@ struct PlayerScreen: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
         controller.player = PlaybackManager.shared.player
-        controller.allowsPictureInPicturePlayback = true
-        controller.canStartPictureInPictureAutomaticallyFromInline = true
+        controller.allowsPictureInPicturePlayback = PlayerPreferences.flag("pip", true)
+        controller.canStartPictureInPictureAutomaticallyFromInline = PlayerPreferences.flag("pip", true)
         // نحن ننشر معلومات Now Playing بأنفسنا
         controller.updatesNowPlayingInfoCenter = false
+        controller.videoGravity = PlayerPreferences.gravity
+        controller.entersFullScreenWhenPlaybackBegins = PlayerPreferences.flag("autoFullscreen", true)
+        controller.exitsFullScreenWhenPlaybackEnds = true
         return controller
     }
 
-    func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {}
+    func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {
+        controller.videoGravity = PlayerPreferences.gravity
+        controller.allowsPictureInPicturePlayback = PlayerPreferences.flag("pip", true)
+    }
 }

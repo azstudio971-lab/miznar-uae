@@ -6,6 +6,7 @@ struct RootView: View {
     @AppStorage(WDKeys.language) private var language = L10n.language.rawValue
     @AppStorage(WDKeys.appearance) private var appearance = AppAppearance.system.rawValue
     @State private var introFinished = false
+    @AppStorage("wd.safetyNotice301") private var safetyAccepted = false
 
     var body: some View {
         ZStack {
@@ -40,6 +41,14 @@ struct RootView: View {
             }
         }
         .animation(.spring(duration: 0.35), value: app.toast)
+        .alert(tr("الفيديو أثناء التوقف فقط", "Video while parked only"), isPresented: $app.showLocationExplanation) {
+            Button(tr("متابعة", "Continue")) { DrivingMonitor.shared.requestAuthorizationAfterExplanation() }
+        } message: {
+            Text(tr("يستخدم WudCar السرعة لحظياً لإيقاف الفيديو عند الحركة دون تخزين موقعك أو إرساله. عند رفض الإذن يُمنع فيديو السيارة إلا إذا أعلنت السيارة دعم الفيديو؛ ويظل تحكم النظام سارياً.", "WudCar uses speed in real time to stop video when moving, without storing or sending location. If denied, car video remains blocked unless the car reports video support; system restrictions always apply."))
+        }
+        .alert(tr("للركاب فقط — لا تشاهد أثناء القيادة", "Passengers only — do not watch while driving"), isPresented: Binding(get: { introFinished && !safetyAccepted && !app.showLocationExplanation }, set: { if !$0 { safetyAccepted = true } })) {
+            Button(tr("فهمت", "Understood")) { safetyAccepted = true }
+        }
     }
 }
 
@@ -49,18 +58,14 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $tab) {
-            HomeView(selectTab: { tab = $0 })
-                .tabItem { Label(tr("الرئيسية", "Home"), systemImage: "house") }
-                .tag(0)
-            SubscriptionGate { PhoneBrowserScreen() }
-                .tabItem { Label(tr("الترفيه", "Entertainment"), systemImage: "play.tv") }
-                .tag(1)
+            PlayerHomeView()
+                .tabItem { Label(tr("المشغّل", "Player"), systemImage: "play.rectangle") }.tag(0)
             SubscriptionGate { XtreamHomeView() }
-                .tabItem { Label("Xtream", systemImage: "antenna.radiowaves.left.and.right") }
-                .tag(2)
-            SubscriptionGate { CarMousePadView() }
-                .tabItem { Label(tr("الماوس", "Mouse"), systemImage: "cursorarrow.rays") }
-                .tag(3)
+                .tabItem { Label(tr("البث", "TV"), systemImage: "antenna.radiowaves.left.and.right") }.tag(1)
+            MediaLibraryView()
+                .tabItem { Label(tr("المكتبة", "Library"), systemImage: "play.rectangle.on.rectangle") }.tag(2)
+            CastView()
+                .tabItem { Label("Cast", systemImage: "airplay.video") }.tag(3)
             SettingsView(isSheet: false)
                 .tabItem { Label(tr("الإعدادات", "Settings"), systemImage: "gearshape") }
                 .tag(4)
@@ -75,11 +80,22 @@ struct MainTabView: View {
 /// المشغل بملء الشاشة على الهاتف + زر إغلاق + زر AirPlay
 private struct PlayerContainer: View {
     @ObservedObject private var playback = PlaybackManager.shared
+    @ObservedObject private var subtitles = ExternalSubtitles.shared
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             Color.black.ignoresSafeArea()
             PlayerScreen().ignoresSafeArea()
+            VStack {
+                if PlayerPreferences.number("subtitlePosition", 90) > 50 { Spacer() }
+                if PlayerPreferences.subtitles {
+                    Text(subtitles.text(at: playback.elapsed, mediaURL: playback.current?.url))
+                        .font(.system(size: 22 * PlayerPreferences.number("subtitleSize", 100) / 100))
+                        .foregroundStyle(PlayerPreferences.text("subtitleColor", "white") == "yellow" ? Color.yellow : Color.white)
+                        .padding(8).background(Color.black.opacity(PlayerPreferences.number("subtitleOpacity", 0.6)))
+                }
+                if PlayerPreferences.number("subtitlePosition", 90) <= 50 { Spacer() }
+            }.frame(maxWidth: .infinity).padding(.vertical, 60).allowsHitTesting(false)
             HStack {
                 Button {
                     playback.stop()

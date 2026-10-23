@@ -8,7 +8,7 @@ struct SettingsView: View {
     @EnvironmentObject private var app: AppState
     @AppStorage(WDKeys.language) private var language = L10n.language.rawValue
     @AppStorage(WDKeys.appearance) private var appearance = AppAppearance.system.rawValue
-    @AppStorage(WDKeys.lockVideoWhileDriving) private var lockVideo = false
+    @AppStorage(WDKeys.lockVideoWhileDriving) private var lockVideo = true
     @AppStorage(WDKeys.phoneDesktopMode) private var phoneDesktop = true
     @State private var confirmClear = false
     @State private var confirmReset = false
@@ -23,6 +23,13 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section(tr("المشغّل", "Player")) {
+                    NavigationLink(tr("إعدادات المشغّل", "Player settings")) { PlayerOptionsView() }
+                }
+                Section(tr("أدوات السيارة والويب", "Car and web tools")) {
+                    NavigationLink(tr("الترفيه / المتصفح", "Entertainment / Browser")) { SubscriptionGate { PhoneBrowserScreen() } }
+                    NavigationLink(tr("الماوس", "Mouse")) { SubscriptionGate { CarMousePadView() } }
+                }
                 Section(tr("حالة الاشتراك", "Subscription status")) {
                     NavigationLink(tr("حالة الاشتراك وإدارته", "Subscription status and management")) { SubscriptionView() }
                 }
@@ -39,10 +46,10 @@ struct SettingsView: View {
                 Section {
                     Toggle(tr("إيقاف الفيديو أثناء القيادة", "Pause video while driving"), isOn: $lockVideo)
                 } header: {
-                    Text("CarPlay")
+                    Text(tr("الفيديو على الهاتف", "Video on iPhone"))
                 } footer: {
-                    Text(tr("عند تفعيل هذا الخيار يتوقف الفيديو إذا رصد التطبيق حركة السيارة. يظل أي منع يفرضه النظام سارياً.",
-                            "When enabled, video pauses if the app detects vehicle movement. System-enforced restrictions always remain in effect."))
+                    Text(tr("مفروض دائماً على شاشة السيارة. يؤثر المفتاح على فيديو الهاتف فقط. للركاب فقط — لا تشاهد أثناء القيادة.",
+                            "Always enforced on the car display. This switch affects iPhone video only. Passengers only — do not watch while driving."))
                 }
 
                 Section(tr("المتصفح", "Browser")) {
@@ -60,13 +67,13 @@ struct SettingsView: View {
                 }
 
                 Section(tr("حول", "About")) {
-                    LabeledContent(tr("التطبيق", "App"), value: "WudCar — وُد كار")
+                    LabeledContent(tr("التطبيق", "App"), value: "WudCar Media Player")
                     LabeledContent(tr("الإصدار", "Version"), value: version)
                     NavigationLink(tr("سياسة الخصوصية", "Privacy Policy")) { LegalTextView(kind: .privacy) }
                     NavigationLink(tr("شروط الاستخدام", "Terms of Use")) { LegalTextView(kind: .terms) }
                 }
             }
-            .navigationTitle(tr("الإعدادات", "Settings"))
+            .navigationTitle("WudCar Media Player")
             .toolbar {
                 if isSheet {
                     ToolbarItem(placement: .confirmationAction) {
@@ -108,11 +115,19 @@ struct LegalTextView: View {
 
     var body: some View {
         ScrollView {
-            Text(kind == .privacy ? privacy : terms)
+            Text(policyText)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)
         }
         .navigationTitle(kind == .privacy ? tr("سياسة الخصوصية", "Privacy Policy") : tr("شروط الاستخدام", "Terms of Use"))
+    }
+
+    private var policyText: String {
+        guard let url = Bundle.main.url(forResource: "policies", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let values = try? JSONSerialization.jsonObject(with: data) as? [String: [String: [String: Any]]],
+              let sections = values[kind == .privacy ? "privacy" : "terms"]?[L10n.language.rawValue]?["sections"] as? [[String]] else { return kind == .privacy ? privacy : terms }
+        return sections.compactMap { $0.count == 2 ? $0.joined(separator: "\n") : nil }.joined(separator: "\n\n")
     }
 
     private var privacy: String {

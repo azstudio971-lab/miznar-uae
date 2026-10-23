@@ -103,7 +103,7 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>يحوّل ود كار كلامك إلى نص لتكتب في المواقع من شاشة السيارة.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>يستخدم ود كار سرعة السيارة لإيقاف الفيديو تلقائياً أثناء القيادة حفاظاً على سلامتك.</string>
+	<string>يستخدم WudCar سرعة السيارة فقط لإيقاف الفيديو تلقائياً أثناء الحركة. لا يُحفظ موقعك ولا يُرسل لأي جهة.</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>

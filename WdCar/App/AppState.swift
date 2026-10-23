@@ -28,6 +28,7 @@ final class AppState: ObservableObject {
     @Published private(set) var carScreenInteractive = false
     /// طلب من CarPlay لعرض نافذة «شاشة السيارة» على الهاتف
     @Published var showCarScreenHelp = false
+    @Published var showLocationExplanation = false
 
     var carScreenText: String {
         guard carScreenActive else { return tr("غير معروض", "Not shown") }
@@ -97,6 +98,7 @@ final class AppState: ObservableObject {
             let newValue: CarVideoSupport = supported ? .supported : .unsupported
             guard self.carVideoSupport != newValue else { return }
             self.carVideoSupport = newValue
+            DrivingMonitor.shared.refreshAuthorizationFallback()
             if !supported {
                 self.showToast(tr("السيارة لا تعلن دعم الفيديو — سيصل الصوت فقط",
                                   "The car does not report video support — audio only"))

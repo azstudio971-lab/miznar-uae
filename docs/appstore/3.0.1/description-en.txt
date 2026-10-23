@@ -1,0 +1,20 @@
+WudCar is a media player for video and audio. Play sources you have the right to access.
+
+PLAYER
+Native playback, queue, resume, skip and phone playback speed.
+M3U / XTREAM
+Add your own playlists and accounts; browse groups and channel logos.
+LOCAL LIBRARY AND PLAYLISTS
+Import video and audio, manage favorites, create and reorder playlists.
+CARPLAY
+Browse Library, TV and Favorites using Apple templates. Video availability depends on your vehicle and system.
+CAST / AIRPLAY
+Choose an AirPlay-compatible car display or television. Google Cast is not included.
+SUBTITLES AND PLAYER SETTINGS
+Choose available embedded audio/subtitle tracks, import SRT/VTT for iPhone, and customize player preferences.
+ADDITIONAL WEB BROWSER
+Integrated web browser for website video playback, subject to each website’s support and terms.
+SAFETY
+Passengers only — do not watch while driving. Car video is locked when movement is detected. Location is used transiently for speed detection only. Apple and vehicle restrictions remain in effect.
+NO CONTENT PROVIDED
+WudCar provides, hosts and sells no content or IPTV subscriptions. You must have the necessary rights to all sources you add.

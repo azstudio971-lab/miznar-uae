@@ -1,0 +1,1 @@
+Required actual Simulator output: 1320x2868 (6.9-inch), 1284x2778 (requested 6.5-inch). Order: player playing; library/playlists; TV; subtitle settings; Cast; CarPlay Library; CarPlay TV. Browser optional final only. No fabricated screenshots. Not generated yet. CarPlay captures are separate device dimensions and must not be mislabeled as iPhone captures.
