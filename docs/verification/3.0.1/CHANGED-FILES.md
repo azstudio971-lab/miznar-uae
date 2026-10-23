@@ -1,0 +1,40 @@
+# Changed files versus build 17
+
+- `.github/workflows/validate.yml` — Run the complete native suite on the supported StoreKit simulator and enforce the frozen browser gate.
+- `Config/Info.plist` — Use the requested When In Use location safety explanation; existing scene roles and identity remain.
+- `WdCar/App/AppState.swift` — Publish location-explanation presentation and refresh safety fallback when vehicle support changes.
+- `WdCar/App/Settings.swift` — Default phone video safety preference to true; browser settings remain unchanged.
+- `WdCar/CarPlay/CarTemplateUI.swift` — Native Library/TV/Favorites/Settings root, media cards, queue, warning, favorites and safety messaging; original browser launch/configuration methods retained.
+- `WdCar/Media/ExternalSubtitles.swift` — Parse SRT/VTT with UTF-8 or Windows-1256; display synchronized captions on iPhone.
+- `WdCar/Media/MediaImportPickers.swift` — PHPicker videos and UIDocumentPicker audio/movie import with security-scoped copying.
+- `WdCar/Media/MediaLibrary.swift` — Local copies, thumbnails, durations, private remote URLs, history and playlists; non-destructive legacy-library migration.
+- `WdCar/Media/MediaLibraryView.swift` — Working library import, filtering, favorites and playlist navigation.
+- `WdCar/Media/MediaPlaylists.swift` — Create, rename, delete, favorite and reorder playlists and play them in sequence.
+- `WdCar/Media/MediaSettingsView.swift` — Working subtitle on/off, resume, auto-next and skip preferences.
+- `WdCar/Media/PlayerHomeView.swift` — Now-playing mini player, continue watching, playlists, recent channels, connection card and AirPlay/Cast page.
+- `WdCar/Media/PlayerOptions.swift` — Actual subtitle styles, tracks, dialogue-track selection, video fit, rate, PiP, timeout, buffering and reset.
+- `WdCar/Phone/HomeView.swift` — Extract the existing CarPlay connection card for reuse on the player home.
+- `WdCar/Phone/IntroView.swift` — Add WudCar Media Player identity to the existing intro.
+- `WdCar/Phone/RootView.swift` — Player-first tabs, location/safety explanation and native player minimize/close handling.
+- `WdCar/Phone/SettingsView.swift` — Move existing browser/mouse access into settings; add player options and bundled policies.
+- `WdCar/Resources/policies.json` — Current bilingual in-app privacy and terms, dated 2026-10-23.
+- `WdCar/Shared/DrivingMonitor.swift` — Mandatory car lock, When In Use pre-explanation and permission-denied fallback.
+- `WdCar/Shared/PlaybackManager.swift` — Queue, position persistence, seek ranges, metadata, player preferences, startup timeout, sleep timer, audio/video safety and PiP lifecycle.
+- `WdCarTests/Media301Tests.swift` — Actual local import/persistence/playlist tests, native HLS playback, subtitle rules, safety default, real tab order and native UI captures.
+- `codemagic.yaml` — Dedicated release-candidate workflow with complete tests, mandatory signed Audio+Video checks and internal upload only.
+- `docs/appstore/3.0.1/ar.json` — Localized store submission draft (not uploaded).
+- `docs/appstore/3.0.1/description-ar.txt` — Localized store submission draft (not uploaded).
+- `docs/appstore/3.0.1/description-en.txt` — Localized store submission draft (not uploaded).
+- `docs/appstore/3.0.1/en.json` — Localized store submission draft (not uploaded).
+- `docs/appstore/3.0.1/review-notes-ar.md` — Localized store submission draft (not uploaded).
+- `docs/appstore/3.0.1/review-notes-en.md` — Localized store submission draft (not uploaded).
+- `docs/appstore/3.0.1/sample.m3u` — Localized store submission draft (not uploaded).
+- `docs/appstore/3.0.1/screenshots/README.md` — Localized store submission draft (not uploaded).
+- `docs/verification/3.0.1/STATUS.md` — Release verification evidence and status.
+- `docs/verification/3.0.1/browser-diff-stat.txt` — Release verification evidence and status.
+- `docs/verification/3.0.1/browser-files.txt` — Release verification evidence and status.
+- `project.yml` — Marketing version 3.0.1 and build 1; existing signing, app identifier and targets preserved.
+- `scripts/select_storekit_simulator.sh` — Select/download and boot real iOS 18.5 for StoreKit tests; does not bypass subscriptions.
+- `scripts/verify_frozen_browser.py` — Byte-compare 26 protected files and three original launch/configuration methods against build 17.
+- `scripts/verify_signed_301.py` — Validate true signed Audio+Video, existing Team/Bundle ID and distribution signing; save exact signed entitlement plist.
+- `web/src/policies.js` — Append bilingual media-player, content-rights and safety terms without deploying the site.
