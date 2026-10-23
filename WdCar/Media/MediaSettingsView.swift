@@ -13,6 +13,7 @@ enum PlayerPreferences {
 }
 
 struct MediaSettingsView: View {
+    @AppStorage(WDKeys.lockVideoWhileDriving) private var lockVideo = true
     @AppStorage("wd.media.skip") private var skip = 15
     @AppStorage("wd.media.resume") private var resume = true
     @AppStorage("wd.media.autoNext") private var autoNext = false
@@ -47,6 +48,18 @@ struct MediaSettingsView: View {
             Section("AirPlay") {
                 Text(tr("شغّل فيديو ثم افتح زر AirPlay داخل المشغّل لاختيار جهاز متوافق. عرض الفيديو بالسيارة يحدده النظام والسيارة؛ دعم الفيديو وحده ليس إثباتًا للسماح بعرضه الآن.", "Play a video, then use AirPlay in the player to choose a compatible device. The system and vehicle control car video presentation; video support alone does not establish current permission."))
             }
+            Section {
+                Toggle(tr("إيقاف فيديو الهاتف أثناء القيادة", "Pause iPhone video while driving"), isOn: $lockVideo)
+                    .onChange(of: lockVideo) { _, enabled in
+                        if enabled { DrivingMonitor.shared.requestMonitoringPermission() }
+                        PlaybackManager.shared.enforceSafety()
+                    }
+            } header: {
+                Text(tr("الفيديو على الهاتف", "Video on iPhone"))
+            } footer: {
+                Text(tr("اتبع ارشادات وقوانين المرور في بلدك", "Follow the traffic guidance and laws in your country"))
+            }
+
         }.navigationTitle(tr("إعدادات المشغّل", "Player settings"))
     }
 }

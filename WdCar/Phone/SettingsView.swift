@@ -8,7 +8,6 @@ struct SettingsView: View {
     @EnvironmentObject private var app: AppState
     @AppStorage(WDKeys.language) private var language = L10n.language.rawValue
     @AppStorage(WDKeys.appearance) private var appearance = AppAppearance.system.rawValue
-    @AppStorage(WDKeys.lockVideoWhileDriving) private var lockVideo = true
     @AppStorage(WDKeys.phoneDesktopMode) private var phoneDesktop = true
     @State private var confirmClear = false
     @State private var confirmReset = false
@@ -41,18 +40,6 @@ struct SettingsView: View {
                     Picker(tr("وضع العرض", "Appearance"), selection: $appearance) {
                         ForEach(AppAppearance.allCases) { Text($0.title).tag($0.rawValue) }
                     }
-                }
-
-                Section {
-                    Toggle(tr("إيقاف فيديو الهاتف أثناء القيادة", "Pause iPhone video while driving"), isOn: $lockVideo)
-                        .onChange(of: lockVideo) { _, enabled in
-                            if enabled { DrivingMonitor.shared.requestMonitoringPermission() }
-                            PlaybackManager.shared.enforceSafety()
-                        }
-                } header: {
-                    Text(tr("الفيديو على الهاتف", "Video on iPhone"))
-                } footer: {
-                    Text(tr("اتبع ارشادات وقوانين المرور في بلدك", "Follow the traffic guidance and laws in your country"))
                 }
 
                 Section(tr("المتصفح", "Browser")) {
