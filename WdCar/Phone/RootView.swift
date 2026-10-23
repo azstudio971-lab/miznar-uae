@@ -72,7 +72,7 @@ struct MainTabView: View {
         }
         .fullScreenCover(isPresented: $playback.isPlayerPresented) {
             PlayerContainer()
-                .onDisappear { if !playback.isExternalDisplayPlayback && !playback.isPictureInPictureActive { playback.stop() } }
+                .onDisappear { if !playback.isExternalDisplayPlayback && !playback.isPictureInPictureActive && !playback.isMinimized { playback.stop() } }
         }
     }
 }
@@ -98,7 +98,7 @@ private struct PlayerContainer: View {
             }.frame(maxWidth: .infinity).padding(.vertical, 60).allowsHitTesting(false)
             HStack {
                 Button {
-                    playback.stop()
+                    playback.minimize()
                 } label: {
                     Image(systemName: "chevron.down")
                         .font(.system(size: 18, weight: .bold))
@@ -106,6 +106,10 @@ private struct PlayerContainer: View {
                         .frame(width: 44, height: 44)
                         .background(Circle().fill(Color.black.opacity(0.5)))
                 }
+                Button { playback.stop() } label: {
+                    Image(systemName: "xmark").font(.system(size: 17, weight: .bold)).foregroundStyle(.white)
+                        .frame(width: 44, height: 44).background(Circle().fill(Color.black.opacity(0.5)))
+                }.accessibilityLabel(tr("إغلاق المشغّل وإيقاف التشغيل", "Close and stop playback"))
                 Spacer()
                 if let error = playback.errorMessage {
                     Text(error)

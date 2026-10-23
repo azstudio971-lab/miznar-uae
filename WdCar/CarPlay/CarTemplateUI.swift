@@ -1,6 +1,7 @@
 import CarPlay
 import Combine
 import CoreMedia
+import CoreLocation
 import UIKit
 
 /// واجهة CarPlay الرسمية لصلاحية CarPlay Video (قوالب فقط، بدون WebView على شاشة السيارة):
@@ -27,6 +28,10 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     private var browserWarningAccepted = false
     private var favoriteChannelRows: [CPListItem] = []
     static let tabOrder = ["library", "tv", "favorites", "settings"]
+    static func makeTabBar(library: CPTemplate, tv: CPTemplate, favorites: CPTemplate, settings: CPTemplate) -> CPTabBarTemplate {
+        let values = ["library": library, "tv": tv, "favorites": favorites, "settings": settings]
+        return CPTabBarTemplate(templates: tabOrder.compactMap { values[$0] })
+    }
 
     init(interfaceController: CPInterfaceController) {
         self.interfaceController = interfaceController
@@ -79,7 +84,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         settings.tabTitle = carTr("الإعدادات", "Settings")
         settings.tabImage = UIImage(systemName: "gearshape.fill")
 
-        let tabs = CPTabBarTemplate(templates: [home, television, entertainment, settings])
+        let tabs = Self.makeTabBar(library: home, tv: television, favorites: entertainment, settings: settings)
         tabs.delegate = self
         tabBar = tabs
         rebuildHome()
@@ -160,6 +165,8 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         M3UStore.shared.objectWillChange.debounce(for: .milliseconds(500), scheduler: RunLoop.main)
             .sink { [weak self] _ in self?.refreshFavoriteChannels() }.store(in: &bag)
         refreshFavoriteChannels()
+        DrivingMonitor.shared.$isMoving.receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildSettings() }.store(in: &bag)
         WDLog.car("templates connected supportsVideo=\(supportsVideo)")
         startedAt = Date()
         refreshVideoSupport()
@@ -292,7 +299,8 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             self?.rebuildSettings()
         }
         let safety = CPListItem(text: carTr("للركاب فقط — لا تشاهد أثناء القيادة", "Passengers only — do not watch while driving"), detailText: nil)
-        let lock = CPListItem(text: carTr("قفل الفيديو أثناء الحركة", "Video lock while moving"), detailText: carTr("مفروض دائماً على شاشة السيارة", "Always enforced on the car display"))
+        let lockDetail = DrivingMonitor.shared.shouldBlockVideo ? carTr("الفيديو محجوب الآن — صوت فقط", "Video blocked now — audio only") : carTr("مفروض دائماً على شاشة السيارة", "Always enforced on the car display")
+        let lock = CPListItem(text: carTr("قفل الفيديو أثناء الحركة", "Video lock while moving"), detailText: lockDetail)
         let about = CPListItem(text: "WudCar Media Player 3.0.1", detailText: carTr("إدارة الوسائط والإعدادات من iPhone", "Manage media and preferences on iPhone"))
         settings.updateSections([CPListSection(items: [language, display, zoomOut, zoom, zoomIn, reset, safety, lock, about])])
     }
@@ -375,6 +383,11 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     }
 
     private func confirmBrowserLaunch() {
+        let permission = DrivingMonitor.shared.authorization
+        if (permission == .denied || permission == .restricted), !supportsVideo {
+            showAlert([carTr("فيديو السيارة محجوب لأن إذن الموقع غير متاح والسيارة لا تعلن دعم الفيديو. فعّل إذن الموقع أثناء الاستخدام من إعدادات iPhone لرصد الحركة بأمان.", "Car video is blocked because location permission is unavailable and the car does not report video support. Enable When In Use location in iPhone Settings for safe motion detection.")])
+            return
+        }
         guard !browserWarningAccepted else { startCarScreen(); return }
         let proceed = CPAlertAction(title: carTr("متابعة", "Continue"), style: .default) { [weak self] _ in
             self?.interfaceController?.dismissTemplate(animated: true) { _, _ in

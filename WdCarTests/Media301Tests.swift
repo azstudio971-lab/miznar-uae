@@ -1,6 +1,7 @@
 import XCTest
 import AVFoundation
 import CoreMedia
+import CarPlay
 import SwiftUI
 import StoreKitTest
 @testable import WdCar
@@ -26,7 +27,7 @@ final class Media301Tests: XCTestCase {
         defer { library.deletePlaylist(list.id) }
         for (label, size) in [("6.9", CGSize(width: 440, height: 956)), ("6.5", CGSize(width: 428, height: 926))] {
             let item = try XCTUnwrap(imported.playbackItem)
-            PlaybackManager.shared.playQueue([item], startingAt: item.url, presentOnPhone: true)
+            PlaybackManager.shared.playQueue([item], startingAt: item.url, presentOnPhone: false)
             for _ in 0..<100 where PlaybackManager.shared.player.currentItem?.status != .readyToPlay { try await Task.sleep(for: .milliseconds(50)) }
             XCTAssertEqual(PlaybackManager.shared.player.currentItem?.status, .readyToPlay)
             let views: [(String, AnyView)] = [
@@ -52,6 +53,27 @@ final class Media301Tests: XCTestCase {
                 window.isHidden = true; window.rootViewController = nil
             }
         }
+    }
+
+    func testPublicAppleHLSPlayback() async throws {
+        let config = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "WudCar", withExtension: "storekit"))
+        let session = try SKTestSession(contentsOf: config)
+        session.disableDialogs = true
+        _ = try await session.buyProduct(identifier: SubscriptionStore.productID)
+        await SubscriptionStore.shared.refresh()
+        XCTAssertTrue(SubscriptionStore.shared.hasAccess)
+        let url = try XCTUnwrap(URL(string: "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8"))
+        let manager = PlaybackManager.shared
+        let old = Set(MediaLibrary.shared.items.map(\.id))
+        defer {
+            manager.stop()
+            for item in MediaLibrary.shared.items where !old.contains(item.id) { MediaLibrary.shared.remove(item.id) }
+        }
+        manager.playQueue([.init(title: "Apple HLS sample", subtitle: "Legal streaming fixture", url: url, isLive: true, artworkURL: nil)], startingAt: url, presentOnPhone: false)
+        for _ in 0..<450 where manager.player.currentItem?.status != .readyToPlay && manager.errorMessage == nil { try await Task.sleep(for: .milliseconds(100)) }
+        XCTAssertEqual(manager.player.currentItem?.status, .readyToPlay, manager.errorMessage ?? "HLS did not become playable")
+        for _ in 0..<150 where manager.player.currentTime().seconds < 0.2 { try await Task.sleep(for: .milliseconds(100)) }
+        XCTAssertGreaterThan(manager.player.currentTime().seconds, 0.1, "Native HLS playback time must actually advance")
     }
 
     func testImportPlaylistOrderResumeAndRemoval() async throws {
@@ -123,6 +145,14 @@ final class Media301Tests: XCTestCase {
         defer { if let old { UserDefaults.standard.set(old, forKey: WDKeys.lockVideoWhileDriving) } else { UserDefaults.standard.removeObject(forKey: WDKeys.lockVideoWhileDriving) } }
         UserDefaults.standard.removeObject(forKey: WDKeys.lockVideoWhileDriving)
         XCTAssertTrue(WDSettings.lockVideoWhileDriving)
-        XCTAssertEqual(CarTemplateUI.tabOrder, ["library", "tv", "favorites", "settings"])
+        let library = CPListTemplate(title: "library", sections: [])
+        let tv = CPListTemplate(title: "tv", sections: [])
+        let favorites = CPListTemplate(title: "favorites", sections: [])
+        let settings = CPListTemplate(title: "settings", sections: [])
+        let tabs = CarTemplateUI.makeTabBar(library: library, tv: tv, favorites: favorites, settings: settings)
+        XCTAssertTrue(tabs.templates[0] === library)
+        XCTAssertTrue(tabs.templates[1] === tv)
+        XCTAssertTrue(tabs.templates[2] === favorites)
+        XCTAssertTrue(tabs.templates[3] === settings)
     }
 }

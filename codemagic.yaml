@@ -331,8 +331,7 @@ workflows:
     - name: Run complete native test suite
       script: 'set -euo pipefail
 
-        DEVICE=$(xcrun simctl list devices available -j | python3 -c ''import json,sys; d=json.load(sys.stdin); ids=[v["udid"]
-        for k,a in d["devices"].items() for v in a if "iOS" in k and "iPhone" in v["name"]]; print(ids[0])'')
+        DEVICE=$(bash scripts/select_storekit_simulator.sh)
 
         xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS Simulator,id=$DEVICE" -parallel-testing-enabled
         NO -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 300

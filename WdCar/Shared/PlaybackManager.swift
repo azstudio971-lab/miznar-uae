@@ -28,6 +28,7 @@ final class PlaybackManager: ObservableObject {
     @Published private(set) var isExternalDisplayPlayback = false
     @Published var isPlayerPresented = false
     @Published var isPictureInPictureActive = false
+    @Published private(set) var isMinimized = false
 
     @Published private(set) var queue: [Item] = []
     @Published private(set) var elapsed: Double = 0
@@ -110,7 +111,7 @@ final class PlaybackManager: ObservableObject {
         duration = 0
         isLoading = true
         isExternalDisplayPlayback = !presentOnPhone
-        artwork = nil
+        artwork = UIImage(named: "LogoMark")
 
         let asset = AVURLAsset(url: item.url, options: [AVURLAssetHTTPUserAgentKey: PlayerPreferences.text("userAgent", "WudCar/3.0.1")])
         let playerItem = AVPlayerItem(asset: asset)
@@ -131,8 +132,11 @@ final class PlaybackManager: ObservableObject {
         updateNowPlaying()
         loadArtwork(for: item)
 
-        if presentOnPhone { isPlayerPresented = true }
+        if presentOnPhone { isMinimized = false; isPlayerPresented = true }
     }
+
+    func minimize() { isMinimized = true; isPlayerPresented = false }
+    func presentPlayer() { isMinimized = false; isPlayerPresented = true }
 
     func togglePlayPause() {
         guard SubscriptionStore.shared.hasAccess else { stop(); return }
@@ -203,7 +207,7 @@ final class PlaybackManager: ObservableObject {
         let atEnd = total.isFinite && total > 0 && player.currentTime().seconds >= total - 1
         let position = (completed || atEnd) ? 0 : player.currentTime().seconds
         guard position.isFinite else { return }
-        MediaLibrary.shared.record(url: current.url, position: position)
+        MediaLibrary.shared.record(url: current.url, position: position, duration: total)
         lastSaved = position
     }
 
@@ -232,6 +236,7 @@ final class PlaybackManager: ObservableObject {
         isExternalDisplayPlayback = false
         errorMessage = nil
         isPlayerPresented = false
+        isMinimized = false
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 
@@ -303,7 +308,9 @@ final class PlaybackManager: ObservableObject {
                 }
                 if status == .failed {
                     self.isLoading = false
-                    self.errorMessage = MediaImportError.unsupported.localizedDescription + "\n" + (item.error?.localizedDescription ?? "")
+                    let error = item.error as NSError?
+                    let unsupported = error?.domain == AVFoundationErrorDomain && [AVError.Code.fileFormatNotRecognized.rawValue, AVError.Code.decoderNotFound.rawValue].contains(error?.code ?? 0)
+                    self.errorMessage = unsupported ? MediaImportError.unsupported.localizedDescription : (item.error?.localizedDescription ?? tr("تعذّر تشغيل المصدر. تحقق من الرابط والاتصال.", "Unable to play this source. Check its URL and connection."))
                 }
                 self.updateNowPlaying()
             }
@@ -316,7 +323,7 @@ final class PlaybackManager: ObservableObject {
         }
         ImageLoader.shared.load(item.artworkURL) { [weak self] image in
             guard let self, self.current == item else { return }
-            self.artwork = image
+            if let image { self.artwork = image }
             self.updateNowPlaying()
         }
     }

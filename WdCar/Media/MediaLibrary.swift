@@ -134,8 +134,9 @@ final class MediaLibrary: ObservableObject {
         items[index].favorite.toggle()
         save()
     }
-    func record(url: URL, position: Double) {
+    func record(url: URL, position: Double, duration: Double? = nil) {
         guard position.isFinite, let index = items.firstIndex(where: { $0.url == url }) else { return }
+        if let duration, duration.isFinite, duration > 0 { items[index].duration = duration }
         items[index].position = max(0, position)
         items[index].lastPlayed = Date()
         save()

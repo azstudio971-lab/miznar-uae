@@ -8,8 +8,10 @@ Owner removed section 9: no DiagnosticLog, no copy log UI, no diagnostic tests, 
 - Frozen browser check: PASS (26 files byte-identical, three original launch methods verbatim; empty browser-diff-stat.txt).
 - npm run check: PASS (7 tests and web production build). GitHub browser UI web job PASS.
 - Initial iOS compile failures corrected: official CoreMedia subtitle placement constant; future SDK MiniPlayer API gated.
-- GitHub native compilation passed at aeb7e902; feature and browser tests running. Final source tests and signed release still pending.
+- Native compile passed at cfaa43b on GitHub and Codemagic. Codemagic new core tests passed: import/playlists/persistence, invalid import rollback, safety default, subtitle parsing and style application. Screenshot and existing subscription-dependent tests failed on current runtime with SKTestSession notEntitled. No signed IPA uploaded from that attempt. CI now uses real iOS 18.5 for StoreKit; all tests remain mandatory. Final source tests and signed release pending.
 - App Store Connect observed existing versions through 2.2.3 (1701), no 3.0.1 uploaded at inspection.
+
+Codemagic queued build: https://codemagic.io/app/6ad1db1b951fcdf1e4f45860/build/6adb4fc54a72334e32e460f3 (source cfaa43b).
 
 ## Limits / acceptance still pending
 - Physical vehicle testing is owner-only and not claimed.

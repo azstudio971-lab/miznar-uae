@@ -69,7 +69,7 @@ struct PlayerOptionsView: View {
             }
             Section(tr("العرض والتشغيل", "Display and playback")) {
                 Picker(tr("ملاءمة الصورة", "Video fit"), selection: $gravity) { Text("Fit").tag("fit"); Text("Fill").tag("fill"); Text("Stretch").tag("stretch") }
-                Toggle(tr("ملء الشاشة تلقائياً عند تدوير الهاتف", "Auto full screen on rotation"), isOn: $autoFullscreen)
+                Toggle(tr("ملء الشاشة تلقائياً عند بدء التشغيل", "Auto full screen when playback begins"), isOn: $autoFullscreen)
                 Picker(tr("السرعة الافتراضية — الهاتف فقط", "Default rate — iPhone only"), selection: $rate) { ForEach([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2], id: \.self) { Text(String(format: "%.2g×", $0)).tag($0) } }
                 Toggle(tr("صورة داخل صورة", "Picture in Picture"), isOn: $pip)
                 Picker(tr("مؤقت النوم", "Sleep timer"), selection: $sleepMinutes) { Text(tr("إيقاف", "Off")).tag(0); ForEach([15,30,60], id: \.self) { Text("\($0) " + tr("دقيقة", "min")).tag($0) } }

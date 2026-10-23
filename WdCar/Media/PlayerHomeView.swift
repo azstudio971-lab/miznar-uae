@@ -11,7 +11,7 @@ struct PlayerHomeView: View {
                 Section(tr("يعمل الآن", "Now playing")) {
                     if let item = playback.current {
                         MiniMediaPlayer().frame(height: 180).clipShape(RoundedRectangle(cornerRadius: 12))
-                        Button { playback.isPlayerPresented = true } label: { Label(item.title, systemImage: "play.rectangle") }
+                        Button { playback.presentPlayer() } label: { Label(item.title, systemImage: "play.rectangle") }
                         HStack {
                             Button { playback.previous() } label: { Image(systemName: "backward.end.fill") }.disabled(!playback.canPlayPrevious)
                             Spacer()
