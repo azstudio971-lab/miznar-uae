@@ -6,7 +6,8 @@ tree = ET.parse(scheme); root = tree.getroot()
 action = root.find('TestAction'); assert action is not None
 refs = root.findall('.//BuildableReference')
 test_ref = next(r for r in refs if r.get('BlueprintName') == 'WdCarTests')
-app_ref = next(r for r in refs if r.get('BlueprintName') == 'WdCar')
+app_scheme = ET.parse(scheme.with_name('WdCar.xcscheme')).getroot()
+app_ref = next(r for r in app_scheme.findall('.//BuildableReference') if r.get('BlueprintName') == 'WdCar')
 def target(r):
     return {'containerPath': 'container:WdCar.xcodeproj', 'identifier': r.get('BlueprintIdentifier'), 'name': r.get('BlueprintName')}
 plan = {
