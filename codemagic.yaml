@@ -291,7 +291,7 @@ workflows:
     integrations:
       app_store_connect: WudCar ASC Key
     environment:
-      xcode: latest
+      xcode: "27.1"
       groups:
       - wudcar
       ios_signing:
@@ -332,10 +332,10 @@ workflows:
 
         DEVICE=$(xcrun simctl list devices available -j | python3 -c ''import json,sys;
         d=json.load(sys.stdin); ids=[v["udid"] for k,a in d["devices"].items() for v
-        in a if "iOS" in k and "iPhone" in v["name"]]; print(ids[0])'')
+        in a if "iOS-27-0" in k and "iPhone" in v["name"]]; print(ids[0])'')
 
         xcodebuild -project WdCar.xcodeproj -scheme WdCarTests -destination "platform=iOS
-        Simulator,id=$DEVICE" -parallel-testing-enabled NO -skip-testing:WdCarTests/CarInterfaceTests -resultBundlePath /tmp/WudCar160ReleaseGate.xcresult
+        Simulator,id=$DEVICE" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 240 -resultBundlePath /tmp/WudCar160ReleaseGate.xcresult
         CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- test
         | tee /tmp/wudcar-160-release-gate.log
 

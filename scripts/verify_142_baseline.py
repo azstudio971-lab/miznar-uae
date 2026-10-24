@@ -5,7 +5,7 @@ groups={
 'WdCar/CarPlay':'CarBrowserViewController CarDashboardViewController CarExternalDisplaySceneDelegate CarScreenLauncher CarVideoOverlay CarKeyboardView CarTextInputView CarShortcutsView CarTabsPanel BrowserChromeView CompactToolbarButton CarUI',
 'WdCar/Phone':'PhoneBrowserScreen ShortcutsGridView TabsSwitcherView CarMousePadView PhoneCarKeyboardSheet'}
 files=[f'{folder}/{name}.swift' for folder,names in groups.items() for name in names.split()]
-for name in files+['Config/Info.plist','Config/WdCar.entitlements']:
+for name in files+['Config/Info.plist','Config/WdCar.entitlements','WdCar/Phone/SubscriptionView.swift','WdCar/Shared/SubscriptionStore.swift','WdCarTests/WudCar.storekit']:
  expected=subprocess.check_output(['git','show',f'{BASE}:{name}'])
  assert pathlib.Path(name).read_bytes()==expected, name+' differs from protected baseline'
 settings='WdCar/App/Settings.swift'

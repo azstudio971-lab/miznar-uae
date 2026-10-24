@@ -38,3 +38,16 @@ struct LegalTextView: View {
         }.frame(maxWidth: .infinity, alignment: .leading).padding(20) }.navigationTitle(kind.title)
     }
 }
+
+func subscriptionPeriodText(_ product: Product) -> String {
+    guard let period = product.subscription?.subscriptionPeriod else { return "" }
+    let unit: String
+    switch period.unit {
+    case .day: unit = tr("يوم", "day(s)")
+    case .week: unit = tr("أسبوع", "week(s)")
+    case .month: unit = tr("شهر", "month(s)")
+    case .year: unit = tr("سنة", "year(s)")
+    @unknown default: unit = ""
+    }
+    return "\(period.value) " + unit
+}

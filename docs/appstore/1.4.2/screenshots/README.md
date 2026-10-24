@@ -1,0 +1,1 @@
+Native simulator attachments are exported by Codemagic after tests. Required dimensions: 1320×2868 and 1284×2778. Required order: Home, populated Library, M3U IPTV Player, playback, player settings, actual CarPlay Video Library. Do not treat empty-screen test captures as the finished screenshot set. No fabricated device screenshots are acceptable.

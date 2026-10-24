@@ -47,3 +47,8 @@ Paused at the owner's explicit request on 2026-10-24: finish basic programming, 
 - git clone/read succeeds but shell git push lacks credentials. Use connected GitHub create_tree/create_commit/update_ref with expected SHA. Commit local changes as a checkpoint too; remote SHA differs because commits are created through the connector.
 - Browser skill c8/control-browser was read. Connected Chrome works; Codemagic session authenticated. App ID 6ad1db1b951fcdf1e4f45860. ASC app ID 6823772404.
 - Codemagic build modal was cancelled following the owner's pause instruction; no new Codemagic build started.
+
+## Continuation 2026-10-24
+Owner resumed full implementation/build/internal upload via attached specification, then explicitly required the subscription to remain exactly as baseline 1.6.0 (17), covering all features. SubscriptionView is restored byte-for-byte; SubscriptionStore, SubscriptionGate and the StoreKit product fixture stay unchanged. The period-label helper used only by the legal page now lives in LegalViews.swift.
+
+Observed pre-existing Codemagic build 6adc83ca4a72334e32e4ad0b fetched sources in six seconds and compiled Debug successfully. Release160Tests (5) and Release17Tests (3) passed. SubscriptionTests hit SKInternalErrorDomain Code=3 on Xcode 26.6/iOS 26.5 and hung after the fixture price assertion. Cancelled the stalled run before signing/upload. Apple DTS acknowledges matching StoreKit CI failures: https://developer.apple.com/forums/thread/826971 . New workflow pins Xcode 27.1 / iOS 27.0, restores ALL tests (including CarInterfaceTests), and bounds test execution; no subscription app code or product price was changed. This is an attempted CI remedy, not yet a verified success. Other workflows remain unchanged.
