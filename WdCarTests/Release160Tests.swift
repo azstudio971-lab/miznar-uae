@@ -33,12 +33,24 @@ final class Release160Tests: XCTestCase {
     }
     private func evaluate(_ js: String, web: WKWebView) async throws -> Any {
         try await withCheckedThrowingContinuation { continuation in
+            var completed = false
+            let timeout = DispatchWorkItem {
+                guard !completed else { return }
+                completed = true
+                continuation.resume(throwing: NSError(domain: "WebKitTestTimeout", code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "JavaScript callback timed out after 10 seconds: \(js)"]))
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: timeout)
             web.evaluateJavaScript(js) { value, error in
+                guard !completed else { return }
+                completed = true
+                timeout.cancel()
                 if let error { continuation.resume(throwing: error) }
                 else { continuation.resume(returning: value ?? NSNull()) }
             }
         }
     }
+
     private func ready(_ web: WKWebView, marker: String = "document.readyState === 'complete'") async throws {
         for _ in 0..<150 {
             if !web.isLoading, (try? await evaluate(marker, web: web)) as? Bool == true { return }
@@ -51,7 +63,7 @@ final class Release160Tests: XCTestCase {
         var consecutive = 0
         let literal = WebEngine.jsLiteral(path)
         for _ in 0..<180 {
-            let desktop = (try? await evaluate("location.pathname === \(literal) && document.readyState === 'complete' && document.title.length > 0 && !!document.querySelector('ytd-app') && !document.querySelector('ytm-app') && innerWidth >= 1200", web: web)) as? Bool == true
+            let desktop = (try await evaluate("location.pathname === \(literal) && document.readyState === 'complete' && document.title.length > 0 && !!document.querySelector('ytd-app') && !document.querySelector('ytm-app') && innerWidth >= 1200", web: web)) as? Bool == true
             consecutive = (!web.isLoading && desktop) ? consecutive + 1 : 0
             if consecutive >= 20 { return true }
             try await Task.sleep(nanoseconds: 250_000_000)
@@ -167,6 +179,7 @@ final class Release160Tests: XCTestCase {
 
     /// A network probe on real WKWebView in Simulator, never a claim of physical-device acceptance.
     func testLiveYouTubePhoneBeforeCarProbe() async throws {
+        print("WUDCAR160 LIVE PROBE START")
         let phone = WDSettings.phoneDesktopMode, car = WDSettings.carDesktopMode, zoom = WDSettings.carZoom
         defer { WDSettings.phoneDesktopMode = phone; WDSettings.carDesktopMode = car; WDSettings.carZoom = zoom }
         WDSettings.phoneDesktopMode = true; WDSettings.carDesktopMode = true; WDSettings.carZoom = 1
