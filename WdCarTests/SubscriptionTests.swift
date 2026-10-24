@@ -26,6 +26,9 @@ final class SubscriptionTests: XCTestCase {
         XCTAssertFalse(store.hasAccess)
         let product = try XCTUnwrap(store.product)
         XCTAssertEqual(product.price, 24)
+        guard product.price == 24 else {
+            throw NSError(domain: "LocalStoreKitFixture", code: 1, userInfo: [NSLocalizedDescriptionKey: "Local fixture was not activated. Refusing to purchase against a real store."])
+        }
         XCTAssertEqual(product.subscription?.subscriptionPeriod.unit, .month)
         XCTAssertEqual(product.subscription?.introductoryOffer?.paymentMode, .freeTrial)
         XCTAssertEqual(product.subscription?.introductoryOffer?.period.value, 3)

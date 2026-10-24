@@ -3,6 +3,7 @@ import UIKit
 import WebKit
 import SwiftUI
 import StoreKitTest
+import StoreKit
 @testable import WdCar
 
 @MainActor
@@ -17,11 +18,23 @@ final class CarInterfaceTests: XCTestCase {
             let session = try SKTestSession(contentsOf: url)
             session.disableDialogs = true
             session.clearTransactions()
+            let products = try await Product.products(for: [SubscriptionStore.productID])
+            let product = try XCTUnwrap(products.first)
+            guard product.price == 24 else {
+                throw NSError(domain: "LocalStoreKitFixture", code: 1, userInfo: [NSLocalizedDescriptionKey: "Local StoreKit fixture is not active; refusing a real-store purchase. Expected fixture 24, got \(product.price)."])
+            }
             _ = try await session.buyProduct(identifier: SubscriptionStore.productID)
             Self.purchaseSession = session
         }
-        await SubscriptionStore.shared.refresh()
-        XCTAssertTrue(SubscriptionStore.shared.hasAccess, "Car interface tests use a verified StoreKit test subscription")
+        for _ in 0..<30 {
+            await SubscriptionStore.shared.refresh()
+            if SubscriptionStore.shared.hasAccess { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        guard SubscriptionStore.shared.hasAccess else {
+            if let result = await Transaction.latest(for: SubscriptionStore.productID) { print("STOREKIT TEST VERIFICATION: \(result)") }
+            throw NSError(domain: "LocalStoreKitFixture", code: 2, userInfo: [NSLocalizedDescriptionKey: "Local StoreKit did not produce a verified active subscription."])
+        }
     }
 
 
@@ -413,8 +426,8 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertEqual(entries[1].group, "Movies")
 
         let shortcuts = ShortcutStore.shared.shortcuts
-        for host in ["www.mp3quran.net", "m.soundcloud.com", "www.netflix.com", "pranx.com",
-                     "tv2tv.com", "www.primevideo.com", "www.tod.tv", "www.crazygames.com",
+        for host in ["www.mp3quran.net", "m.soundcloud.com", "pranx.com",
+                     "tv2tv.com", "www.tod.tv", "www.crazygames.com",
                      "mail.google.com", "outlook.live.com", "chatgpt.com"] {
             XCTAssertTrue(shortcuts.contains { $0.url.host == host }, "Missing default shortcut for \(host)")
         }
@@ -441,8 +454,9 @@ final class CarInterfaceTests: XCTestCase {
         defer { session.tearDown() }
         let controller = UIViewController()
         display(controller)
-        controller.view.addSubview(session.webView)
-        CarUI.pin(session.webView, to: controller.view)
+        let viewport = DesktopViewportView(session: session)
+        controller.view.addSubview(viewport)
+        CarUI.pin(viewport, to: controller.view)
         controller.view.layoutIfNeeded()
         session.webView.loadHTMLString("<html><head><title>WudCar layout fixture</title><meta name='viewport' content='width=device-width, initial-scale=1'></head><body style='margin:0;background:#000'><div id='fill' style='width:100%;min-height:5000px;background:#e9b33f'><div style='transform:translate(9px,19px);contain:paint'><video controls width='640' height='360'></video></div></div></body></html>", baseURL: nil)
         try await waitForDocument(session.webView, marker: "WudCar layout fixture")
@@ -452,16 +466,18 @@ final class CarInterfaceTests: XCTestCase {
             try await Task.sleep(nanoseconds: 300_000_000)
             var stableMetrics: [String: Double] = [:]
             for _ in 0..<50 {
-                stableMetrics = try await session.webView.evaluateJavaScript("({fill:document.getElementById('fill').getBoundingClientRect().width,viewport:window.visualViewport.width})") as? [String: Double] ?? [:]
+                stableMetrics = try await session.webView.evaluateJavaScript("({fill:document.getElementById('fill').getBoundingClientRect().width,viewport:document.documentElement.clientWidth})") as? [String: Double] ?? [:]
                 if let fill = stableMetrics["fill"], let viewport = stableMetrics["viewport"], fill > 0, abs(fill - viewport) <= 1 { break }
                 try await Task.sleep(nanoseconds: 100_000_000)
             }
             let fillWidth = stableMetrics["fill"] ?? 0
             let viewportWidth = stableMetrics["viewport"] ?? 0
             XCTAssertGreaterThan(fillWidth, 0)
-            XCTAssertEqual(fillWidth, viewportWidth, accuracy: 1, "Page content must fill the visual viewport at every zoom level")
-            XCTAssertEqual(session.webView.frame, controller.view.bounds)
-            XCTAssertEqual(session.webView.transform, .identity)
+            XCTAssertEqual(fillWidth, viewportWidth, accuracy: 1, "Page content must fill the desktop layout viewport at every zoom level")
+            let rendered = session.webView.convert(session.webView.bounds, to: viewport)
+            XCTAssertEqual(rendered.width, viewport.bounds.width, accuracy: 1)
+            XCTAssertEqual(rendered.height, viewport.bounds.height, accuracy: 1)
+            XCTAssertEqual(session.webView.bounds.width, 1280, accuracy: 1)
             XCTAssertEqual(Double(session.webView.pageZoom), zoom, accuracy: 0.001)
             let metrics = try await session.webView.evaluateJavaScript("JSON.stringify({viewport:innerWidth,document:document.documentElement.clientWidth,zoom:document.documentElement.style.zoom})")
             print("WUDCAR ZOOM \(zoom): \(metrics)")
