@@ -208,7 +208,7 @@ struct M3UEntriesView: View {
                                                   subtitle: entry.group.isEmpty ? playlist.name : entry.group,
                                                   url: entry.url,
                                                   isLive: true,
-                                                  artworkURL: entry.logo),
+                                                  artworkURL: entry.logo, sourceKey: "m3u-\(playlist.id)"),
                                             presentOnPhone: presentPlaybackOnPhone)
             } label: {
                 HStack {
@@ -496,7 +496,7 @@ struct XtreamStreamsView: View {
                                           subtitle: account.name,
                                           url: url,
                                           isLive: kind == .live,
-                                          artworkURL: stream.icon),
+                                          artworkURL: stream.icon, sourceKey: "xtream-\(account.id)"),
                                     presentOnPhone: presentPlaybackOnPhone)
     }
 }

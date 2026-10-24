@@ -93,13 +93,14 @@ final class XtreamStore: ObservableObject {
     }
 
     func remove(_ id: UUID) {
+        MediaLibrary.shared.removeCachedSource("xtream-\(id)")
         KeychainStore.delete(id.uuidString)
         accounts.removeAll { $0.id == id }
         persist()
     }
 
     func removeAll() {
-        accounts.forEach { KeychainStore.delete($0.id.uuidString) }
+        accounts.forEach { MediaLibrary.shared.removeCachedSource("xtream-\($0.id)"); KeychainStore.delete($0.id.uuidString) }
         accounts = []
         persist()
     }

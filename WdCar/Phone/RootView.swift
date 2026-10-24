@@ -71,12 +71,18 @@ struct MainTabView: View {
 
 /// المشغل بملء الشاشة على الهاتف + زر إغلاق + زر AirPlay
 private struct PlayerContainer: View {
+    @AppStorage("wd.media.rotate") private var rotate = true
     @ObservedObject private var playback = PlaybackManager.shared
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             Color.black.ignoresSafeArea()
-            PlayerScreen().ignoresSafeArea()
+            GeometryReader { geometry in
+                let landscapeFullscreen = rotate && geometry.size.width > geometry.size.height
+                PlayerScreen()
+                    .frame(width: geometry.size.width, height: landscapeFullscreen ? geometry.size.height : min(geometry.size.height, geometry.size.width * 9 / 16))
+                    .frame(maxHeight: .infinity)
+            }.ignoresSafeArea()
             PlayerControls()
             HStack {
                 Button {

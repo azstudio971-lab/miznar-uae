@@ -104,6 +104,7 @@ final class M3UStore: ObservableObject {
     }
 
     func remove(_ id: UUID) {
+        MediaLibrary.shared.removeCachedSource("m3u-\(id)")
         KeychainStore.delete("m3u-\(id.uuidString)")
         UserDefaults.standard.removeObject(forKey: favoriteKey(id))
         playlists.removeAll { $0.id == id }
@@ -132,6 +133,8 @@ final class M3UStore: ObservableObject {
         var values = favorites(for: playlist.id)
         if values.contains(entry.id) { values.remove(entry.id) } else { values.insert(entry.id) }
         UserDefaults.standard.set(Array(values), forKey: favoriteKey(playlist.id))
+        try? MediaLibrary.shared.addRemote(title: entry.title, url: entry.url, isLive: true, sourceKey: "m3u-\(playlist.id)", artworkURL: entry.logo)
+        MediaLibrary.shared.setFavorite(url: entry.url, favorite: values.contains(entry.id))
         objectWillChange.send()
     }
 

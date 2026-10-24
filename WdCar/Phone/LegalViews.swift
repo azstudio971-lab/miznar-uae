@@ -33,7 +33,7 @@ struct LegalTextView: View {
     @ObservedObject private var store = SubscriptionStore.shared
     var body: some View {
         ScrollView { VStack(alignment: .leading, spacing: 16) {
-            if kind == .subscription, let product = store.product { Text(product.displayName + " — " + product.displayPrice); Text(tr("اشتراك شهري", "Monthly subscription")) }
+            if kind == .subscription, let product = store.product { Text(product.displayName + " — " + product.displayPrice); Text(subscriptionPeriodText(product)) }
             Text(.init(PlayerLegal.text(kind)))
         }.frame(maxWidth: .infinity, alignment: .leading).padding(20) }.navigationTitle(kind.title)
     }

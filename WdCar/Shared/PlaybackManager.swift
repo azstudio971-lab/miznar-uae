@@ -36,6 +36,7 @@ final class PlaybackManager: ObservableObject {
     private var lastSaved: Double = 0
     private var connectionTimeout: DispatchWorkItem?
     private var sleepTimer: Timer?
+    private var appliedPreferences: NSDictionary = [:]
     private var artwork: UIImage?
     private var bag = Set<AnyCancellable>()
     private var itemBag = Set<AnyCancellable>()
@@ -78,7 +79,11 @@ final class PlaybackManager: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.savePosition() }.store(in: &bag)
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
-            .receive(on: RunLoop.main).sink { [weak self] _ in self?.applyPreferences() }.store(in: &bag)
+            .receive(on: RunLoop.main).sink { [weak self] _ in
+                guard let self else { return }
+                let values = UserDefaults.standard.dictionaryRepresentation().filter { $0.key.hasPrefix(PlayerPreferences.prefix) } as NSDictionary
+                if !values.isEqual(self.appliedPreferences) { self.applyPreferences() }
+            }.store(in: &bag)
         setupRemoteCommands()
     }
 
@@ -90,8 +95,9 @@ final class PlaybackManager: ObservableObject {
             return
         }
         savePosition()
+        if !queue.contains(item) { queue = [] }
         if item.url.scheme == "https" || item.url.scheme == "http" {
-            try? MediaLibrary.shared.addRemote(title: item.title, url: item.url, isLive: item.isLive, sourceKey: item.sourceKey)
+            try? MediaLibrary.shared.addRemote(title: item.title, url: item.url, isLive: item.isLive, sourceKey: item.sourceKey, artworkURL: item.artworkURL)
         }
         let savedPosition = MediaLibrary.shared.items.first(where: { $0.url == item.url })?.position ?? 0
         MediaLibrary.shared.record(url: item.url, position: savedPosition)
@@ -127,7 +133,7 @@ final class PlaybackManager: ObservableObject {
         updateNowPlaying()
         loadArtwork(for: item)
 
-        if presentOnPhone { isPlayerPresented = true }
+        isPlayerPresented = presentOnPhone
     }
 
     func togglePlayPause() {
@@ -187,7 +193,7 @@ final class PlaybackManager: ObservableObject {
     func previous() { moveQueue(by: -1) }
     private func moveQueue(by offset: Int) {
         guard let current, let index = queue.firstIndex(of: current), queue.indices.contains(index + offset) else { return }
-        play(queue[index + offset], presentOnPhone: isPlayerPresented)
+        play(queue[index + offset], presentOnPhone: !isExternalDisplayPlayback)
     }
 
     func savePosition(completed: Bool = false) {
@@ -196,7 +202,7 @@ final class PlaybackManager: ObservableObject {
         let atEnd = total.isFinite && total > 0 && player.currentTime().seconds >= total - 1
         let position = (completed || atEnd) ? 0 : player.currentTime().seconds
         guard position.isFinite else { return }
-        MediaLibrary.shared.record(url: current.url, position: position)
+        MediaLibrary.shared.record(url: current.url, position: position, duration: total)
         lastSaved = position
     }
 
@@ -225,6 +231,7 @@ final class PlaybackManager: ObservableObject {
         sleepTimer = Timer.scheduledTimer(withTimeInterval: Double(minutes * 60), repeats: false) { [weak self] _ in self?.player.pause(); self?.savePosition() }
     }
     func applyPreferences() {
+        appliedPreferences = UserDefaults.standard.dictionaryRepresentation().filter { $0.key.hasPrefix(PlayerPreferences.prefix) } as NSDictionary
         guard let item = player.currentItem else { return }
         item.preferredForwardBufferDuration = PlayerPreferences.buffer
         if !isExternalDisplayPlayback { player.defaultRate = PlayerPreferences.rate; if isPlaying { player.rate = PlayerPreferences.rate } }
@@ -275,6 +282,9 @@ final class PlaybackManager: ObservableObject {
     }
 
     private func loadArtwork(for item: Item) {
+        if let url = item.artworkURL, url.isFileURL {
+            artwork = UIImage(contentsOfFile: url.path); updateNowPlaying(); return
+        }
         ImageLoader.shared.load(item.artworkURL) { [weak self] image in
             guard let self, self.current == item else { return }
             self.artwork = image

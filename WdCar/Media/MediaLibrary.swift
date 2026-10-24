@@ -23,7 +23,7 @@ struct LibraryMedia: Codable, Identifiable, Equatable {
     }
     var playbackItem: PlaybackManager.Item? {
         guard let url else { return nil }
-        return .init(title: title, subtitle: localFilename == nil ? tr("مصدر إنترنت", "Internet source") : tr("ملف مستورد", "Imported file"), url: url, isLive: isLive, artworkURL: localFilename == nil ? nil : MediaLibrary.shared.thumbnailURL(id), sourceKey: sourceKey)
+        return .init(title: title, subtitle: localFilename == nil ? tr("مصدر إنترنت", "Internet source") : tr("ملف مستورد", "Imported file"), url: url, isLive: isLive, artworkURL: localFilename == nil ? KeychainStore.get("media-art-\(id)").flatMap(URL.init(string:)) : MediaLibrary.shared.thumbnailURL(id), sourceKey: sourceKey)
     }
 }
 
@@ -65,17 +65,24 @@ final class MediaLibrary: ObservableObject {
         catch { self.error = error.localizedDescription }
     }
 
-    func addRemote(title: String, url: URL, isLive: Bool, sourceKey: String? = nil) throws {
+    func addRemote(title: String, url: URL, isLive: Bool, sourceKey: String? = nil, artworkURL: URL? = nil) throws {
         guard writable, ["http", "https"].contains(url.scheme?.lowercased() ?? ""), url.host != nil else { throw M3UError.invalidURL }
-        if items.contains(where: { $0.url == url }) { return }
+        if let index = items.firstIndex(where: { $0.url == url }) {
+            if let sourceKey, items[index].sourceKey != sourceKey { items[index].sourceKey = sourceKey; save() }
+            if let artworkURL { KeychainStore.set(artworkURL.absoluteString, for: "media-art-\(items[index].id)") }
+            return
+        }
         let item = LibraryMedia(title: title.isEmpty ? url.lastPathComponent : title, isLive: isLive, sourceKey: sourceKey)
         KeychainStore.set(url.absoluteString, for: "media-\(item.id.uuidString)")
+        if let artworkURL { KeychainStore.set(artworkURL.absoluteString, for: "media-art-\(item.id)") }
         items.append(item)
         save()
     }
 
     @MainActor func importFiles(_ urls: [URL]) async {
         guard writable, importProgress == nil else { return }
+        error = nil
+        importMessage = nil
         importProgress = 0
         defer { importProgress = nil }
         var failures: [String] = []
@@ -95,7 +102,12 @@ final class MediaLibrary: ObservableObject {
         defer { if access { url.stopAccessingSecurityScopedResource() } }
         if (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true {
             let children = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
-            for child in children { try await importFile(child) }
+            var failed: [String] = []
+            for child in children {
+                do { try await importFile(child) }
+                catch { failed.append(child.lastPathComponent) }
+            }
+            if !failed.isEmpty { error = tr("ملفات غير مدعومة: ", "Unsupported files: ") + failed.joined(separator: ", ") }
             return
         }
         var item = LibraryMedia(title: url.deletingPathExtension().lastPathComponent)
@@ -132,14 +144,19 @@ final class MediaLibrary: ObservableObject {
     }
 
     func thumbnailURL(_ id: UUID) -> URL { Self.directory.appendingPathComponent(id.uuidString + ".jpg") }
+    func setFavorite(url: URL, favorite: Bool) {
+        guard let index = items.firstIndex(where: { $0.url == url }) else { return }
+        items[index].favorite = favorite; save()
+    }
     func toggleFavorite(_ id: UUID) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         items[index].favorite.toggle()
         save()
     }
-    func record(url: URL, position: Double) {
+    func record(url: URL, position: Double, duration: Double? = nil) {
         guard position.isFinite, let index = items.firstIndex(where: { $0.url == url }) else { return }
         items[index].position = max(0, position)
+        if let duration, duration.isFinite, duration > 0 { items[index].duration = duration }
         items[index].lastPlayed = Date()
         save()
     }
@@ -153,6 +170,7 @@ final class MediaLibrary: ObservableObject {
             }
             try? FileManager.default.removeItem(at: thumbnailURL(id))
             KeychainStore.delete("media-\(id.uuidString)")
+            KeychainStore.delete("media-art-\(id)")
             items.removeAll { $0.id == id }
             for index in playlists.indices { playlists[index].itemIDs.removeAll { $0 == id } }
             save()
@@ -174,7 +192,7 @@ final class MediaLibrary: ObservableObject {
         guard writable, let i = playlists.firstIndex(where: { $0.id == playlist.id }) else { return }
         playlists[i] = playlist; save()
     }
-    func removePlaylist(_ id: UUID) { playlists.removeAll { $0.id == id }; save() }
+    func removePlaylist(_ id: UUID) { guard writable else { return }; playlists.removeAll { $0.id == id }; save() }
     func contents(_ playlist: MediaPlaylist) -> [LibraryMedia] { playlist.itemIDs.compactMap { id in items.first { $0.id == id } } }
     func addToPlaylist(_ id: UUID, item: LibraryMedia) {
         guard var playlist = playlists.first(where: { $0.id == id }), !playlist.itemIDs.contains(item.id) else { return }

@@ -4,6 +4,8 @@ import UniformTypeIdentifiers
 
 struct LibraryView: View {
     @ObservedObject private var library = MediaLibrary.shared
+    @ObservedObject private var m3u = M3UStore.shared
+    @ObservedObject private var xtream = XtreamStore.shared
     @State private var picker: Int?
     @State private var newPlaylist = false
     @State private var title = ""
@@ -26,14 +28,16 @@ struct LibraryView: View {
                         NavigationLink { MediaPlaylistView(id: playlist.id) } label: {
                             Label(playlist.title, systemImage: playlist.favorite ? "star.fill" : "list.bullet")
                         }
-                    }.onDelete { offsets in for i in offsets { library.removePlaylist(library.playlists[i].id) } }
+                    }.onDelete { offsets in let ids = offsets.map { library.playlists[$0].id }; ids.forEach { library.removePlaylist($0) } }
                     Button(tr("إنشاء قائمة تشغيل", "Create playlist")) { title = ""; newPlaylist = true }
                 }
                 mediaSection(tr("الفيديوهات", "Videos"), library.items.filter { $0.localFilename != nil && !$0.isAudio })
                 mediaSection(tr("الصوتيات", "Audio"), library.items.filter { $0.localFilename != nil && $0.isAudio })
                 Section(tr("القنوات", "Channels")) {
                     NavigationLink(tr("القنوات المفضلة", "Favorite channels")) { MediaItemsList(title: tr("القنوات المفضلة", "Favorite channels"), items: library.items.filter { $0.localFilename == nil && $0.favorite }) }
-                    NavigationLink("M3U IPTV Player") { XtreamHomeView() }
+                    ForEach(m3u.playlists) { playlist in NavigationLink(playlist.name) { M3UEntriesView(playlist: playlist) } }
+                    ForEach(xtream.accounts) { account in NavigationLink(account.name) { XtreamAccountView(account: account) } }
+                    NavigationLink(tr("إدارة المصادر", "Manage sources")) { XtreamHomeView() }
                 }
                 mediaSection(tr("المضافة حديثاً", "Recently added"), Array(library.items.sorted { $0.added > $1.added }.prefix(20)))
             }

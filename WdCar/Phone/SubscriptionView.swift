@@ -32,6 +32,8 @@ struct SubscriptionView: View {
 
                 if !store.hasAccess {
                     if let product = store.product {
+                        Text(product.displayName).font(.headline)
+                        Text(subscriptionPeriodText(product)).font(.footnote)
                         Text(trialAvailable
                              ? tr("3 أيام مجاناً، ثم \(product.displayPrice) شهرياً", "3 days free, then \(product.displayPrice) per month")
                              : tr("\(product.displayPrice) شهرياً", "\(product.displayPrice) per month"))
@@ -88,4 +90,17 @@ struct SubscriptionGate<Content: View>: View {
         if store.hasAccess { content() }
         else { NavigationStack { SubscriptionView() } }
     }
+}
+
+func subscriptionPeriodText(_ product: Product) -> String {
+    guard let period = product.subscription?.subscriptionPeriod else { return "" }
+    let unit: String
+    switch period.unit {
+    case .day: unit = tr("يوم", "day(s)")
+    case .week: unit = tr("أسبوع", "week(s)")
+    case .month: unit = tr("شهر", "month(s)")
+    case .year: unit = tr("سنة", "year(s)")
+    @unknown default: unit = ""
+    }
+    return "\(period.value) " + unit
 }
