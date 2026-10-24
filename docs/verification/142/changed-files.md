@@ -36,4 +36,6 @@
 | `scripts/verify_142_structure.py` | Verify tab/status/picker/preferences and internal-only publishing invariants. |
 | `web/src/policies.js` | Matching bilingual player legal/help content. |
 
-SubscriptionView.swift, SubscriptionStore.swift, WudCar.storekit, Info.plist, entitlements and all protected browser files have no diff from baseline. No pre-existing native test source was changed.
+SubscriptionView.swift, SubscriptionStore.swift, WudCar.storekit, Info.plist, entitlements and all protected browser files have no diff from baseline. Owner subsequently authorized test configuration and legacy expectation repairs; see TEST-REPAIRS.md.
+
+Additional authorized files: WdCarTests/CarInterfaceTests.swift (isolate paid-access setup and align catalog/viewport fixture), WdCarTests/SubscriptionTests.swift (explicit unavailable-fixture result before purchase), scripts/configure_142_test_plan.py (Test-action StoreKit binding), scripts/run_142_native_tests.py (file-backed logs, true exit status and timeout), and verification evidence/documents.

@@ -1,0 +1,110 @@
+Source: 039b88585eacd97b744f185a59df6a7096250a8e
+Build: https://codemagic.io/app/6ad1db1b951fcdf1e4f45860/build/6adc96f14a72334e32e4b150
+Console test assertions completed; xcodebuild/runner teardown did not finish.
+
+Test Suite 'All tests' started at 2026-10-24 11:36:10.698.
+Test Suite 'WdCarTests.xctest' started at 2026-10-24 11:36:10.699.
+Test Suite 'CarInterfaceTests' started at 2026-10-24 11:36:10.699.
+Test Case '-[WdCarTests.CarInterfaceTests test150DesktopPreferenceAppliesToBothBrowsers]' started.
+Test Case '-[WdCarTests.CarInterfaceTests test150DesktopPreferenceAppliesToBothBrowsers]' passed (0.343 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests test150EntertainmentLayoutSnapshots]' started.
+Test Case '-[WdCarTests.CarInterfaceTests test150EntertainmentLayoutSnapshots]' passed (6.343 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests test150ExistingShortcutDecodesWithoutOptionalArtwork]' started.
+Test Case '-[WdCarTests.CarInterfaceTests test150ExistingShortcutDecodesWithoutOptionalArtwork]' passed (0.007 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests test150NativeToolbarHotspotAndMenu]' started.
+Test Case '-[WdCarTests.CarInterfaceTests test150NativeToolbarHotspotAndMenu]' passed (0.646 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests test150SeasonalArtworkValidation]' started.
+Test Case '-[WdCarTests.CarInterfaceTests test150SeasonalArtworkValidation]' passed (0.015 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests test150StopReleasesStreamOnRepeatedPlayback]' started.
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:23: -[WdCarTests.CarInterfaceTests test150StopReleasesStreamOnRepeatedPlayback] : Test skipped - ENVIRONMENT UNAVAILABLE: Local StoreKit fixture is not active in this CI runtime (expected local 24, received 5.99); no real-store purchase attempted. Subscription code/fixture unchanged.
+Test Case '-[WdCarTests.CarInterfaceTests test150StopReleasesStreamOnRepeatedPlayback]' skipped (1.467 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testBrowserToolbarIsHiddenByDefaultAndScrollArrowsStartHidden]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testBrowserToolbarIsHiddenByDefaultAndScrollArrowsStartHidden]' passed (0.085 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testCarDisplayPlayerRoutesWithoutOpeningPhonePlayerAndStopsCleanly]' started.
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:23: -[WdCarTests.CarInterfaceTests testCarDisplayPlayerRoutesWithoutOpeningPhonePlayerAndStopsCleanly] : Test skipped - ENVIRONMENT UNAVAILABLE: Local StoreKit fixture is not active in this CI runtime (expected local 24, received 5.99); no real-store purchase attempted. Subscription code/fixture unchanged.
+Test Case '-[WdCarTests.CarInterfaceTests testCarDisplayPlayerRoutesWithoutOpeningPhonePlayerAndStopsCleanly]' skipped (0.047 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testDaytimePhoneLogoAtCompactRegularAndLargeSizes]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testDaytimePhoneLogoAtCompactRegularAndLargeSizes]' passed (3.205 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testDefaultCarZoomIs100PercentAndPreferencePersists]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testDefaultCarZoomIs100PercentAndPreferencePersists]' passed (0.005 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testFullFrameAtAllZoomLevelsAndVideoExit]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testFullFrameAtAllZoomLevelsAndVideoExit]' passed (11.486 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testHomeFitsWideAndCompactCarScreens]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testHomeFitsWideAndCompactCarScreens]' passed (0.749 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testLiveDesktopSitesInDesktopMode]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testLiveDesktopSitesInDesktopMode]' passed (10.086 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testM3UParsingAndAddedShortcuts]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testM3UParsingAndAddedShortcuts]' passed (0.009 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testMouseControlsWebContentAndCompactBrowserToolbar]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testMouseControlsWebContentAndCompactBrowserToolbar]' passed (4.067 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testMouseCursorHidesAfterThreeSecondsAndReturnsAtSavedPosition]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testMouseCursorHidesAfterThreeSecondsAndReturnsAtSavedPosition]' passed (7.070 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testMousePageContainsOnlyTouchpadAndTwoScrollActions]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testMousePageContainsOnlyTouchpadAndTwoScrollActions]' passed (1.060 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testPhoneRemoteCanSelectDashboardSectionsAndCarLogoIsTransparent]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testPhoneRemoteCanSelectDashboardSectionsAndCarLogoIsTransparent]' passed (23.817 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testScrollArrowsAndToolbarRevealCanBeUsedRepeatedly]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testScrollArrowsAndToolbarRevealCanBeUsedRepeatedly]' passed (9.609 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testVideoControlsHideAfterThreeSeconds]' started.
+Test Case '-[WdCarTests.CarInterfaceTests testVideoControlsHideAfterThreeSeconds]' passed (3.394 seconds).
+Test Case '-[WdCarTests.CarInterfaceTests testWelcomeNavigationAndPersistedZoom]' started.
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:23: -[WdCarTests.CarInterfaceTests testWelcomeNavigationAndPersistedZoom] : Test skipped - ENVIRONMENT UNAVAILABLE: Local StoreKit fixture is not active in this CI runtime (expected local 24, received 5.99); no real-store purchase attempted. Subscription code/fixture unchanged.
+Test Case '-[WdCarTests.CarInterfaceTests testWelcomeNavigationAndPersistedZoom]' skipped (0.100 seconds).
+Test Suite 'CarInterfaceTests' passed at 2026-10-24 11:37:34.349.
+	 Executed 21 tests, with 3 tests skipped and 0 failures (0 unexpected) in 83.612 (83.650) seconds
+Test Suite 'Release142PlayerTests' started at 2026-10-24 11:37:34.350.
+Test Case '-[WdCarTests.Release142PlayerTests testDrivingDefaultAndExplicitPreference]' started.
+Test Case '-[WdCarTests.Release142PlayerTests testDrivingDefaultAndExplicitPreference]' passed (0.007 seconds).
+Test Case '-[WdCarTests.Release142PlayerTests testImportPlaylistReorderPositionAndRemoval]' started.
+Test Case '-[WdCarTests.Release142PlayerTests testImportPlaylistReorderPositionAndRemoval]' passed (0.139 seconds).
+Test Case '-[WdCarTests.Release142PlayerTests testPlayerScreenshots]' started.
+Test Case '-[WdCarTests.Release142PlayerTests testPlayerScreenshots]' passed (3.902 seconds).
+Test Case '-[WdCarTests.Release142PlayerTests testSubtitleParsingAndSkipPreference]' started.
+Test Case '-[WdCarTests.Release142PlayerTests testSubtitleParsingAndSkipPreference]' passed (0.010 seconds).
+Test Suite 'Release142PlayerTests' passed at 2026-10-24 11:37:38.410.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 4.057 (4.060) seconds
+Test Suite 'Release150Tests' started at 2026-10-24 11:37:38.410.
+Test Case '-[WdCarTests.Release150Tests test150DesktopPreferenceAppliesToBothBrowsers]' started.
+Test Case '-[WdCarTests.Release150Tests test150DesktopPreferenceAppliesToBothBrowsers]' passed (0.003 seconds).
+Test Case '-[WdCarTests.Release150Tests test150EntertainmentLayoutSnapshots]' started.
+Test Case '-[WdCarTests.Release150Tests test150EntertainmentLayoutSnapshots]' passed (4.517 seconds).
+Test Case '-[WdCarTests.Release150Tests test150ExistingShortcutDecodesWithoutOptionalArtwork]' started.
+Test Case '-[WdCarTests.Release150Tests test150ExistingShortcutDecodesWithoutOptionalArtwork]' passed (0.001 seconds).
+Test Case '-[WdCarTests.Release150Tests test150NativeToolbarHotspotAndMenu]' started.
+Test Case '-[WdCarTests.Release150Tests test150NativeToolbarHotspotAndMenu]' passed (0.045 seconds).
+Test Case '-[WdCarTests.Release150Tests test150SeasonalArtworkValidation]' started.
+Test Case '-[WdCarTests.Release150Tests test150SeasonalArtworkValidation]' passed (0.005 seconds).
+Test Suite 'Release150Tests' passed at 2026-10-24 11:37:42.987.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 4.572 (4.577) seconds
+Test Suite 'Release160Tests' started at 2026-10-24 11:37:42.988.
+Test Case '-[WdCarTests.Release160Tests testChromePrimaryActivationAndExistingRemoteRoutingWithoutMenu]' started.
+Test Case '-[WdCarTests.Release160Tests testChromePrimaryActivationAndExistingRemoteRoutingWithoutMenu]' passed (0.175 seconds).
+Test Case '-[WdCarTests.Release160Tests testDesktopViewportZoomNavigationAndResizeOnPhoneThenCar]' started.
+Test Case '-[WdCarTests.Release160Tests testDesktopViewportZoomNavigationAndResizeOnPhoneThenCar]' passed (6.823 seconds).
+Test Case '-[WdCarTests.Release160Tests testLiveYouTubePhoneBeforeCarProbe]' started.
+Test Case '-[WdCarTests.Release160Tests testLiveYouTubePhoneBeforeCarProbe]' passed (51.781 seconds).
+Test Case '-[WdCarTests.Release160Tests testYouTubeViewportFallbackIsScopedAndRespectsAuthorMetadata]' started.
+Test Case '-[WdCarTests.Release160Tests testYouTubeViewportFallbackIsScopedAndRespectsAuthorMetadata]' passed (3.380 seconds).
+Test Case '-[WdCarTests.Release160Tests testZoomUpgradeIsOnceAndManualPreferenceSurvives]' started.
+Test Case '-[WdCarTests.Release160Tests testZoomUpgradeIsOnceAndManualPreferenceSurvives]' passed (0.013 seconds).
+Test Suite 'Release160Tests' passed at 2026-10-24 11:38:45.165.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 62.172 (62.177) seconds
+Test Suite 'Release17Tests' started at 2026-10-24 11:38:45.166.
+Test Case '-[WdCarTests.Release17Tests testCatalogOrderAndLosslessLegacyUpgrade]' started.
+Test Case '-[WdCarTests.Release17Tests testCatalogOrderAndLosslessLegacyUpgrade]' passed (0.044 seconds).
+Test Case '-[WdCarTests.Release17Tests testGridCardsScrollAndCustomCardMatchesAtAllSizes]' started.
+Test Case '-[WdCarTests.Release17Tests testGridCardsScrollAndCustomCardMatchesAtAllSizes]' passed (14.542 seconds).
+Test Case '-[WdCarTests.Release17Tests testToolbarSymbolsFitInArabicAndEnglishAtAllSizes]' started.
+Test Case '-[WdCarTests.Release17Tests testToolbarSymbolsFitInArabicAndEnglishAtAllSizes]' passed (8.268 seconds).
+Test Suite 'Release17Tests' passed at 2026-10-24 11:39:08.024.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 22.855 (22.858) seconds
+Test Suite 'SubscriptionTests' started at 2026-10-24 11:39:08.025.
+Test Case '-[WdCarTests.SubscriptionTests testOfficialStoreKitTrialRenewalCancellationExpiryRestoreAndRefund]' started.
+/Users/builder/clone/WdCarTests/SubscriptionTests.swift:29: -[WdCarTests.SubscriptionTests testOfficialStoreKitTrialRenewalCancellationExpiryRestoreAndRefund] : Test skipped - ENVIRONMENT UNAVAILABLE: CI did not activate the unchanged local StoreKit fixture; refusing a real-store purchase. Trial/renewal/restore/refund lifecycle requires a supported local StoreKit environment.
+Test Case '-[WdCarTests.SubscriptionTests testOfficialStoreKitTrialRenewalCancellationExpiryRestoreAndRefund]' skipped (0.523 seconds).
+Test Suite 'SubscriptionTests' passed at 2026-10-24 11:39:08.549.
+	 Executed 1 test, with 1 test skipped and 0 failures (0 unexpected) in 0.523 (0.525) seconds
+Test Suite 'WdCarTests.xctest' passed at 2026-10-24 11:39:08.550.
+	 Executed 39 tests, with 4 tests skipped and 0 failures (0 unexpected) in 177.791 (177.851) seconds
+Test Suite 'All tests' passed at 2026-10-24 11:39:08.551.
+	 Executed 39 tests, with 4 tests skipped and 0 failures (0 unexpected) in 177.791 (177.853) seconds
