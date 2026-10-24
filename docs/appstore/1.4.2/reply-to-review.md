@@ -12,7 +12,7 @@ https://developer.apple.com/documentation/bundleresources/entitlements/com.apple
 
 The GPS video lock is on by default. Our safety text states that video viewing is for passengers while parked. The setting remains user-controllable, and the Web Player/display implementation is retained from build 17; we understand those aspects require separate policy assessment and do not claim that adding a media library guarantees compliance or entitlement approval.
 
-Please see the accompanying review notes for the legal Blender sample and local-file test steps. We would appreciate clarification of any remaining changes required under Guideline 2.5.1.
+Please see the accompanying review notes for the official Apple developer test stream and local-file test steps. We would appreciate clarification of any remaining changes required under Guideline 2.5.1.
 
 Kind regards,
 WudCar Media Player

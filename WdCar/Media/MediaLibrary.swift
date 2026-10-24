@@ -181,7 +181,7 @@ final class MediaLibrary: ObservableObject {
         for id in ids { remove(id) }
     }
     var continueWatching: [LibraryMedia] {
-        items.filter { $0.lastPlayed != nil && (!$0.isLive && $0.position > 0 && ($0.duration == nil || $0.position / max(0.001, $0.duration!) < 0.98)) }.sorted { ($0.lastPlayed ?? .distantPast) > ($1.lastPlayed ?? .distantPast) }
+        items.filter { $0.lastPlayed != nil && ($0.isLive || ($0.position > 0 && ($0.duration == nil || $0.position / max(0.001, $0.duration!) < 0.98))) }.sorted { ($0.lastPlayed ?? .distantPast) > ($1.lastPlayed ?? .distantPast) }
     }
     func createPlaylist(_ title: String) {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)

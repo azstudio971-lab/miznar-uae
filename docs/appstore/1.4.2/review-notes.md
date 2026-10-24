@@ -11,9 +11,9 @@ Official references:
 When the vehicle reports supportsVideoPlayback=false, playback configuration requests audio. Audio-only capability does not itself grant parked video support; video-only visibility requires a compatible car. Simulator and owner vehicle observations must be distinguished from universal behavior.
 
 ## Test source and steps
-1. In M3U IPTV Player, import docs/appstore/1.4.2/sample.m3u (also available from the release branch raw file URL). This points to Big Buck Bunny, © 2008 Blender Foundation, CC BY 3.0, https://peach.blender.org/about/ . It is a legal sample, not an included TV service.
+1. In M3U IPTV Player, import docs/appstore/1.4.2/sample.m3u (also available from the release branch raw file URL). This points to Apple’s official Bip Bop developer test stream: https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example_hevc/master.m3u8 . Source: https://developer.apple.com/streaming/examples/ . Use it for testing only, not as licensed entertainment content. The manifest was fetched successfully on 2026-10-24.
 2. Open the sample group and play. Network availability must be verified during review.
-3. Download the same MP4, import via Library → Add media → From Files; create a playlist.
+3. Import a local video you created via Library → Add media → From Files; create a playlist. The automated library test creates its own local audio fixture.
 4. Connect a supported CarPlay system and open Video Library. Choose the imported file or playlist. On audio-only systems verify Now Playing audio.
 5. Verify skip interval and resume controls.
 
