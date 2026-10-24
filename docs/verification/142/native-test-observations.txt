@@ -1,0 +1,88 @@
+Test Suite 'All tests' started at 2026-10-24 10:55:58.933.
+Test Suite 'WdCarTests.xctest' started at 2026-10-24 10:55:58.935.
+Test Suite 'CarInterfaceTests' started at 2026-10-24 10:55:58.936.
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests test150DesktopPreferenceAppliesToBothBrowsers] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests test150DesktopPreferenceAppliesToBothBrowsers]' failed (2.912 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests test150EntertainmentLayoutSnapshots] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests test150EntertainmentLayoutSnapshots]' failed (8.597 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests test150ExistingShortcutDecodesWithoutOptionalArtwork] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests test150ExistingShortcutDecodesWithoutOptionalArtwork]' failed (0.112 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests test150NativeToolbarHotspotAndMenu] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests test150NativeToolbarHotspotAndMenu]' failed (0.837 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests test150SeasonalArtworkValidation] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests test150SeasonalArtworkValidation]' failed (0.136 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests test150StopReleasesStreamOnRepeatedPlayback] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:147: error: -[WdCarTests.CarInterfaceTests test150StopReleasesStreamOnRepeatedPlayback] : XCTAssertNotNil failed
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:147: error: -[WdCarTests.CarInterfaceTests test150StopReleasesStreamOnRepeatedPlayback] : XCTAssertNotNil failed
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:147: error: -[WdCarTests.CarInterfaceTests test150StopReleasesStreamOnRepeatedPlayback] : XCTAssertNotNil failed
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:147: error: -[WdCarTests.CarInterfaceTests test150StopReleasesStreamOnRepeatedPlayback] : XCTAssertNotNil failed
+Test Case '-[WdCarTests.CarInterfaceTests test150StopReleasesStreamOnRepeatedPlayback]' failed (0.094 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testBrowserToolbarIsHiddenByDefaultAndScrollArrowsStartHidden] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests testBrowserToolbarIsHiddenByDefaultAndScrollArrowsStartHidden]' failed (0.220 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testCarDisplayPlayerRoutesWithoutOpeningPhonePlayerAndStopsCleanly] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:346: error: -[WdCarTests.CarInterfaceTests testCarDisplayPlayerRoutesWithoutOpeningPhonePlayerAndStopsCleanly] : XCTAssertEqual failed: ("nil") is not equal to ("Optional("Second channel")") - Choosing another channel replaces the previous item
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:347: error: -[WdCarTests.CarInterfaceTests testCarDisplayPlayerRoutesWithoutOpeningPhonePlayerAndStopsCleanly] : XCTAssertTrue failed
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:349: error: -[WdCarTests.CarInterfaceTests testCarDisplayPlayerRoutesWithoutOpeningPhonePlayerAndStopsCleanly] : XCTUnwrap failed: expected non-nil value of type "UIButton" - External display must expose a route back to TV lists
+Test Case '-[WdCarTests.CarInterfaceTests testCarDisplayPlayerRoutesWithoutOpeningPhonePlayerAndStopsCleanly]' failed (0.505 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testDaytimePhoneLogoAtCompactRegularAndLargeSizes] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests testDaytimePhoneLogoAtCompactRegularAndLargeSizes]' failed (4.179 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testDefaultCarZoomIs100PercentAndPreferencePersists] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests testDefaultCarZoomIs100PercentAndPreferencePersists]' failed (0.101 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testFullFrameAtAllZoomLevelsAndVideoExit] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:462: error: -[WdCarTests.CarInterfaceTests testFullFrameAtAllZoomLevelsAndVideoExit] : XCTAssertEqualWithAccuracy failed: ("402.0") is not equal to ("412.0") +/- ("1.0") - Page content must fill the visual viewport at every zoom level
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:462: error: -[WdCarTests.CarInterfaceTests testFullFrameAtAllZoomLevelsAndVideoExit] : XCTAssertEqualWithAccuracy failed: ("402.0") is not equal to ("268.0") +/- ("1.0") - Page content must fill the visual viewport at every zoom level
+Test Case '-[WdCarTests.CarInterfaceTests testFullFrameAtAllZoomLevelsAndVideoExit]' failed (21.274 seconds).
+2026-10-24 10:56:38.069685+0000 WdCar[2426:18768] [ProcessSuspension] 0x122170540 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2493, error: (null)
+2026-10-24 10:56:38.113457+0000 WdCar[2426:18768] [ProcessSuspension] 0x122170600 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2494, error: (null)
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testHomeFitsWideAndCompactCarScreens] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests testHomeFitsWideAndCompactCarScreens]' failed (1.139 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testLiveDesktopSitesInDesktopMode] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+2026-10-24 10:56:49.931958+0000 WdCar[2426:17113] [ProcessSuspension] 0x122170480 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2531, error: (null)
+2026-10-24 10:56:53.144046+0000 WdCar[2426:17118] [ProcessSuspension] 0x122170780 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2539, error: (null)
+2026-10-24 10:56:53.180649+0000 WdCar[2426:17118] [ProcessSuspension] 0x122170840 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2530, error: (null)
+Test Case '-[WdCarTests.CarInterfaceTests testLiveDesktopSitesInDesktopMode]' failed (19.016 seconds).
+2026-10-24 10:56:58.170385+0000 WdCar[2426:17118] [ProcessSuspension] 0x122170900 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2553, error: (null)
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testM3UParsingAndAddedShortcuts] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:419: error: -[WdCarTests.CarInterfaceTests testM3UParsingAndAddedShortcuts] : XCTAssertTrue failed - Missing default shortcut for www.netflix.com
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:419: error: -[WdCarTests.CarInterfaceTests testM3UParsingAndAddedShortcuts] : XCTAssertTrue failed - Missing default shortcut for www.primevideo.com
+Test Case '-[WdCarTests.CarInterfaceTests testM3UParsingAndAddedShortcuts]' failed (0.179 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testMouseControlsWebContentAndCompactBrowserToolbar] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests testMouseControlsWebContentAndCompactBrowserToolbar]' failed (4.316 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testMouseCursorHidesAfterThreeSecondsAndReturnsAtSavedPosition] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+2026-10-24 10:57:02.989904+0000 WdCar[2426:18770] [ProcessSuspension] 0x1221700c0 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2555, error: (null)
+Test Case '-[WdCarTests.CarInterfaceTests testMouseCursorHidesAfterThreeSecondsAndReturnsAtSavedPosition]' failed (7.308 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testMousePageContainsOnlyTouchpadAndTwoScrollActions] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests testMousePageContainsOnlyTouchpadAndTwoScrollActions]' failed (1.324 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testPhoneRemoteCanSelectDashboardSectionsAndCarLogoIsTransparent] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests testPhoneRemoteCanSelectDashboardSectionsAndCarLogoIsTransparent]' failed (36.608 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testScrollArrowsAndToolbarRevealCanBeUsedRepeatedly] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests testScrollArrowsAndToolbarRevealCanBeUsedRepeatedly]' failed (9.763 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testVideoControlsHideAfterThreeSeconds] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+Test Case '-[WdCarTests.CarInterfaceTests testVideoControlsHideAfterThreeSeconds]' failed (3.552 seconds).
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:24: error: -[WdCarTests.CarInterfaceTests testWelcomeNavigationAndPersistedZoom] : XCTAssertTrue failed - Car interface tests use a verified StoreKit test subscription
+/Users/builder/clone/WdCarTests/CarInterfaceTests.swift:217: error: -[WdCarTests.CarInterfaceTests testWelcomeNavigationAndPersistedZoom] : XCTUnwrap failed: expected non-nil value of type "UIHostingController<XtreamHomeView>"
+Test Case '-[WdCarTests.CarInterfaceTests testWelcomeNavigationAndPersistedZoom]' failed (2.197 seconds).
+Test Suite 'CarInterfaceTests' failed at 2026-10-24 10:58:03.338.
+Test Suite 'Release142PlayerTests' started at 2026-10-24 10:58:03.338.
+Test Case '-[WdCarTests.Release142PlayerTests testDrivingDefaultAndExplicitPreference]' passed (0.007 seconds).
+Test Case '-[WdCarTests.Release142PlayerTests testImportPlaylistReorderPositionAndRemoval]' passed (0.906 seconds).
+2026-10-24 10:58:06.262973+0000 WdCar[2426:22328] [ProcessSuspension] 0x1221709c0 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2704, error: (null)
+Test Case '-[WdCarTests.Release142PlayerTests testPlayerScreenshots]' passed (6.044 seconds).
+Test Case '-[WdCarTests.Release142PlayerTests testSubtitleParsingAndSkipPreference]' passed (0.021 seconds).
+Test Suite 'Release142PlayerTests' passed at 2026-10-24 10:58:10.324.
+Test Suite 'Release150Tests' started at 2026-10-24 10:58:10.325.
+Test Case '-[WdCarTests.Release150Tests test150DesktopPreferenceAppliesToBothBrowsers]' passed (0.002 seconds).
+2026-10-24 10:58:10.472466+0000 WdCar[2426:20400] [ProcessSuspension] 0x122170180 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2700, error: (null)
+Test Case '-[WdCarTests.Release150Tests test150EntertainmentLayoutSnapshots]' passed (7.855 seconds).
+Test Case '-[WdCarTests.Release150Tests test150ExistingShortcutDecodesWithoutOptionalArtwork]' passed (0.006 seconds).
+Test Case '-[WdCarTests.Release150Tests test150NativeToolbarHotspotAndMenu]' passed (0.115 seconds).
+Test Case '-[WdCarTests.Release150Tests test150SeasonalArtworkValidation]' passed (0.007 seconds).
+Test Suite 'Release150Tests' passed at 2026-10-24 10:58:18.316.
+Test Suite 'Release160Tests' started at 2026-10-24 10:58:18.317.
+Test Case '-[WdCarTests.Release160Tests testChromePrimaryActivationAndExistingRemoteRoutingWithoutMenu]' passed (0.413 seconds).
+2026-10-24 10:58:26.209140+0000 WdCar[2426:22974] [ProcessSuspension] 0x122170600 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2726, error: (null)
+2026-10-24 10:58:26.269471+0000 WdCar[2426:20400] [ProcessSuspension] 0x1221706c0 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2725, error: (null)
+Test Case '-[WdCarTests.Release160Tests testDesktopViewportZoomNavigationAndResizeOnPhoneThenCar]' passed (15.105 seconds).
+2026-10-24 10:58:34.377799+0000 WdCar[2426:22325] [ProcessSuspension] 0x122170840 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2730, error: (null)
+2026-10-24 10:58:34.484524+0000 WdCar[2426:22698] [ProcessSuspension] 0x122170a80 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2734, error: (null)
+2026-10-24 10:58:39.627638+0000 WdCar[2426:23190] [ProcessSuspension] 0x122170480 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=2739, error: (null)

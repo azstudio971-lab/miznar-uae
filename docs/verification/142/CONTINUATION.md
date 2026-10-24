@@ -31,3 +31,5 @@ A full successful native test run, signed IPA, extracted signed entitlements, up
 Codemagic documentation identifies submit_to_testflight:true as submission to beta review. The inherited new-workflow setting was therefore corrected to false, beta_groups automation removed, and testFlightInternalTestingOnly:true added to export options. submit_to_app_store remains false. Upload is followed by explicit assignment to the existing internal group in App Store Connect. No review or What to Test is sent. Source: https://docs.codemagic.io/yaml-publishing/app-store-connect/ .
 
 Build 6adc8cd94a72334e32e4af03 confirmed native Debug compilation success on Xcode 27.1. It was cancelled before publishing to apply the internal-only correction; tests had not completed. Stable Xcode 27.0 is selected for the upload attempt instead of the 27.1 RC image.
+
+Latest outcome: see RESULT.md. Native build and 17 release tests passed, but legacy CarInterfaceTests and SubscriptionTests failed; no upload was performed. The full test attempt was cancelled after the subscription fixture mismatch and waiting purchase.
