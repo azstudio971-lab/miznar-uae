@@ -1,3 +1,5 @@
+> Mandatory correction: see SUBSCRIPTION-CORRECTION.md. SubscriptionTests.swift has now been restored exactly to build 17; the historical skipped test result below does not validate the current source. Original SubscriptionTests success remains unverified.
+
 # WudCar 1.4.2 — actual result as of 2026-10-24
 
 **Not uploaded to TestFlight.** App compilation and native test assertions completed; four StoreKit-dependent tests remain unavailable. The XCTest step stalled during finalization and Codemagic build minutes are now exhausted.

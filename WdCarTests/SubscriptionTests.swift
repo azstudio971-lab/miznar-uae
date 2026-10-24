@@ -25,9 +25,6 @@ final class SubscriptionTests: XCTestCase {
         await store.refresh()
         XCTAssertFalse(store.hasAccess)
         let product = try XCTUnwrap(store.product)
-        guard product.price == 24 else {
-            throw XCTSkip("ENVIRONMENT UNAVAILABLE: CI did not activate the unchanged local StoreKit fixture; refusing a real-store purchase. Trial/renewal/restore/refund lifecycle requires a supported local StoreKit environment.")
-        }
         XCTAssertEqual(product.price, 24)
         XCTAssertEqual(product.subscription?.subscriptionPeriod.unit, .month)
         XCTAssertEqual(product.subscription?.introductoryOffer?.paymentMode, .freeTrial)
