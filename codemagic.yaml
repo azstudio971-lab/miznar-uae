@@ -291,7 +291,7 @@ workflows:
     integrations:
       app_store_connect: WudCar ASC Key
     environment:
-      xcode: "27.1"
+      xcode: "27.0"
       groups:
       - wudcar
       ios_signing:
@@ -349,7 +349,7 @@ workflows:
         xcrun xcresulttool export attachments --path /tmp/WudCar160ReleaseGate.xcresult
         --output-path docs/appstore/1.4.2/screenshots'
     - name: تجهيز التوقيع
-      script: 'xcode-project use-profiles
+      script: 'xcode-project use-profiles --custom-export-options=''{"testFlightInternalTestingOnly": true}''
 
         '
     - name: رقم البناء
@@ -398,7 +398,5 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        submit_to_testflight: true
+        submit_to_testflight: false
         submit_to_app_store: false
-        beta_groups:
-        - WudCar Internal

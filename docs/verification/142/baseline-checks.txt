@@ -1,0 +1,9 @@
+Baseline 6ca24bc877495dbaed55ff2aa833e687fa4e058f
+Verified 2026-10-24
+IDENTICAL WdCar/Phone/SubscriptionView.swift SHA256 8529637193742ea910c64df1b82f94d721510df5fae4dd60a3ee12a57e415ce9
+IDENTICAL WdCar/Shared/SubscriptionStore.swift SHA256 5a3629dcd0d6340b8fab3e89b1fa62eced90a8c9c1a81357c7ead8a8683c2e79
+IDENTICAL WdCarTests/WudCar.storekit SHA256 44506791211bc4d9d80f158e86c3add26bb83fb9ca376574457e358bb372a056
+IDENTICAL Config/Info.plist SHA256 bb71d9fcb8703430c9e5088071352e36129e1111f7067ed6d9798fdc6cc55930
+IDENTICAL Config/WdCar.entitlements SHA256 5638a464a32b130b5037b98dfed119b8d7ccae0d7062c6d7d6f145fc94db0ee3
+IDENTICAL WdCar/Shared/DrivingMonitor.swift SHA256 08b72b66fc43aa1e7ac4230a77fd3b8e4aa8675ff3beabf83565e35750ff05dc
+PASS: protected files diff is empty; Info.plist and entitlements unchanged; Settings.swift differs only in default false → true.
