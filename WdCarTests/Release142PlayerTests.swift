@@ -70,7 +70,8 @@ import CarPlay
         controller.view.frame = CGRect(x: 0, y: 0, width: 960, height: 480)
         controller.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(300))
-        XCTAssertEqual(library.contents(playlist).map(\.id), [item.id])
+        let updated = try XCTUnwrap(library.playlists.first { $0.id == playlist.id })
+        XCTAssertEqual(library.contents(updated).map(\.id), [item.id])
         let attachment = XCTAttachment(image: UIGraphicsImageRenderer(size: controller.view.bounds.size).image { controller.view.layer.render(in: $0.cgContext) })
         attachment.name = "142-16-external-library-shared-store"
         attachment.lifetime = .keepAlways; add(attachment)
