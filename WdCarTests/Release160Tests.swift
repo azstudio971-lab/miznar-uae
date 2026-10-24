@@ -62,8 +62,16 @@ final class Release160Tests: XCTestCase {
     private func stableYouTube(_ web: WKWebView, path: String) async throws -> Bool {
         var consecutive = 0
         let literal = WebEngine.jsLiteral(path)
-        for _ in 0..<180 {
-            let desktop = (try await evaluate("location.pathname === \(literal) && document.readyState === 'complete' && document.title.length > 0 && !!document.querySelector('ytd-app') && !document.querySelector('ytm-app') && innerWidth >= 1200", web: web)) as? Bool == true
+        let deadline = Date().addingTimeInterval(30)
+        while Date() < deadline {
+            // Navigation can invalidate a JavaScript execution context. Retry within
+            // the same bounded observation window; only stable desktop DOM passes.
+            var desktop = false
+            do {
+                desktop = (try await evaluate("location.pathname === \(literal) && document.readyState === 'complete' && document.title.length > 0 && !!document.querySelector('ytd-app') && !document.querySelector('ytm-app') && innerWidth >= 1200", web: web)) as? Bool == true
+            } catch {
+                print("WUDCAR160 pending navigation: \(error)")
+            }
             consecutive = (!web.isLoading && desktop) ? consecutive + 1 : 0
             if consecutive >= 20 { return true }
             try await Task.sleep(nanoseconds: 250_000_000)
@@ -179,6 +187,7 @@ final class Release160Tests: XCTestCase {
 
     /// A network probe on real WKWebView in Simulator, never a claim of physical-device acceptance.
     func testLiveYouTubePhoneBeforeCarProbe() async throws {
+        executionTimeAllowance = 240
         print("WUDCAR160 LIVE PROBE START")
         let phone = WDSettings.phoneDesktopMode, car = WDSettings.carDesktopMode, zoom = WDSettings.carZoom
         defer { WDSettings.phoneDesktopMode = phone; WDSettings.carDesktopMode = car; WDSettings.carZoom = zoom }
