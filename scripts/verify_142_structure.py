@@ -20,5 +20,5 @@ print('PASS: tab order, subscription gate, compact status, picker and player pre
 
 workflow = Path('codemagic.yaml').read_text().split('  wudcar-142-player:', 1)[1]
 assert 'submit_to_testflight: false' in workflow and 'submit_to_app_store: false' in workflow
-assert 'testFlightInternalTestingOnly' in workflow and 'skip-testing:' not in workflow
+assert 'testFlightInternalTestingOnly' not in workflow and 'skip-testing:' not in workflow
 print('PASS: internal-only export/upload; no beta or App Store review and no skipped native test suites')

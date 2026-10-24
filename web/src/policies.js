@@ -217,7 +217,7 @@ export const policies={
       "sections": [
         [
           "المنتج والسعر",
-          "اشتراك WudCar Premium يتيح جميع ميزات WudCar Media Player. الاسم والمدة والسعر المحلي يعرضها StoreKit وشاشة تأكيد Apple قبل الشراء. لا يتضمن محتوى أو حسابات IPTV. لم تتغير إعدادات المنتج أو التجربة المجانية في هذا الإصدار."
+          "اشتراك WudCar Premium الشهري بسعر 24 درهماً، مع فترة تجربة مجانية 3 أيام، يفتح جميع مزايا التطبيق بدون حدود وقت أو استخدام. يتجدد تلقائياً ما لم يُلغَ قبل 24 ساعة من نهاية الفترة، ويُدار من إعدادات Apple ID."
         ],
         [
           "التجديد والإلغاء",
@@ -234,7 +234,7 @@ export const policies={
       "sections": [
         [
           "Product and pricing",
-          "WudCar Premium unlocks all WudCar Media Player features. StoreKit and Apple’s purchase confirmation display the product name, duration and localized price before purchase. No IPTV content or accounts are included. This release does not alter the subscription product or trial configuration."
+          "WudCar Premium is a monthly subscription priced at AED 24, with a 3-day free trial. It unlocks all app features without time or usage limits, renews automatically unless cancelled at least 24 hours before the period ends, and is managed in Apple ID settings."
         ],
         [
           "Renewal and cancellation",
