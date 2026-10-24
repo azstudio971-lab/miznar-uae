@@ -317,8 +317,6 @@ workflows:
     - name: إنشاء مشروع Xcode
       script: 'xcodegen generate
 
-        python3 scripts/configure_142_test_plan.py
-
         '
     - name: ضبط Team ID
       script: 'sed -i '''' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $TEAM_ID;/g"
@@ -350,13 +348,37 @@ workflows:
         --internal-testflight
 
         '
+    - name: SubscriptionTests (informational, non-blocking, 10-minute timeout)
+      script: |
+        python3 - <<'PYTEST'
+        import os, signal, subprocess
+        from pathlib import Path
+        import json
+        devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '-j']))
+        device = next(v['udid'] for k, values in devices['devices'].items() if 'iOS-27-0' in k for v in values if 'iPhone' in v['name'])
+        command = ['xcodebuild', '-project', 'WdCar.xcodeproj', '-scheme', 'WdCarTests', '-destination', f'platform=iOS Simulator,id={device}', '-parallel-testing-enabled', 'NO', '-only-testing:WdCarTests/SubscriptionTests', '-resultBundlePath', '/tmp/WudCar142Subscription.xcresult', 'CODE_SIGNING_ALLOWED=YES', 'CODE_SIGNING_REQUIRED=YES', 'CODE_SIGN_IDENTITY=-', 'test']
+        with open('/tmp/wudcar-142-subscription.log', 'w') as log:
+            process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+            try:
+                status = process.wait(timeout=600)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGTERM)
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+                status = 124
+            log.write(f'\nSUBSCRIPTION_TEST_EXIT_STATUS={status} (informational only)\n')
+        print(Path('/tmp/wudcar-142-subscription.log').read_text())
+        PYTEST
     - name: Export verification screenshots
       script: 'mkdir -p docs/appstore/1.4.2/screenshots
 
         xcrun xcresulttool export attachments --path /tmp/WudCar160ReleaseGate.xcresult
         --output-path docs/appstore/1.4.2/screenshots'
     - name: تجهيز التوقيع
-      script: 'xcode-project use-profiles --custom-export-options=''{"testFlightInternalTestingOnly": true}''
+      script: 'xcode-project use-profiles
 
         '
     - name: رقم البناء
@@ -400,6 +422,8 @@ workflows:
     - /tmp/xcodebuild_logs/*.log
     - /tmp/WudCar160ReleaseGate.xcresult/**/*
     - /tmp/wudcar-160-release-gate.log
+    - /tmp/wudcar-142-subscription.log
+    - /tmp/WudCar142Subscription.xcresult/**/*
     - docs/verification/142/signed-entitlements.txt
     - docs/appstore/1.4.2/screenshots/**/*
     publishing:

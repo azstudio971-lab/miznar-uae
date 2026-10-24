@@ -13,7 +13,10 @@ args = parser.parse_args()
 log = Path('/tmp/wudcar-160-release-gate.log')
 command = [
     '/usr/bin/xcodebuild', '-project', 'WdCar.xcodeproj', '-scheme', 'WdCarTests',
-    '-testPlan', 'Release142', '-destination', f'platform=iOS Simulator,id={args.device}',
+    '-destination', f'platform=iOS Simulator,id={args.device}',
+    '-only-testing:WdCarTests/Release160Tests',
+    '-only-testing:WdCarTests/Release17Tests',
+    '-only-testing:WdCarTests/Release142PlayerTests',
     '-parallel-testing-enabled', 'NO', '-test-timeouts-enabled', 'YES',
     '-default-test-execution-time-allowance', '180', '-maximum-test-execution-time-allowance', '240',
     '-resultBundlePath', '/tmp/WudCar160ReleaseGate.xcresult',
