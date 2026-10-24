@@ -1,0 +1,1 @@
+<plist version="1.0"><dict><key>application-identifier</key><string>QS29RVJPUT.com.azstudio.wudcar</string><key>beta-reports-active</key><true/><key>com.apple.developer.carplay-audio</key><true/><key>com.apple.developer.carplay-video</key><true/><key>com.apple.developer.team-identifier</key><string>QS29RVJPUT</string><key>get-task-allow</key><false/></dict></plist>
