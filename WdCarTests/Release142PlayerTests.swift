@@ -5,6 +5,77 @@ import CarPlay
 @testable import WdCar
 
 @MainActor final class Release142PlayerTests: XCTestCase {
+    func testExternalDisplayUsesMediaPlayerTabsAndHomeSettings() async throws {
+        let oldLanguage = WDSettings.carLanguage
+        defer { WDSettings.carLanguage = oldLanguage }
+        func find(_ id: String, _ view: UIView) -> UIView? {
+            if view.accessibilityIdentifier == id { return view }
+            return view.subviews.lazy.compactMap { find(id, $0) }.first
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        for language in ["ar", "en"] {
+            WDSettings.carLanguage = language
+            for size in [CGSize(width: 960, height: 480), CGSize(width: 640, height: 360)] {
+                let dashboard = CarDashboardViewController()
+                let window = UIWindow(windowScene: scene)
+                window.rootViewController = dashboard; window.makeKeyAndVisible()
+                defer { window.isHidden = true; window.rootViewController = nil }
+                dashboard.view.frame = CGRect(origin: .zero, size: size)
+                dashboard.view.layoutIfNeeded()
+                let menu = try XCTUnwrap(find("car.navigation", dashboard.view) as? UISegmentedControl)
+                XCTAssertEqual(menu.numberOfSegments, 4)
+                XCTAssertEqual((0..<4).compactMap { menu.titleForSegment(at: $0) }, language == "ar"
+                    ? ["الرئيسية", "مكتبة الفيديو", "M3U IPTV Player", "الترفيه"]
+                    : ["Home", "Video Library", "M3U IPTV Player", "Entertainment"])
+                XCTAssertEqual(menu.selectedSegmentIndex, 0)
+                let settings = try XCTUnwrap(find("car.home.settings", dashboard.view) as? UIButton)
+                settings.sendActions(for: .touchUpInside)
+                XCTAssertEqual(menu.selectedSegmentIndex, 0)
+                XCTAssertNotNil(find("car.settings", dashboard.view))
+                let back = try XCTUnwrap(find("car.settings.back", dashboard.view) as? UIButton)
+                back.sendActions(for: .touchUpInside)
+                XCTAssertNotNil(find("car.home", dashboard.view))
+                let attachment = XCTAttachment(image: UIGraphicsImageRenderer(size: size).image { dashboard.view.layer.render(in: $0.cgContext) })
+                attachment.name = "142-16-external-dashboard-\(language)-\(Int(size.width))x\(Int(size.height))"
+                attachment.lifetime = .keepAlways; add(attachment)
+                CarMouseBridge.shared.send(.selectSection(.settings))
+                try await Task.sleep(for: .milliseconds(200))
+                XCTAssertEqual(menu.selectedSegmentIndex, 0)
+                XCTAssertNotNil(find("car.settings", dashboard.view))
+                CarMouseBridge.shared.send(.selectSection(.television))
+                try await Task.sleep(for: .milliseconds(200))
+                XCTAssertEqual(menu.selectedSegmentIndex, 2)
+                CarMouseBridge.shared.send(.selectSection(.entertainment))
+                try await Task.sleep(for: .milliseconds(200))
+                XCTAssertEqual(menu.selectedSegmentIndex, 3)
+            }
+        }
+    }
+
+    func testExternalLibraryRendersSharedMediaAndPlaylists() async throws {
+        let library = MediaLibrary.shared
+        let url = URL(string: "https://example.com/test-\(UUID().uuidString).m3u8")!
+        try library.addRemote(title: "Library display fixture", url: url, isLive: true)
+        let item = try XCTUnwrap(library.items.first { $0.url == url })
+        defer { library.remove(item.id) }
+        library.createPlaylist("Car library fixture")
+        let playlist = try XCTUnwrap(library.playlists.last)
+        defer { library.removePlaylist(playlist.id) }
+        library.addToPlaylist(playlist.id, item: item)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: scene)
+        let controller = UIHostingController(rootView: CarMediaLibraryView())
+        window.rootViewController = controller; window.makeKeyAndVisible()
+        defer { window.isHidden = true; window.rootViewController = nil }
+        controller.view.frame = CGRect(x: 0, y: 0, width: 960, height: 480)
+        controller.view.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertEqual(library.contents(playlist).map(\.id), [item.id])
+        let attachment = XCTAttachment(image: UIGraphicsImageRenderer(size: controller.view.bounds.size).image { controller.view.layer.render(in: $0.cgContext) })
+        attachment.name = "142-16-external-library-shared-store"
+        attachment.lifetime = .keepAlways; add(attachment)
+    }
+
     func testDrivingDefaultAndExplicitPreference() {
         let old = UserDefaults.standard.object(forKey: WDKeys.lockVideoWhileDriving)
         defer { UserDefaults.standard.set(old, forKey: WDKeys.lockVideoWhileDriving) }

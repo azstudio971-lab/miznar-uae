@@ -10,6 +10,8 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
     private var pageView: UIView?
     private var browser: CarBrowserViewController?
     private var zoomLabel: UILabel?
+    private var libraryController: UIHostingController<CarMediaLibraryView>?
+    private var showingSettings = false
     private var tvController: UIHostingController<XtreamHomeView>?
     private var externalPlayer: AVPlayerViewController?
     private let playerCloseButton = CarUI.iconButton("xmark.circle.fill", size: 25, background: UIColor(white: 0.05, alpha: 0.88))
@@ -29,8 +31,8 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
         menu.semanticContentAttribute = .forceRightToLeft
         menu.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .normal)
         menu.setTitleTextAttributes([.foregroundColor: CarUI.navy], for: .selected)
-        menu.selectedSegmentIndex = CarScreenLauncher.shared.isLaunching ? 1 : 0
-        menu.addAction(UIAction { [weak self] _ in self?.showSelectedPage() }, for: .valueChanged)
+        menu.selectedSegmentIndex = 0
+        menu.addAction(UIAction { [weak self] _ in self?.showingSettings = false; self?.showSelectedPage() }, for: .valueChanged)
         let stack = UIStackView(arrangedSubviews: [menu, bodyView])
         stack.axis = .vertical
         stack.spacing = 4
@@ -60,7 +62,7 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
     private func fitWelcomeText() {
         guard pageView?.accessibilityIdentifier == "car.home", let copy = welcomeCopy,
               copy.bounds.width > 0, let pageView else { return }
-        let available = max(1, pageView.bounds.height - 44)
+        let available = max(1, pageView.bounds.height - 96)
         let labels = copy.arrangedSubviews.compactMap { $0 as? UILabel }
         func requiredHeight(_ scale: CGFloat) -> CGFloat {
             var height = CGFloat(max(0, labels.count - 1)) * 10 * scale
@@ -92,36 +94,37 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
 
     private func updateLanguage() {
         menu.setTitle(carTr("الرئيسية", "Home"), forSegmentAt: 0)
-        menu.setTitle(carTr("الترفيه", "Entertainment"), forSegmentAt: 1)
-        menu.setTitle(carTr("التلفزيون TV", "TV"), forSegmentAt: 2)
-        menu.setTitle(carTr("الإعدادات", "Settings"), forSegmentAt: 3)
+        menu.setTitle(carTr("مكتبة الفيديو", "Video Library"), forSegmentAt: 1)
+        menu.setTitle("M3U IPTV Player", forSegmentAt: 2)
+        menu.setTitle(carTr("الترفيه", "Entertainment"), forSegmentAt: 3)
         view.semanticContentAttribute = WDSettings.carLanguage == "ar" ? .forceRightToLeft : .forceLeftToRight
     }
 
     private func showSelectedPage() {
         pageView?.removeFromSuperview()
         pageView = nil
-        menu.isHidden = menu.selectedSegmentIndex == 1
+        menu.isHidden = menu.selectedSegmentIndex == 3
         browser?.view.isHidden = true
         tvController?.view.isHidden = true
-        if menu.selectedSegmentIndex != 1 {
+        libraryController?.view.isHidden = true
+        if menu.selectedSegmentIndex != 3 {
             browser?.pauseForNavigation()
         }
-        if [1, 2].contains(menu.selectedSegmentIndex), !SubscriptionStore.shared.hasAccess {
+        if [1, 2, 3].contains(menu.selectedSegmentIndex), !SubscriptionStore.shared.hasAccess {
             menu.isHidden = false
             browser?.pauseForNavigation()
-            PlaybackManager.shared.stop()
+            if PlaybackManager.shared.current != nil { PlaybackManager.shared.stop() }
             install(page([label("يرجى تفعيل اشتراك ود كار أو استعادته من تطبيق iPhone أثناء توقف السيارة.",
                                 "Please activate or restore WudCar Premium in the iPhone app while parked.", size: 21)]))
             return
         }
         switch menu.selectedSegmentIndex {
-        case 1:
+        case 3:
             if browser == nil {
                 let controller = CarBrowserViewController()
                 controller.onVideoFullscreenChange = { [weak self] on in
                     guard let self else { return }
-                    self.menu.isHidden = on || self.menu.selectedSegmentIndex == 1
+                    self.menu.isHidden = on || self.menu.selectedSegmentIndex == 3
                 }
                 controller.onExitEntertainment = { [weak self] in
                     guard let self else { return }
@@ -155,8 +158,22 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
                 tvView.isHidden = false
                 pageView = tvView
             }
-        case 3: install(makeSettings())
-        default: install(makeHome())
+        case 1:
+            if libraryController == nil {
+                let controller = UIHostingController(rootView: CarMediaLibraryView())
+                controller.view.accessibilityIdentifier = "car.library.screen"
+                controller.overrideUserInterfaceStyle = .dark
+                addChild(controller)
+                controller.didMove(toParent: self)
+                libraryController = controller
+            }
+            if let libraryView = libraryController?.view {
+                bodyView.addSubview(libraryView)
+                CarUI.pin(libraryView, to: bodyView)
+                libraryView.isHidden = false
+                pageView = libraryView
+            }
+        default: install(showingSettings ? makeSettings() : makeHome())
         }
     }
 
@@ -170,7 +187,12 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
                 case .selectSection(let section):
                     if self.externalPlayer != nil && section == .television { return }
                     if self.externalPlayer != nil { PlaybackManager.shared.stop() }
-                    self.menu.selectedSegmentIndex = section.rawValue
+                    self.showingSettings = section == .settings
+                    switch section {
+                    case .home, .settings: self.menu.selectedSegmentIndex = 0
+                    case .entertainment: self.menu.selectedSegmentIndex = 3
+                    case .television: self.menu.selectedSegmentIndex = 2
+                    }
                     self.showSelectedPage()
                 case .stopPlayback:
                     PlaybackManager.shared.stop()
@@ -231,12 +253,11 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
             externalPlayer = nil
             playerCloseButton.removeFromSuperview()
             playerErrorLabel.removeFromSuperview()
-            menu.isHidden = menu.selectedSegmentIndex == 1
+            menu.isHidden = menu.selectedSegmentIndex == 3
             showSelectedPage()
             return
         }
         if externalPlayer == nil {
-            menu.selectedSegmentIndex = CarMouseBridge.DashboardSection.television.rawValue
             showSelectedPage()
             menu.isHidden = true
             let controller = AVPlayerViewController()
@@ -379,7 +400,7 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
         logo.translatesAutoresizingMaskIntoConstraints = false
 
         let copy = UIStackView(arrangedSubviews: [
-            label("مرحباً بكم في وُد كار (WudCar)", "Welcome to WudCar", size: 25, accent: true),
+            label("مرحباً بكم في WudCar Media Player", "Welcome to WudCar Media Player", size: 25, accent: true),
             label("أهلاً بكم في تجربتكم الترفيهية مع وُد كار.", "Welcome to your entertainment experience with WudCar.", size: 18),
             label("يمكنكم تخصيص إعدادات التطبيق وإدارة خيارات الترفيه والمواقع المفضلة بسهولة من خلال تطبيق WudCar على هاتف iPhone.",
                   "Customize app settings, entertainment options, and favorite websites in WudCar on your iPhone.", size: 16),
@@ -405,10 +426,24 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
             row.leadingAnchor.constraint(equalTo: page.leadingAnchor, constant: 34),
             row.trailingAnchor.constraint(equalTo: page.trailingAnchor, constant: -34),
             row.topAnchor.constraint(equalTo: page.topAnchor, constant: 22),
-            row.bottomAnchor.constraint(equalTo: page.bottomAnchor, constant: -22),
+            row.bottomAnchor.constraint(equalTo: page.bottomAnchor, constant: -70),
             logo.widthAnchor.constraint(equalTo: row.widthAnchor, multiplier: 0.29),
             logo.heightAnchor.constraint(lessThanOrEqualTo: row.heightAnchor, multiplier: 0.82),
             copy.heightAnchor.constraint(lessThanOrEqualTo: row.heightAnchor)
+        ])
+        let settings = CarUI.textButton(carTr("الإعدادات", "Settings"))
+        settings.accessibilityIdentifier = "car.home.settings"
+        settings.addAction(UIAction { [weak self] _ in
+            self?.showingSettings = true
+            self?.showSelectedPage()
+        }, for: .touchUpInside)
+        settings.translatesAutoresizingMaskIntoConstraints = false
+        page.addSubview(settings)
+        NSLayoutConstraint.activate([
+            settings.trailingAnchor.constraint(equalTo: page.trailingAnchor, constant: -24),
+            settings.bottomAnchor.constraint(equalTo: page.bottomAnchor, constant: -8),
+            settings.heightAnchor.constraint(equalToConstant: 44),
+            settings.widthAnchor.constraint(greaterThanOrEqualToConstant: 140)
         ])
         return page
     }
@@ -458,7 +493,14 @@ final class CarDashboardViewController: UIViewController, UIGestureRecognizerDel
             WebViewPool.car.applyZoom(1)
             self?.updateZoomLabel()
         }, for: .touchUpInside)
+        let back = CarUI.textButton(carTr("العودة للرئيسية", "Back to Home"))
+        back.accessibilityIdentifier = "car.settings.back"
+        back.addAction(UIAction { [weak self] _ in
+            self?.showingSettings = false
+            self?.showSelectedPage()
+        }, for: .touchUpInside)
         let settingsPage = page([
+            back,
             label("إعدادات السيارة", "Car settings", size: 23, accent: true),
             label("اللغة", "Language"), language,
             label("عرض المواقع", "Website layout"), display,

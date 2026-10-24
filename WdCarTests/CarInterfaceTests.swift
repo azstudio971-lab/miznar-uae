@@ -202,15 +202,15 @@ final class CarInterfaceTests: XCTestCase {
         let menu = try XCTUnwrap(find("car.navigation", in: dashboard.view) as? UISegmentedControl)
         XCTAssertEqual(menu.selectedSegmentIndex, 0)
         XCTAssertEqual(menu.numberOfSegments, 4)
-        XCTAssertEqual(menu.titleForSegment(at: 2), "التلفزيون TV")
+        XCTAssertEqual(menu.titleForSegment(at: 2), "M3U IPTV Player")
         XCTAssertNotNil(find("car.home", in: dashboard.view))
         let welcomeImage = UIGraphicsImageRenderer(bounds: dashboard.view.bounds).image { _ in dashboard.view.drawHierarchy(in: dashboard.view.bounds, afterScreenUpdates: true) }
         let welcomeAttachment = XCTAttachment(image: welcomeImage)
         welcomeAttachment.name = "wudcar-update9-home-preview"
         welcomeAttachment.lifetime = .keepAlways
         add(welcomeAttachment)
-        menu.selectedSegmentIndex = 3
-        menu.sendActions(for: .valueChanged)
+        let settingsButton = try XCTUnwrap(find("car.home.settings", in: dashboard.view) as? UIButton)
+        settingsButton.sendActions(for: .touchUpInside)
         let stepper = try XCTUnwrap(find("car.zoom", in: dashboard.view) as? UIStepper)
         XCTAssertEqual(stepper.minimumValue, 50)
         XCTAssertEqual(stepper.maximumValue, 150)
@@ -233,7 +233,7 @@ final class CarInterfaceTests: XCTestCase {
         XCTAssertFalse(tv.rootView.presentPlaybackOnPhone, "Selecting a car TV stream must not present the iPhone player")
         XCTAssertNil(findLabel("إضافة حساب أو قائمة", in: tv.view), "Car TV must not expose the phone's add control")
 
-        menu.selectedSegmentIndex = 1
+        menu.selectedSegmentIndex = 3
         menu.sendActions(for: .valueChanged)
         XCTAssertTrue(menu.isHidden, "The blue menu stays hidden in the Entertainment browser")
         XCTAssertTrue(dashboard.children.contains { $0 is CarBrowserViewController })
@@ -337,7 +337,7 @@ final class CarInterfaceTests: XCTestCase {
         for section in [CarMouseBridge.DashboardSection.television, .settings, .home] {
             CarMouseBridge.shared.send(.selectSection(section))
             try await Task.sleep(nanoseconds: 120_000_000)
-            XCTAssertEqual(menu.selectedSegmentIndex, section.rawValue)
+            XCTAssertEqual(menu.selectedSegmentIndex, section == .settings ? 0 : section == .entertainment ? 3 : section.rawValue)
         }
         let logo = try XCTUnwrap(UIImage(named: "LogoCarMark")?.cgImage)
         XCTAssertNotEqual(logo.alphaInfo, .none, "CarPlay uses the mark without its former teal tile")

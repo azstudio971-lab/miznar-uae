@@ -66,7 +66,7 @@ struct SettingsView: View {
 
                 Section(tr("المساعدة", "Help")) {
                     NavigationLink(tr("الأسئلة الشائعة", "Frequently asked questions")) { LegalTextView(kind: .faq) }
-                    Link(tr("تواصل معنا", "Contact us"), destination: URL(string: "mailto:" + PlayerLegal.supportEmail)!)
+                    Link(tr("تواصل معنا", "Contact us"), destination: URL(string: "https://wudcar.netlify.app/support/")!)
                 }
                 Section(tr("القانونية", "Legal")) {
                     ForEach(LegalTextView.Kind.allCases.filter { $0 != .faq }, id: \.self) { kind in NavigationLink(kind.title) { LegalTextView(kind: kind) } }
