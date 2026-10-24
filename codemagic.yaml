@@ -340,7 +340,9 @@ workflows:
 
         xcrun simctl bootstatus "$DEVICE" -b
 
-        open "$(xcode-select -p)/Applications/Simulator.app"
+        SIMULATOR_APP="$(xcode-select -p)/Applications/Simulator.app"
+
+        if [ -d "$SIMULATOR_APP" ]; then open "$SIMULATOR_APP"; else echo "Simulator GUI is not installed; CoreSimulator is booted for XCTest."; fi
 
         TEST_RUNNER=(/usr/bin/xcodebuild)
 
