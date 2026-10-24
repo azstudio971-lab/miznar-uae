@@ -17,7 +17,7 @@ command = [
     '-only-testing:WdCarTests/Release160Tests',
     '-only-testing:WdCarTests/Release17Tests',
     '-only-testing:WdCarTests/Release142PlayerTests',
-    '-parallel-testing-enabled', 'NO', '-test-timeouts-enabled', 'YES',
+    '-parallel-testing-enabled', 'NO', '-collect-test-diagnostics', 'never', '-test-timeouts-enabled', 'YES',
     '-default-test-execution-time-allowance', '180', '-maximum-test-execution-time-allowance', '240',
     '-resultBundlePath', '/tmp/WudCar160ReleaseGate.xcresult',
     'CODE_SIGNING_ALLOWED=YES', 'CODE_SIGNING_REQUIRED=YES', 'CODE_SIGN_IDENTITY=-', 'test'

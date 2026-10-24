@@ -356,7 +356,7 @@ workflows:
         import json
         devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '-j']))
         device = next(v['udid'] for k, values in devices['devices'].items() if 'iOS-27-0' in k for v in values if 'iPhone' in v['name'])
-        command = ['xcodebuild', '-project', 'WdCar.xcodeproj', '-scheme', 'WdCarTests', '-destination', f'platform=iOS Simulator,id={device}', '-parallel-testing-enabled', 'NO', '-only-testing:WdCarTests/SubscriptionTests', '-resultBundlePath', '/tmp/WudCar142Subscription.xcresult', 'CODE_SIGNING_ALLOWED=YES', 'CODE_SIGNING_REQUIRED=YES', 'CODE_SIGN_IDENTITY=-', 'test']
+        command = ['xcodebuild', '-project', 'WdCar.xcodeproj', '-scheme', 'WdCarTests', '-destination', f'platform=iOS Simulator,id={device}', '-parallel-testing-enabled', 'NO', '-collect-test-diagnostics', 'never', '-only-testing:WdCarTests/SubscriptionTests', '-resultBundlePath', '/tmp/WudCar142Subscription.xcresult', 'CODE_SIGNING_ALLOWED=YES', 'CODE_SIGNING_REQUIRED=YES', 'CODE_SIGN_IDENTITY=-', 'test']
         with open('/tmp/wudcar-142-subscription.log', 'w') as log:
             process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
             try:
