@@ -5,6 +5,9 @@ struct HomeView: View {
     @EnvironmentObject private var app: AppState
     @Environment(\.colorScheme) private var scheme
     @ObservedObject private var shortcuts = ShortcutStore.shared
+    @State private var entertainment = false
+    @ObservedObject private var m3u = M3UStore.shared
+    @ObservedObject private var library = MediaLibrary.shared
     @ObservedObject private var xtream = XtreamStore.shared
 
     private var greeting: String {
@@ -27,34 +30,19 @@ struct HomeView: View {
 
                     carStatus
 
-                    HomeCard(symbol: "cursorarrow.rays",
-                             title: tr("الماوس", "Mouse"),
-                             subtitle: tr("الماوس يعمل بالمتصفح فقط أثناء توقف السيارة.",
-                                          "Mouse works in the browser only while the car is stopped.")) {
-                        selectTab(3)
-                    }
-
-                    HomeCard(symbol: "play.tv",
-                             title: tr("الترفيه", "Entertainment"),
-                             subtitle: tr("\(shortcuts.shortcuts.count) موقع في الاختصارات", "\(shortcuts.shortcuts.count) saved sites")) {
-                        selectTab(1)
-                    }
-                    HomeCard(symbol: "antenna.radiowaves.left.and.right",
-                             title: "Xtream Codes",
-                             subtitle: xtream.accounts.isEmpty
-                                ? tr("أضف حسابك لمشاهدة القنوات", "Add your account to watch channels")
-                                : tr("\(xtream.accounts.count) حساب", "\(xtream.accounts.count) account(s)")) {
-                        selectTab(2)
-                    }
+                    HomeCard(symbol: "play.rectangle.on.rectangle", title: tr("المكتبة", "Library"), subtitle: tr("الفيديو والصوت وقوائم التشغيل", "Video, audio and playlists")) { selectTab(1) }
+                    HomeCard(symbol: "antenna.radiowaves.left.and.right", title: "M3U IPTV Player", subtitle: tr("\(m3u.playlists.count) قائمة • \(xtream.accounts.count) حساب", "\(m3u.playlists.count) playlists • \(xtream.accounts.count) accounts")) { selectTab(2) }
+                    HomeCard(symbol: "play.tv", title: tr("الترفيه", "Entertainment"), subtitle: tr("\(shortcuts.shortcuts.count) موقع في الاختصارات", "\(shortcuts.shortcuts.count) saved sites")) { entertainment = true }
                     HomeCard(symbol: "gearshape",
                              title: tr("الإعدادات", "Settings"),
                              subtitle: tr("اللغة، وضع العرض، البيانات", "Language, appearance, data")) {
-                        selectTab(4)
+                        selectTab(3)
                     }
                 }
                 .padding(20)
             }
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(isPresented: $entertainment) { SubscriptionGate { PhoneBrowserScreen() } }
         }
     }
 
@@ -89,17 +77,12 @@ struct HomeView: View {
                 .foregroundStyle(app.isCarConnected ? Color.wdAccent : .secondary)
             VStack(alignment: .leading, spacing: 2) {
                 Text("CarPlay").font(.headline)
-                Text(app.carStatusText).font(.subheadline).foregroundStyle(.secondary)
-                if app.isCarConnected {
-                    Text(tr("الفيديو في السيارة: ", "Video in car: ") + app.carVideoText)
-                        .font(.subheadline)
-                        .foregroundStyle(app.carVideoSupport == .unsupported ? Color.orange : .secondary)
-                }
-                if app.isCarConnected || app.carScreenActive {
-                    Text(tr("شاشة السيارة: ", "Car screen: ") + app.carScreenText)
-                        .font(.subheadline)
-                        .foregroundStyle(app.carScreenActive ? Color.green : .secondary)
-                }
+                HStack {
+                    Circle().fill(app.isCarConnected ? Color.green : Color(.systemGray)).frame(width: 8, height: 8)
+                    Text(app.isCarConnected ? tr("متصل", "Connected") : tr("غير متصل", "Not connected"))
+                        .foregroundStyle(app.isCarConnected ? Color.green : Color(.systemGray))
+                }.font(.subheadline)
+
             }
             Spacer()
             if app.isCarConnected || app.carScreenActive {

@@ -52,18 +52,15 @@ struct MainTabView: View {
             HomeView(selectTab: { tab = $0 })
                 .tabItem { Label(tr("الرئيسية", "Home"), systemImage: "house") }
                 .tag(0)
-            SubscriptionGate { PhoneBrowserScreen() }
-                .tabItem { Label(tr("الترفيه", "Entertainment"), systemImage: "play.tv") }
+            SubscriptionGate { LibraryView() }
+                .tabItem { Label(tr("المكتبة", "Library"), systemImage: "play.rectangle.on.rectangle") }
                 .tag(1)
             SubscriptionGate { XtreamHomeView() }
-                .tabItem { Label("Xtream", systemImage: "antenna.radiowaves.left.and.right") }
+                .tabItem { Label("M3U IPTV Player", systemImage: "antenna.radiowaves.left.and.right") }
                 .tag(2)
-            SubscriptionGate { CarMousePadView() }
-                .tabItem { Label(tr("الماوس", "Mouse"), systemImage: "cursorarrow.rays") }
-                .tag(3)
             SettingsView(isSheet: false)
                 .tabItem { Label(tr("الإعدادات", "Settings"), systemImage: "gearshape") }
-                .tag(4)
+                .tag(3)
         }
         .fullScreenCover(isPresented: $playback.isPlayerPresented) {
             PlayerContainer()
@@ -80,6 +77,7 @@ private struct PlayerContainer: View {
         ZStack(alignment: .topLeading) {
             Color.black.ignoresSafeArea()
             PlayerScreen().ignoresSafeArea()
+            PlayerControls()
             HStack {
                 Button {
                     playback.stop()

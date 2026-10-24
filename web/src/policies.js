@@ -4,40 +4,28 @@ export const policies={
       "title": "سياسة الخصوصية",
       "sections": [
         [
-          "من يدير التطبيق",
-          "يدير WudCar المطور الفرد Rashed Saeed. للاستفسارات: az.studio971@gmail.com. آخر تحديث: 9 أكتوبر 2026."
+          "النطاق والجهة",
+          "تسري هذه السياسة بتاريخ 2026-10-24 على WudCar Media Player، الذي يقدمه المطور الفرد Rashed Saeed. التواصل: az.studio971@gmail.com. لا يتطلب التطبيق إنشاء حساب لدى المطور، ولا يتضمن إعلانات أو أدوات تتبع."
         ],
         [
-          "البيانات التي نستخدمها",
-          "يمكنك استخدام الميزات المحلية دون حساب. الاسم المفضل اختياري لتخصيص التحية. عند إنشاء حساب نستخدم بريدك الإلكتروني ومعرّف الحساب لإدارة الدخول ومزامنة الاسم والمدينة واللغة والتفضيلات. كلمة المرور تعالجها خدمة المصادقة ولا تظهر للمدير."
+          "التخزين المحلي",
+          "تُحفظ القوائم وحسابات Xtream والمكتبة وقوائم التشغيل والإعدادات على الجهاز. تُحفظ كلمات المرور وروابط المصادر المحمية في Keychain. تُنسخ الوسائط المستوردة إلى مساحة التطبيق؛ حذف النسخة المستوردة لا يحذف الأصل. قد تطبق إعدادات النظام قواعد النسخ الاحتياطي على البيانات المحلية."
         ],
         [
-          "المدينة والوسائط",
-          "تختار المدينة يدويًا؛ لا نطلب موقع الجهاز أو تتبعًا مستمرًا. عند طلب الطقس يُرسل موقع المدينة المختارة إلى Apple WeatherKit، وعند طلب مواقيت الصلاة تُرسل إحداثيات المدينة وطريقة الحساب إلى AlAdhan. قد يستقبل المزود عنوان الشبكة وبيانات الطلب. تُحفظ آخر نتيجة وتاريخها محليًا. مصادر الوسائط والمفضلة تحفظ على جهازك؛ تشغيل المصدر الذي تختاره يخضع لسياسة مزوده."
+          "الموقع والصوت",
+          "يستخدم التطبيق الموقع لحظياً على الجهاز لرصد الحركة وتطبيق إيقاف الفيديو عند تفعيل الخيار. لا يخزن المطور الموقع ولا يرسله. يستخدم الميكروفون والتعرف على الكلام للإدخال الصوتي الذي يبدأه المستخدم فقط؛ قد تعالج Apple الصوت وفق إعدادات النظام وسياساتها. يمكن إدارة الأذونات من إعدادات iPhone."
         ],
         [
-          "المعالجة والمشاركة",
-          "عند تفعيل الخدمة السحابية، يعالج Supabase المصادقة والبيانات والتخزين، ويستضيف Netlify الموقع ولوحة الإدارة. قد تتم المعالجة خارج بلدك. نوفر البيانات اللازمة للخدمة فقط، ولا نبيع بياناتك ولا نستخدم إعلانات تتبعية. بيانات الطقس عند تفعيل WeatherKit تخضع لإسناد Apple Weather المعروض."
+          "المشتريات والخدمات الخارجية",
+          "تعالج Apple المشتريات والاستحقاقات عبر StoreKit. لا يستلم المطور بيانات بطاقتك. تتصل المواقع ومصادر الوسائط التي تختارها بمزوديها مباشرة، وقد تستقبل عنوان الشبكة وبيانات الطلب؛ تخضع لسياساتها المستقلة. لا تعني سياسة عدم التتبع في التطبيق أن المواقع الخارجية خالية من التتبع."
         ],
         [
-          "الاشتراكات",
-          "عند تفعيل الاشتراكات تعالج Apple عمليات الشراء؛ لا نستلم رقم بطاقتك. يتحقق التطبيق من حالة الاستحقاق عبر StoreKit. تتبع وقت التجربة والدفع غير مفعّلين في هذا الإصدار؛ لن يبدأ اشتراك مدفوع دون تأكيدك عبر Apple."
+          "حقوقك والاحتفاظ",
+          "يمكنك تعديل بياناتك وحذف المصادر والملفات ومسح بيانات الويب من التطبيق، وسحب الأذونات من النظام. تبقى بيانات Keychain حتى حذف المصادر أو الحسابات المعنية وقد لا يزيلها حذف التطبيق وحده. لطلبات الخصوصية أو التصحيح أو الحذف، تواصل مع الدعم دون إرسال كلمات مرور. لا نملك نسخة خادمية من مكتبتك المحلية."
         ],
         [
-          "الاحتفاظ والحذف",
-          "تحفظ التفضيلات حتى تمسح البيانات المحلية أو تحذف حسابك. حذف الحساب يزيل ملفك وتفضيلاتك السحابية ؛ سجلات البنية التحتية والنسخ الاحتياطية قد تبقى لفترة الاحتفاظ لدى مزود الخدمة. حذف الحساب لا يلغي اشتراك Apple؛ يمكنك إدارته من إعدادات App Store."
-        ],
-        [
-          "اختياراتك",
-          "تستطيع تعديل الاسم والمدينة، تسجيل الخروج، مسح بيانات الجهاز، وحذف الحساب من الإعدادات. الإشعارات النظامية ليست مفعلة في هذا الإصدار. يمكن التواصل لطلبات الوصول والتصحيح والحذف."
-        ],
-        [
-          "الأطفال والتحديثات",
-          "التطبيق غير موجه للأطفال. قد نحدّث السياسة عند تغيير الخدمة، ونوضح التغييرات الجوهرية قبل تطبيقها."
-        ],
-        [
-          "الأجهزة والصلاحيات",
-          "عند تفعيل الحساب السحابي، تحفظ الخدمة معرّف جلسة الجهاز واسمه وآخر نشاط وحالة إلغائه لإدارة الوصول. حسابات الموظفين محددة بالصلاحيات وتُسجّل عمليات تعديل المحتوى؛ لا يتضمن السجل كلمات المرور أو روابط وسائطك الخاصة. عند تفعيل التجربة المدفوعة لاحقًا يُحسب الاستهلاك بواسطة الخادم ويُحفظ مع حسابك."
+          "التعديلات",
+          "تُنشر التغييرات مع تاريخ السريان. لا تحد هذه السياسة من حقوقك الإلزامية بموجب القوانين المعمول بها."
         ]
       ]
     },
@@ -45,75 +33,55 @@ export const policies={
       "title": "Privacy Policy",
       "sections": [
         [
-          "Operator",
-          "WudCar is operated by individual developer Rashed Saeed. Contact: az.studio971@gmail.com. Updated October 9, 2026."
+          "Scope and operator",
+          "Effective 2026-10-24. WudCar Media Player is provided by individual developer Rashed Saeed. Contact: az.studio971@gmail.com. No developer account is required. The app contains no advertising or tracking SDKs."
         ],
         [
-          "Information we use",
-          "Local features work without an account. Your preferred name is optional and personalizes greetings. An account uses your email and user ID for authentication and synchronization of your name, city, language and preferences. Passwords are handled by the authentication provider and are not visible to administrators."
+          "Local storage",
+          "Playlists, Xtream accounts, media library and settings remain on your device. Passwords and protected source URLs are stored in Keychain. Imported files are copied into app storage; deleting a copy leaves the original intact. System backup settings may apply to local data."
         ],
         [
-          "City and media",
-          "You choose a city manually; device location and continuous tracking are not requested. Weather requests send the selected city coordinates to Apple WeatherKit. Prayer requests send city coordinates and calculation method to AlAdhan. Providers may receive your network address and request information. The latest result and its date are cached locally. Media sources and favorites remain on your device; playing a source is subject to its provider’s policy."
+          "Location and voice",
+          "Location is used momentarily on device to detect movement and pause video when enabled; the developer does not store or transmit it. Microphone and speech recognition serve user-initiated voice input only. Apple may process speech under its policies and system settings. Manage permissions in iPhone Settings."
         ],
         [
-          "Processing and sharing",
-          "When cloud services are enabled, Supabase processes authentication, stored data and media storage, and Netlify hosts the website and admin dashboard. Processing may occur outside your country. We use only data needed for the service, do not sell your data and do not use tracking ads. WeatherKit data, when enabled, includes Apple Weather attribution."
+          "Purchases and third parties",
+          "Apple processes purchases and entitlements through StoreKit; the developer does not receive payment card data. User-selected websites and media sources connect directly to their providers, which may receive IP addresses and request data under their own policies. The app’s lack of tracking does not mean external sites do not track."
         ],
         [
-          "Subscriptions",
-          "When subscriptions are enabled, Apple handles purchases; we do not receive card details. StoreKit verifies access. Trial usage tracking and payments are not enabled in this build. A paid subscription will not start without your confirmation through Apple."
+          "Control and retention",
+          "Edit or delete sources and files, clear website data in the app and revoke permissions in system settings. Keychain records remain until the corresponding sources or accounts are deleted and may survive app removal. Contact support for privacy, access, correction or deletion assistance without sending passwords. We do not hold a server copy of your local library."
         ],
         [
-          "Retention and deletion",
-          "Preferences remain until you clear local data or delete your account. Account deletion removes your profile, cloud preferences . Infrastructure logs and backups may remain for the provider retention period. Account deletion does not cancel Apple subscriptions; manage them in App Store settings."
-        ],
-        [
-          "Your choices",
-          "Edit your name or city, sign out, clear local data or delete your account in Settings. System push notifications are not enabled in this release. Contact us for access, correction or deletion requests."
-        ],
-        [
-          "Children and changes",
-          "This app is not directed to children. We may update this policy as the service changes and will explain material changes before they apply."
-        ],
-        [
-          "Devices and permissions",
-          "When cloud accounts are enabled, the service stores a device-session identifier, name, last activity and revocation status for access management. Staff access uses assigned permissions and content changes are audited; audit records exclude passwords and private media URLs. If the evaluation allowance is enabled later, usage is calculated by the server and stored against your account."
+          "Changes",
+          "Policy changes are published with an effective date. Mandatory statutory rights remain unaffected."
         ]
       ]
     }
   },
   "terms": {
     "ar": {
-      "title": "الشروط والأحكام",
+      "title": "شروط الاستخدام",
       "sections": [
         [
-          "الموافقة",
-          "باستخدام WudCar توافق على هذه الشروط. مقدم الخدمة هو Rashed Saeed بصفته مطورًا فرديًا، والتواصل عبر az.studio971@gmail.com."
+          "القبول والنطاق",
+          "تسري بتاريخ 2026-10-24. باستخدام WudCar Media Player تقبل هذه الشروط مع اتفاقية ترخيص Apple. إذا لم توافق، توقف عن الاستخدام."
         ],
         [
-          "استخدام الخدمة",
-          "يوفر التطبيق الثيمات والمعلومات والوسائط المتوافقة. تتحمل مسؤولية امتلاك حق الوصول إلى المصادر التي تضيفها؛ لا نوفر قنوات أو اشتراكات خارجية ولا نضمن استمرار خدمات الغير. يمنع التحايل على الحماية أو استخدام محتوى دون تصريح."
+          "مشغّل فقط",
+          "التطبيق مشغّل وسائط ولا يوفر أو يستضيف أو يبيع محتوى أو قنوات أو اشتراكات IPTV. أنت مسؤول عن الحصول على حق استخدام كل مصدر تضيفه. يحظر انتهاك حقوق النشر أو التحايل على قيود الوصول أو الاستخدام غير المشروع."
         ],
         [
-          "السيارة والسلامة",
-          "تعتمد ميزات CarPlay على الجهاز والسيارة وإصدار النظام والصلاحيات. الفيديو متاح فقط عبر المسار الرسمي في سيارة داعمة عندما يسمح النظام أثناء الوقوف. لا تعتمد على التطبيق للملاحة أو للطوارئ، ولا تتفاعل مع إعدادات الهاتف أثناء القيادة."
+          "السلامة والتوافق",
+          "لا يشاهد السائق الفيديو ولا يتفاعل مع الهاتف أثناء القيادة. تتوقف إتاحة الفيديو على النظام والسيارة والمصدر. لا يعد التطبيق نظام ملاحة أو وسيلة سلامة. التزم بقوانين المرور والتعليمات المحلية."
         ],
         [
-          "المعلومات الدينية والطقس",
-          "مواعيد الصلاة والتوقعات معلومات إرشادية؛ تحقق من الجهة المحلية المعتمدة خصوصًا عند اختلاف طرق الحساب. قد تتأخر البيانات أو لا تتوفر دون اتصال."
+          "الاشتراك والمسؤولية",
+          "تُعرض أسعار الاشتراك وشروطه قبل الشراء عبر Apple. لا نضمن توفر مصادر الغير أو توافق كل صيغة. يقدم التطبيق بحسب إتاحته، وفي الحدود التي يسمح بها القانون لا يتحمل المطور الخسائر غير المباشرة الناشئة عن مصادر الغير أو سوء الاستخدام. لا تستبعد هذه الشروط مسؤولية لا يجوز قانوناً استبعادها أو حقوق المستهلك الإلزامية."
         ],
         [
-          "الاشتراك والتجربة",
-          "عند تفعيل الدفع تعرض شاشة Apple السعر والمدة والتجديد قبل التأكيد. قد تتوفر 30 دقيقة استخدام فعلي لمرة واحدة؛ لا تحسب مدة تثبيت التطبيق. الأسعار والعروض المعتمدة هي التي تظهر في المتجر، ويمكن إدارة الاشتراك أو إلغاؤه في إعدادات Apple واستعادة المشتريات. حذف الحساب لا يلغي الاشتراك."
-        ],
-        [
-          "الحساب والملكية",
-          "حافظ على بيانات الدخول. يمكنك حذف حسابك من الإعدادات. يمنحك التطبيق ترخيص استخدام شخصيًا وفق هذه الشروط واتفاقية Apple القياسية، ولا ينقل ملكية الهوية أو الثيمات إليك."
-        ],
-        [
-          "التوفر والمسؤولية",
-          "قد تتغير الخدمة أو تتوقف للصيانة. لا نضمن التوافق مع كل مصدر أو سيارة. لا تحد هذه الشروط من حقوق المستهلك الإلزامية؛ تسري القوانين المختصة وتتاح مراجعة الدعم لأي شكوى."
+          "التعديلات والقانون",
+          "قد نحدّث التطبيق وهذه الشروط مع بيان تاريخ السريان. تخضع هذه الشروط لقوانين دولة الإمارات العربية المتحدة، مع مراعاة الحقوق الإلزامية الواجبة التطبيق. للاستفسارات أو الشكاوى: az.studio971@gmail.com."
         ]
       ]
     },
@@ -121,32 +89,24 @@ export const policies={
       "title": "Terms of Use",
       "sections": [
         [
-          "Agreement",
-          "By using WudCar you accept these terms. The provider is Rashed Saeed, an individual developer. Contact az.studio971@gmail.com."
+          "Acceptance and scope",
+          "Effective 2026-10-24. Use of WudCar Media Player is subject to these terms and Apple’s license agreement. Stop using the app if you do not agree."
         ],
         [
-          "Using the service",
-          "WudCar provides themes, information and compatible media tools. You must have permission to access sources you add. We do not supply third-party channels or subscriptions or guarantee their availability. Do not bypass protections or use unauthorized content."
+          "Player only",
+          "The app does not provide, host or sell content, channels or IPTV subscriptions. You must have authorization to use every source you add. Copyright infringement, access-control circumvention and unlawful use are prohibited."
         ],
         [
-          "Vehicle safety",
-          "CarPlay features depend on your device, vehicle, system version and entitlements. Video uses official mechanisms only in supported vehicles when the system permits playback while parked. Do not rely on WudCar for navigation or emergencies or configure your phone while driving."
+          "Safety and compatibility",
+          "Drivers must not watch video or operate the phone while driving. Video availability depends on the system, vehicle and source. The app is not a navigation or safety system. Follow traffic laws and local requirements."
         ],
         [
-          "Prayer and weather information",
-          "Prayer times and forecasts are informational. Verify prayer times with your local authority, especially where calculation methods differ. Information may be delayed or unavailable offline."
+          "Subscription and liability",
+          "Apple displays subscription pricing and conditions before purchase. Third-party availability and compatibility of every format are not guaranteed. The app is provided as available. To the extent permitted by law, the developer is not liable for indirect losses resulting from third-party sources or misuse. Nothing excludes liability that cannot lawfully be excluded or mandatory consumer rights."
         ],
         [
-          "Subscriptions and evaluation",
-          "When payments are enabled, the Apple purchase screen presents the price, duration and renewal terms before confirmation. A one-time allowance of 30 minutes of actual use may be available; time since installation is not counted. Store prices and eligible offers govern. Manage or cancel subscriptions through Apple settings and use Restore Purchases when needed. Deleting your account does not cancel a subscription."
-        ],
-        [
-          "Account and ownership",
-          "Protect your login details. You may delete your account in Settings. Use is licensed personally under these terms and Apple’s standard license agreement; artwork and branding ownership is not transferred."
-        ],
-        [
-          "Availability and liability",
-          "The service may change or be interrupted for maintenance. We do not guarantee every media source or vehicle is compatible. These terms do not limit mandatory consumer rights. Applicable laws govern and support is available for complaints."
+          "Changes and governing law",
+          "We may update the app and terms with a stated effective date. UAE law governs, subject to applicable mandatory rights. Questions and complaints: az.studio971@gmail.com."
         ]
       ]
     }
@@ -233,72 +193,56 @@ export const policies={
   },
   "eula": {
     "ar": {
-      "title": "اتفاقية الترخيص",
+      "title": "اتفاقية ترخيص المستخدم",
       "sections": [
         [
-          "ترخيص التطبيق",
-          "النسخة الموزعة عبر App Store تخضع لاتفاقية Apple القياسية للمستخدم النهائي: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/. لا تنقل ملكية الشعار أو الثيمات أو محتوى الغير."
-        ],
-        [
-          "مقدم الخدمة",
-          "المطور الفرد Rashed Saeed مسؤول عن دعم WudCar ومحتواه؛ التواصل: az.studio971@gmail.com. ميزات الغير تخضع لشروط مزوديها."
+          "ترخيص Apple القياسي",
+          "اعتباراً من 2026-10-24 يخضع WudCar Media Player لاتفاقية Apple القياسية لترخيص التطبيقات. راجع النص الرسمي: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ . تبقى حقوقك الإلزامية سارية."
         ]
       ]
     },
     "en": {
-      "title": "License Agreement",
+      "title": "End User License Agreement",
       "sections": [
         [
-          "App license",
-          "The App Store-distributed app uses Apple’s Standard End User License Agreement: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/. It does not transfer ownership of the logo, themes or third-party content."
-        ],
-        [
-          "Service provider",
-          "Individual developer Rashed Saeed provides WudCar support and content. Contact az.studio971@gmail.com. Third-party services remain subject to their provider terms."
+          "Apple standard license",
+          "Effective 2026-10-24, WudCar Media Player uses Apple’s Standard Licensed Application End User License Agreement. Read the controlling text: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ . Mandatory statutory rights remain unaffected."
         ]
       ]
     }
   },
   "subscription": {
     "ar": {
-      "title": "سياسة الاشتراك والتجربة",
+      "title": "شروط الاشتراك",
       "sections": [
         [
-          "حالة النسخة",
-          "الاشتراكات والتجربة المحتسبة غير مفعّلتين في نسخة التطوير الحالية. لا نخصم أي مبلغ من خلال التطبيق."
+          "المنتج والسعر",
+          "اشتراك WudCar Premium يتيح جميع ميزات WudCar Media Player. الاسم والمدة والسعر المحلي يعرضها StoreKit وشاشة تأكيد Apple قبل الشراء. لا يتضمن محتوى أو حسابات IPTV. لم تتغير إعدادات المنتج أو التجربة المجانية في هذا الإصدار."
         ],
         [
-          "عند إتاحة الشراء",
-          "تعرض نافذة Apple السعر بعملة المتجر والمدة والعرض المؤهل وشروط التجديد قبل تأكيد الشراء. خطة التسعير المقترحة ليست عرضًا فعالًا؛ لا يُضمن العرض الترويجي لكل حساب."
+          "التجديد والإلغاء",
+          "يتجدد الاشتراك تلقائياً ما لم تلغه قبل 24 ساعة على الأقل من نهاية الفترة الحالية. قد تُخصم رسوم التجديد خلال 24 ساعة قبل انتهائها. تُدير الاشتراك أو تلغيه من إعدادات iPhone ← حساب Apple ← الاشتراكات. حذف التطبيق لا يلغي الاشتراك. تخضع أهلية التجربة المجانية لشروط Apple والعرض الظاهر."
         ],
         [
-          "التجربة",
-          "التجربة المقترحة 30 دقيقة من الاستخدام الفعلي، مرة واحدة للحساب، وليست مدة منذ التثبيت أو رصيدًا يوميًا. لا تعني بدء اشتراك تلقائي. يتطلب احتسابها اتصالًا بالخادم؛ ستوضح النسخة التي تفعّلها شروط الوصول قبل بدء الاستخدام."
-        ],
-        [
-          "التجديد والاستعادة",
-          "عند تفعيل الاشتراكات، قد يتجدد الاشتراك وفق شروط Apple ما لم تلغه من إعدادات Apple. تتاح استعادة المشتريات وإدارة الاشتراك؛ حذف الحساب لا يلغي التجديد تلقائيًا."
+          "الاستعادة والروابط",
+          "استخدم استعادة المشتريات بالحساب نفسه. الخصوصية: https://wudcar.netlify.app/privacy/ والشروط: https://wudcar.netlify.app/terms/ . تعالج Apple طلبات الاسترداد وفق سياساتها وحقوق المستهلك. السريان 2026-10-24. الدعم: az.studio971@gmail.com."
         ]
       ]
     },
     "en": {
-      "title": "Subscription and Evaluation Policy",
+      "title": "Subscription Terms",
       "sections": [
         [
-          "Build status",
-          "Subscriptions and the metered evaluation are disabled in the current development build. The app does not charge you."
+          "Product and pricing",
+          "WudCar Premium unlocks all WudCar Media Player features. StoreKit and Apple’s purchase confirmation display the product name, duration and localized price before purchase. No IPTV content or accounts are included. This release does not alter the subscription product or trial configuration."
         ],
         [
-          "When purchases become available",
-          "Apple’s purchase sheet will show storefront currency, price, duration, eligible offer and renewal terms before confirmation. Planned pricing is not an active offer and introductory eligibility is not guaranteed."
+          "Renewal and cancellation",
+          "Subscriptions renew automatically unless cancelled at least 24 hours before the current period ends. Renewal may be charged within the preceding 24 hours. Manage or cancel in iPhone Settings → Apple Account → Subscriptions. Deleting the app does not cancel a subscription. Trial eligibility is governed by Apple and the displayed offer."
         ],
         [
-          "Evaluation",
-          "The planned evaluation is 30 minutes of actual use once per account, not time since installation or a daily allowance. It does not start a subscription automatically. Accounting requires server access; a build that enables it will explain access terms before use."
-        ],
-        [
-          "Renewal and restoration",
-          "Enabled subscriptions may renew under Apple’s terms unless canceled through Apple settings. Restore Purchases and subscription management will be available. Deleting your account does not cancel renewal."
+          "Restore and links",
+          "Use Restore Purchases with the same Apple Account. Privacy: https://wudcar.netlify.app/privacy/ . Terms: https://wudcar.netlify.app/terms/ . Apple handles refund requests under its policies and mandatory consumer rights. Effective 2026-10-24. Support: az.studio971@gmail.com."
         ]
       ]
     }
@@ -363,6 +307,182 @@ export const policies={
         [
           "Request assistance",
           "Request access, correction or deletion assistance through az.studio971@gmail.com from your account email. Never send your password."
+        ]
+      ]
+    }
+  },
+  "licenses": {
+    "ar": {
+      "title": "التراخيص",
+      "sections": [
+        [
+          "الأطر",
+          "يستخدم WudCar Media Player أطر Apple فقط في تطبيق iOS، ولا يضم حزم SPM أو مكتبات خارجية للتشغيل. تخضع أطر Apple لتراخيص Apple. تعود أسماء وشعارات الخدمات الخارجية لأصحابها ولا تعني شراكة أو اعتماداً. السريان 2026-10-24."
+        ]
+      ]
+    },
+    "en": {
+      "title": "Licenses",
+      "sections": [
+        [
+          "Frameworks",
+          "WudCar Media Player uses only Apple frameworks in the iOS app, with no external playback libraries or SPM packages. Apple frameworks remain subject to Apple licenses. Third-party service names and logos belong to their owners and do not imply affiliation or endorsement. Effective 2026-10-24."
+        ]
+      ]
+    }
+  },
+  "safety": {
+    "ar": {
+      "title": "تنبيه السلامة",
+      "sections": [
+        [
+          "السلامة",
+          "للركاب فقط — لا تشاهد أثناء القيادة. عرض الفيديو مخصص للتوقف وفي حدود ما يسمح به النظام والسيارة والقانون. إيقاف الفيديو أثناء القيادة مفعّل افتراضياً للتثبيت الجديد؛ عند تفعيله يعتمد على GPS لرصد الحركة. قد تتأخر بيانات GPS أو تتعذر، فلا تعتمد على هذا الخيار كوسيلة سلامة. قيود النظام تبقى سارية. لا تغيّر الإعدادات أثناء القيادة. السريان 2026-10-24."
+        ]
+      ]
+    },
+    "en": {
+      "title": "Safety Notice",
+      "sections": [
+        [
+          "Safety",
+          "For passengers only — never watch while driving. Video viewing is intended while parked and only as allowed by the system, vehicle and law. Pause video while driving defaults to on for new installations and uses GPS when enabled. GPS can be delayed or unavailable; do not rely on this preference as a safety system. System restrictions remain in effect. Do not change settings while driving. Effective 2026-10-24."
+        ]
+      ]
+    }
+  },
+  "content": {
+    "ar": {
+      "title": "إخلاء المسؤولية عن المحتوى",
+      "sections": [
+        [
+          "مصادر المستخدم",
+          "WudCar Media Player لا يوفر محتوى أو قنوات ولا يتحقق من حقوق مصادر المستخدم أو يقرها. يتحمل المستخدم مسؤولية قانونية المصدر والتصاريح اللازمة. الجودة والتوفر ومحتوى المواقع مسؤولية مزوديها. لا ترسل للدعم كلمات مرور أو روابط خاصة. السريان 2026-10-24."
+        ]
+      ]
+    },
+    "en": {
+      "title": "Content Disclaimer",
+      "sections": [
+        [
+          "User sources",
+          "WudCar Media Player supplies no content or channels and does not verify or endorse user sources. Users are responsible for lawful access and required permissions. Providers control quality, availability and website content. Never send passwords or private source URLs to support. Effective 2026-10-24."
+        ]
+      ]
+    }
+  },
+  "faq": {
+    "ar": {
+      "title": "الأسئلة الشائعة",
+      "sections": [
+        [
+          "ما هو WudCar Media Player؟",
+          "مشغّل فيديو وصوت لمصادرك وملفاتك الخاصة."
+        ],
+        [
+          "كيف أضيف قائمة M3U؟",
+          "افتح M3U IPTV Player وأضف اسم القائمة ورابطها المصرح به."
+        ],
+        [
+          "كيف أضيف حساب Xtream؟",
+          "أضف عنوان السيرفر واسم المستخدم وكلمة المرور من مزودك."
+        ],
+        [
+          "لماذا لا يوفر التطبيق قنوات؟",
+          "التطبيق أداة تشغيل فقط، وليس مزود محتوى."
+        ],
+        [
+          "كيف أضيف فيديوهات وأنشئ قوائم؟",
+          "من المكتبة اختر إضافة وسائط ثم الصور أو الملفات، وأنشئ قائمة وأضف عناصرها ورتبها عبر تحرير."
+        ],
+        [
+          "لماذا يتوقف الفيديو أثناء القيادة؟",
+          "لحماية السلامة عند تفعيل رصد الحركة، ولأن قيود النظام والسيارة تبقى سارية."
+        ],
+        [
+          "لماذا أسمع الصوت فقط في سيارتي؟",
+          "قد لا تدعم السيارة الفيديو أو لا تسمح به حالياً."
+        ],
+        [
+          "ما الصيغ المدعومة؟",
+          "الصيغ والترميزات التي تدعمها أطر Apple، ومنها MP4 وMOV وMP3 وM4A وHLS. الامتداد وحده لا يضمن توافق الترميز."
+        ],
+        [
+          "كيف أعرض على شاشة السيارة؟",
+          "اتصل بـ CarPlay وافتح مكتبة الفيديو أو M3U IPTV Player، واختر عنصراً أثناء التوقف."
+        ],
+        [
+          "كيف أستخدم مشغّل الويب؟",
+          "افتح بطاقة الترفيه أو أدوات السيارة في الإعدادات. العرض على السيارة أثناء التوقف فقط."
+        ],
+        [
+          "كيف ألغي الاشتراك؟",
+          "إعدادات iPhone ثم حساب Apple ثم الاشتراكات، قبل نهاية الفترة بـ24 ساعة على الأقل."
+        ],
+        [
+          "كيف أستعيد المشتريات؟",
+          "الإعدادات ثم الاشتراك ثم استعادة المشتريات بالحساب نفسه."
+        ],
+        [
+          "كيف أتواصل معكم؟",
+          "az.studio971@gmail.com مع إصدار التطبيق ووصف المشكلة، دون بيانات دخول."
+        ]
+      ]
+    },
+    "en": {
+      "title": "Frequently Asked Questions",
+      "sections": [
+        [
+          "What is WudCar Media Player?",
+          "A video and audio player for your own sources and files."
+        ],
+        [
+          "How do I add M3U?",
+          "Open M3U IPTV Player and add a name and authorized playlist URL."
+        ],
+        [
+          "How do I add Xtream?",
+          "Enter the server, username and password supplied by your provider."
+        ],
+        [
+          "Why are no channels included?",
+          "This is a player, not a content service."
+        ],
+        [
+          "How do I import files and create playlists?",
+          "Use Library → Add media → Photos or Files. Create a playlist, add items and reorder with Edit."
+        ],
+        [
+          "Why does video stop while driving?",
+          "Movement detection pauses video when enabled; system and vehicle restrictions always apply."
+        ],
+        [
+          "Why do I only hear audio in my car?",
+          "The vehicle may not support video or may not allow it currently."
+        ],
+        [
+          "Which formats work?",
+          "Apple-supported formats and codecs, including MP4, MOV, MP3, M4A and HLS. File extensions alone do not guarantee codec compatibility."
+        ],
+        [
+          "How do I play on the car display?",
+          "Connect CarPlay, open Video Library or M3U IPTV Player and select media while parked."
+        ],
+        [
+          "How do I use Web Player?",
+          "Open Entertainment on Home or Car tools in Settings. Car viewing is for parked use only."
+        ],
+        [
+          "How do I cancel?",
+          "Use iPhone Settings → Apple Account → Subscriptions at least 24 hours before the period ends."
+        ],
+        [
+          "How do I restore purchases?",
+          "Settings → Subscription → Restore Purchases using the same Apple Account."
+        ],
+        [
+          "How do I contact support?",
+          "Email az.studio971@gmail.com with the app version and issue, without credentials."
         ]
       ]
     }

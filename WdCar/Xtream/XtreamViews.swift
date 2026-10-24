@@ -15,7 +15,7 @@ struct XtreamHomeView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Xtream Codes") {
+                Section(tr("حسابات Xtream Codes", "Xtream Codes accounts")) {
                     if store.accounts.isEmpty {
                         Text(tr("أضف حساب Xtream Codes لعرض القنوات والأفلام هنا وفي CarPlay.",
                                 "Add an Xtream Codes account to browse channels and movies here and in CarPlay."))
@@ -46,7 +46,7 @@ struct XtreamHomeView: View {
                     }
                 }
 
-                Section("M3U") {
+                Section(tr("قوائم M3U / M3U8", "M3U / M3U8 playlists")) {
                     if m3u.playlists.isEmpty {
                         Text(tr("أضف رابط قائمة M3U لعرض القنوات والمجموعات والمفضلة.",
                                 "Add an M3U playlist URL to browse channels, groups, and favorites."))
@@ -71,7 +71,7 @@ struct XtreamHomeView: View {
                     }
                 }
             }
-            .navigationTitle(tr("التلفزيون TV", "TV"))
+            .navigationTitle("M3U IPTV Player")
             .navigationDestination(for: XtreamAccount.self) { XtreamAccountView(account: $0, presentPlaybackOnPhone: presentPlaybackOnPhone) }
             .navigationDestination(for: M3UPlaylist.self) { M3UEntriesView(playlist: $0, presentPlaybackOnPhone: presentPlaybackOnPhone) }
             .toolbar {
@@ -225,6 +225,7 @@ struct M3UEntriesView: View {
                 }
             }
             .buttonStyle(.plain)
+            .contextMenu { ChannelLibraryMenu(title: entry.title, url: entry.url, live: true, sourceKey: "m3u-\(playlist.id)") }
             Spacer(minLength: 4)
             Button {
                 store.toggleFavorite(entry, in: playlist)
@@ -461,6 +462,10 @@ struct XtreamStreamsView: View {
                         if playback.current?.title == stream.name && playback.isPlaying {
                             Image(systemName: "speaker.wave.2.fill").foregroundStyle(Color.wdAccent)
                         }
+                    }
+                }.contextMenu {
+                    if let url = XtreamClient(account: account).playbackURL(for: stream) {
+                        ChannelLibraryMenu(title: stream.name, url: url, live: kind == .live, sourceKey: "xtream-\(account.id)")
                     }
                 }
             }

@@ -15,8 +15,8 @@ struct SubscriptionView: View {
             VStack(spacing: 18) {
                 Image(systemName: "crown.fill").font(.system(size: 42)).foregroundStyle(Color.wdNavy)
                 Text(tr("اشتراك ود كار", "WudCar Premium")).font(.title.bold())
-                Text(tr("المتصفح والترفيه والتلفزيون والتحكم بالماوس داخل ود كار.",
-                        "WudCar browser, entertainment, TV and mouse control."))
+                Text(tr("المكتبة ومشغّل الويب والترفيه وM3U IPTV Player والتحكم بالماوس.",
+                        "Library, Web Player, entertainment, M3U IPTV Player and mouse control."))
                     .multilineTextAlignment(.center)
                 VStack(spacing: 10) {
                     LabeledContent(tr("حالة الاشتراك", "Subscription status"), value: store.state.title)
@@ -52,6 +52,9 @@ struct SubscriptionView: View {
                         Button(tr("إعادة المحاولة", "Retry")) { Task { await store.refresh() } }
                     }
                 }
+                Text(tr("يتجدد الاشتراك تلقائياً. ألغِه قبل 24 ساعة على الأقل من نهاية الفترة من إعدادات حساب Apple. حذف التطبيق لا يلغي الاشتراك.", "Auto-renews unless cancelled at least 24 hours before the period ends in Apple Account settings. Deleting the app does not cancel it.")).font(.footnote)
+                NavigationLink(tr("شروط الاستخدام", "Terms of Use")) { LegalTextView(kind: .terms) }
+                NavigationLink(tr("شروط الاشتراك", "Subscription terms")) { LegalTextView(kind: .subscription) }
                 if store.busy { ProgressView() }
                 if let message = store.message { Text(message).font(.footnote).foregroundStyle(.secondary) }
                 Button(tr("إدارة الاشتراك", "Manage subscription")) { managing = true }

@@ -30,9 +30,7 @@ final class AppState: ObservableObject {
     @Published var showCarScreenHelp = false
 
     var carScreenText: String {
-        guard carScreenActive else { return tr("غير معروض", "Not shown") }
-        return carScreenInteractive ? tr("المتصفح يعمل — اللمس مفعّل", "Browser running — touch enabled")
-                                    : tr("المتصفح يعمل — التحكم من الهاتف", "Browser running — control from iPhone")
+        carScreenActive ? tr("متصل", "Connected") : tr("غير متصل", "Not connected")
     }
 
     func carScreenConnected(interactive: Bool) {
@@ -41,7 +39,7 @@ final class AppState: ObservableObject {
             self.carScreenInteractive = interactive
             self.showCarScreenHelp = false
             DrivingMonitor.shared.start()
-            self.showToast(tr("المتصفح يعمل على شاشة السيارة 🚗", "Browser is on the car screen 🚗"))
+            self.showToast(tr("متصل بشاشة السيارة", "Connected to car display"))
         }
     }
 
@@ -59,7 +57,7 @@ final class AppState: ObservableObject {
     var carStatusText: String {
         switch carMode {
         case .none: return carScreenActive ? tr("متصل — شاشة خارجية", "Connected — external display") : tr("غير متصل", "Not connected")
-        case .window: return tr("متصل — المتصفح الكامل", "Connected — full browser")
+        case .window: return tr("متصل — مشغّل الويب", "Connected — Web Player")
         case .templates: return tr("متصل — وضع القوالب (الفيديو عبر AirPlay)", "Connected — templates mode (video via AirPlay)")
         }
     }
@@ -97,10 +95,7 @@ final class AppState: ObservableObject {
             let newValue: CarVideoSupport = supported ? .supported : .unsupported
             guard self.carVideoSupport != newValue else { return }
             self.carVideoSupport = newValue
-            if !supported {
-                self.showToast(tr("السيارة لا تعلن دعم الفيديو — سيصل الصوت فقط",
-                                  "The car does not report video support — audio only"))
-            }
+
         }
     }
 

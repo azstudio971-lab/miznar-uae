@@ -8,7 +8,7 @@ struct SettingsView: View {
     @EnvironmentObject private var app: AppState
     @AppStorage(WDKeys.language) private var language = L10n.language.rawValue
     @AppStorage(WDKeys.appearance) private var appearance = AppAppearance.system.rawValue
-    @AppStorage(WDKeys.lockVideoWhileDriving) private var lockVideo = false
+    @AppStorage(WDKeys.lockVideoWhileDriving) private var lockVideo = true
     @AppStorage(WDKeys.phoneDesktopMode) private var phoneDesktop = true
     @State private var confirmClear = false
     @State private var confirmReset = false
@@ -17,7 +17,7 @@ struct SettingsView: View {
     private var version: String {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? "1.0"
-        return short
+        return short + " (" + (info?["CFBundleVersion"] as? String ?? "15") + ")"
     }
 
     var body: some View {
@@ -36,6 +36,8 @@ struct SettingsView: View {
                     }
                 }
 
+                Section(tr("المشغّل", "Player")) { NavigationLink(tr("إعدادات المشغّل", "Player settings")) { MediaSettingsView() } }
+
                 Section {
                     Toggle(tr("إيقاف الفيديو أثناء القيادة", "Pause video while driving"), isOn: $lockVideo)
                 } header: {
@@ -43,10 +45,13 @@ struct SettingsView: View {
                 } footer: {
                     Text(tr("عند تفعيل هذا الخيار يتوقف الفيديو إذا رصد التطبيق حركة السيارة. يظل أي منع يفرضه النظام سارياً.",
                             "When enabled, video pauses if the app detects vehicle movement. System-enforced restrictions always remain in effect."))
+                    Text(tr("للركاب فقط — لا تشاهد أثناء القيادة.", "For passengers only — never watch while driving."))
                 }
 
-                Section(tr("المتصفح", "Browser")) {
-                    Toggle(tr("فتح المواقع بنسخة سطح المكتب", "Open sites in desktop mode"), isOn: $phoneDesktop)
+                Section(tr("أدوات السيارة", "Car tools")) {
+                    NavigationLink(tr("الماوس", "Mouse")) { SubscriptionGate { CarMousePadView() } }
+                    NavigationLink(tr("الترفيه ومشغّل الويب", "Entertainment and Web Player")) { SubscriptionGate { PhoneBrowserScreen() } }
+                    Toggle(tr("مشغّل الويب: نسخة سطح المكتب", "Web Player: desktop mode"), isOn: $phoneDesktop)
                 }
 
                 Section(tr("إدارة البيانات", "Data")) {
@@ -59,14 +64,19 @@ struct SettingsView: View {
                     }
                 }
 
+                Section(tr("المساعدة", "Help")) {
+                    NavigationLink(tr("الأسئلة الشائعة", "Frequently asked questions")) { LegalTextView(kind: .faq) }
+                    Link(tr("تواصل معنا", "Contact us"), destination: URL(string: "mailto:" + PlayerLegal.supportEmail)!)
+                }
+                Section(tr("القانونية", "Legal")) {
+                    ForEach(LegalTextView.Kind.allCases.filter { $0 != .faq }, id: \.self) { kind in NavigationLink(kind.title) { LegalTextView(kind: kind) } }
+                }
                 Section(tr("حول", "About")) {
-                    LabeledContent(tr("التطبيق", "App"), value: "WudCar — وُد كار")
+                    LabeledContent(tr("التطبيق", "App"), value: "WudCar Media Player")
                     LabeledContent(tr("الإصدار", "Version"), value: version)
-                    NavigationLink(tr("سياسة الخصوصية", "Privacy Policy")) { LegalTextView(kind: .privacy) }
-                    NavigationLink(tr("شروط الاستخدام", "Terms of Use")) { LegalTextView(kind: .terms) }
                 }
             }
-            .navigationTitle(tr("الإعدادات", "Settings"))
+            .navigationTitle(tr("الإعدادات — WudCar Media Player", "Settings — WudCar Media Player"))
             .toolbar {
                 if isSheet {
                     ToolbarItem(placement: .confirmationAction) {
@@ -98,53 +108,6 @@ struct SettingsView: View {
         store.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast) {
             app.showToast(tr("تم مسح البيانات", "Data cleared"))
         }
-    }
-}
-
-/// نص الخصوصية والشروط — يصف ما يفعله التطبيق فعلياً
-struct LegalTextView: View {
-    enum Kind { case privacy, terms }
-    let kind: Kind
-
-    var body: some View {
-        ScrollView {
-            Text(kind == .privacy ? privacy : terms)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(20)
-        }
-        .navigationTitle(kind == .privacy ? tr("سياسة الخصوصية", "Privacy Policy") : tr("شروط الاستخدام", "Terms of Use"))
-    }
-
-    private var privacy: String {
-        tr("""
-        • لا يجمع WudCar أي بيانات شخصية ولا يرسلها إلى خوادمنا، ولا يحتوي على إعلانات أو أدوات تتبع.
-        • الاختصارات وعلامات التبويب والإعدادات تُحفظ على جهازك فقط.
-        • بيانات حسابات Xtream وقوائم M3U تُحفظ على جهازك، وبيانات الدخول وروابط القوائم في Keychain.
-        • عند تصفح المواقع أو الاتصال بسيرفر IPTV، تتعامل مع تلك الجهات مباشرة وتخضع لسياساتها.
-        • الموقع الجغرافي يُستخدم على الجهاز فقط لمعرفة حركة السيارة وإيقاف الفيديو، ولا يُحفظ ولا يُرسل.
-        • الميكروفون والتعرف على الكلام يُستخدمان فقط عند الضغط على زر البحث الصوتي.
-        """, """
-        • WudCar does not collect personal data or send it to our servers, and contains no ads or trackers.
-        • Shortcuts, tabs and settings are stored on your device only.
-        • Xtream accounts and M3U playlists are stored on your device; credentials and playlist URLs are kept in the Keychain.
-        • When you browse websites or connect to an IPTV server, you deal with those services directly under their policies.
-        • Location is used on-device only to detect vehicle movement and pause video; it is never stored or sent.
-        • The microphone and speech recognition are used only when you tap voice search.
-        """)
-    }
-
-    private var terms: String {
-        tr("""
-        • WudCar أداة تصفح وتشغيل فقط، ولا يوفر أي محتوى ولا يستضيفه.
-        • أنت مسؤول عن امتلاك حق الوصول للمواقع والحسابات والقوائم التي تضيفها.
-        • لا تشاهد الفيديو أثناء القيادة. التزم بأنظمة المرور في بلدك.
-        • التطبيق مقدّم "كما هو" دون ضمانات.
-        """, """
-        • WudCar is only a browsing and playback tool; it does not provide or host any content.
-        • You are responsible for having the right to access the sites, accounts and playlists you add.
-        • Do not watch video while driving. Follow the traffic laws of your country.
-        • The app is provided "as is" without warranties.
-        """)
     }
 }
 

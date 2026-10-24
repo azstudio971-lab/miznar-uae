@@ -17,7 +17,8 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
     private let home = CPListTemplate(title: carTr("الرئيسية", "Home"), sections: [])
     private let entertainment = CPListTemplate(title: carTr("الترفيه", "Entertainment"), sections: [])
     private let settings = CPListTemplate(title: carTr("الإعدادات", "Settings"), sections: [])
-    private let television = CPListTemplate(title: carTr("التلفزيون TV", "TV"), sections: [])
+    private let television = CPListTemplate(title: "M3U IPTV Player", sections: [])
+    private let library = CPListTemplate(title: carTr("مكتبة الفيديو", "Video Library"), sections: [])
     private var bag = Set<AnyCancellable>()
     private var currentShortcuts: [SiteShortcut] = []
     private var lastReportedVideo: Bool?
@@ -55,16 +56,19 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         entertainment.tabTitle = carTr("الترفيه", "Entertainment")
         entertainment.tabImage = UIImage(systemName: "play.tv")
         entertainment.emptyViewTitleVariants = [carTr("أضف مواقع من iPhone", "Add sites on iPhone")]
-        television.tabTitle = carTr("التلفزيون TV", "TV")
-        television.tabImage = UIImage(systemName: "tv")
+        television.tabTitle = "M3U IPTV Player"
+        television.tabImage = UIImage(systemName: "antenna.radiowaves.left.and.right")
         television.emptyViewTitleVariants = [carTr("أضف حساب Xtream أو قائمة M3U من iPhone", "Add an Xtream account or M3U playlist on iPhone")]
         settings.tabTitle = carTr("الإعدادات", "Settings")
         settings.tabImage = UIImage(systemName: "gearshape.fill")
 
-        let tabs = CPTabBarTemplate(templates: [home, entertainment, television, settings])
+        library.tabTitle = carTr("مكتبة الفيديو", "Video Library")
+        library.tabImage = UIImage(systemName: "play.rectangle.on.rectangle")
+        let tabs = CPTabBarTemplate(templates: [home, library, television, entertainment])
         tabs.delegate = self
         tabBar = tabs
         rebuildHome()
+        rebuildLibrary()
         rebuildEntertainment(ShortcutStore.shared.shortcuts)
         rebuildTelevision()
         rebuildSettings()
@@ -85,7 +89,15 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                 guard let self else { return }
                 self.rebuildEntertainment(self.currentShortcuts)
                 self.rebuildTelevision()
+                self.rebuildLibrary()
             }.store(in: &bag)
+
+        MediaLibrary.shared.objectWillChange
+            .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildLibrary() }.store(in: &bag)
+        M3UStore.shared.objectWillChange
+            .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildLibrary() }.store(in: &bag)
 
         ShortcutStore.shared.$shortcuts
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
@@ -94,12 +106,12 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
         XtreamStore.shared.$accounts
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
-            .sink { [weak self] _ in self?.rebuildTelevision() }
+            .sink { [weak self] _ in self?.rebuildTelevision(); self?.rebuildLibrary() }
             .store(in: &bag)
 
         M3UStore.shared.$playlists
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
-            .sink { [weak self] _ in self?.rebuildTelevision() }
+            .sink { [weak self] _ in self?.rebuildTelevision(); self?.rebuildLibrary() }
             .store(in: &bag)
 
         AppState.shared.$carScreenActive
@@ -123,7 +135,10 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
                     case .home: template = self.home
                     case .entertainment: template = self.entertainment
                     case .television: template = self.television
-                    case .settings: template = self.settings
+                    case .settings:
+                        self.tabBar?.select(self.home)
+                        self.openSettings()
+                        return
                     }
                     self.tabBar?.select(template)
                 case .playPause:
@@ -154,7 +169,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
 
     private func rebuildHome() {
         let greeting = CPListItem(
-            text: carTr("مرحباً بكم في وُد كار (WudCar)", "Welcome to WudCar"),
+            text: carTr("مرحباً بكم في WudCar Media Player", "Welcome to WudCar Media Player"),
             detailText: carTr("أهلاً بكم في تجربتكم الترفيهية مع وُد كار.",
                               "Welcome to your entertainment experience with WudCar."),
             image: UIImage(systemName: "sparkles")
@@ -176,7 +191,16 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             detailText: nil,
             image: UIImage(systemName: "heart.fill")
         )
-        home.updateSections([CPListSection(items: [greeting, customize, safety, farewell])])
+        let settingsRow = settingItem(carTr("الإعدادات", "Settings"), detail: nil, symbol: "gearshape.fill") { [weak self] in self?.openSettings() }
+        home.updateSections([CPListSection(items: [greeting, customize, safety, farewell, settingsRow])])
+    }
+
+    private func openSettings() {
+        rebuildSettings()
+        interfaceController?.popToRootTemplate(animated: false) { [weak self] _, _ in
+            guard let self else { return }
+            self.interfaceController?.pushTemplate(self.settings, animated: true, completion: nil)
+        }
     }
 
     private func rebuildSettings() {
@@ -189,9 +213,13 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             guard let self else { return }
             self.home.tabTitle = carTr("الرئيسية", "Home")
             self.entertainment.tabTitle = carTr("الترفيه", "Entertainment")
-            self.television.tabTitle = carTr("التلفزيون TV", "TV")
+            self.television.tabTitle = "M3U IPTV Player"
             self.settings.tabTitle = carTr("الإعدادات", "Settings")
-            self.tabBar?.updateTemplates([self.home, self.entertainment, self.television, self.settings])
+            self.library.tabTitle = carTr("مكتبة الفيديو", "Video Library")
+            self.tabBar?.updateTemplates([self.home, self.library, self.television, self.entertainment])
+            self.rebuildLibrary()
+            self.rebuildTelevision()
+            self.rebuildEntertainment(self.currentShortcuts)
             self.rebuildHome()
             self.rebuildSettings()
         }
@@ -257,6 +285,7 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
             lastReportedVideo = current
             WDLog.car("templates: supportsVideoPlayback=\(current)")
             rebuildEntertainment(currentShortcuts)
+            rebuildLibrary()
         }
     }
 
@@ -285,13 +314,13 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         ])
     }
 
-    // MARK: - التحديث 3: المتصفح على شاشة السيارة
+    // MARK: - التحديث 3: مشغّل الويب على شاشة السيارة
 
     /// العنصر الأول: يفتح متصفح ود كار على شاشة السيارة (كشاشة خارجية) مثل CarTV
     private func carScreenItem() -> CPListItem {
         let active = AppState.shared.carScreenActive
         let item = CPListItem(
-            text: carTr("المتصفح على شاشة السيارة", "Browser on car screen"),
+            text: carTr("مشغّل الويب على شاشة السيارة", "Web Player on car screen"),
             detailText: active ? carTr("يعمل الآن", "Running now") : carTr("اضغط للتشغيل", "Tap to start")
         )
         item.setImage(UIImage(systemName: active ? "safari.fill" : "safari"))
@@ -310,9 +339,9 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         WDLog.car("templates: browser item tapped active=\(AppState.shared.carScreenActive) supportsVideo=\(supportsVideo)")
         if AppState.shared.carScreenActive {
             showAlert([
-                carTr("المتصفح يعمل على شاشة السيارة. افتح المواقع من الهاتف أو من الاختصارات هنا.",
-                   "The browser is on the car screen. Open sites from iPhone or from shortcuts here."),
-                carTr("المتصفح يعمل", "Browser running")
+                carTr("مشغّل الويب يعمل على شاشة السيارة. افتح المواقع من الهاتف أو من الاختصارات هنا.",
+                   "The Web Player is on the car screen. Open sites from iPhone or from shortcuts here."),
+                carTr("مشغّل الويب يعمل", "Web Player running")
             ])
             return
         }
@@ -322,14 +351,14 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         AppState.shared.showCarScreenHelp = true
         if !supportsVideo {
             showAlert([
-                carTr("إذا لم يظهر المتصفح، اختر شاشة السيارة من زر AirPlay في ود كار على iPhone.",
-                   "If the browser does not appear, choose the car display from AirPlay in WudCar on iPhone."),
+                carTr("إذا لم يظهر مشغّل الويب، اختر شاشة السيارة من زر AirPlay في ود كار على iPhone.",
+                   "If the Web Player does not appear, choose the car display from AirPlay in WudCar on iPhone."),
                 carTr("اختر شاشة السيارة من AirPlay", "Choose the car display in AirPlay")
             ])
         }
     }
 
-    /// الاختصار يُفتح على شاشة السيارة إن كان المتصفح معروضاً، وإلا على الهاتف
+    /// الاختصار يُفتح على شاشة السيارة إن كان مشغّل الويب معروضاً، وإلا على الهاتف
     private func openShortcut(_ url: URL) {
         guard SubscriptionStore.shared.hasAccess else { startCarScreen(); return }
         if AppState.shared.carScreenActive {
@@ -561,6 +590,70 @@ final class CarTemplateUI: NSObject, CPSessionConfigurationDelegate, CPTabBarTem
         if !supportsVideo {
             interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
         }
+    }
+
+    // The library uses the same stores and playback configuration as the TV tab.
+    private func rebuildLibrary() {
+        guard SubscriptionStore.shared.hasAccess else {
+            library.updateSections([CPListSection(items: [CPListItem(text: carTr("الاشتراك مطلوب", "Subscription required"), detailText: nil)])]); return
+        }
+        let store = MediaLibrary.shared
+        var sections: [CPListSection] = []
+        var remaining = Self.maxItems
+        func add(_ title: String, _ rows: [CPListItem]) {
+            let bounded = Array(rows.prefix(remaining))
+            guard !bounded.isEmpty else { return }
+            remaining -= bounded.count
+            sections.append(CPListSection(items: bounded, header: title, sectionIndexTitle: nil))
+        }
+        add(carTr("متابعة المشاهدة", "Continue watching"), store.continueWatching.map { libraryItem($0, queue: store.continueWatching) })
+        add(carTr("قوائم التشغيل", "Playlists"), store.playlists.map { playlist in
+            settingItem(playlist.title, detail: "\(playlist.itemIDs.count)", symbol: playlist.favorite ? "star.fill" : "list.bullet") { [weak self] in
+                self?.showLibraryItems(store.contents(playlist), title: playlist.title)
+            }
+        })
+        let videos = store.items.filter { $0.localFilename != nil && !$0.isAudio }
+        let audio = store.items.filter { $0.localFilename != nil && $0.isAudio }
+        add(carTr("الفيديوهات", "Videos"), videos.map { libraryItem($0, queue: videos) })
+        add(carTr("الصوتيات", "Audio"), audio.map { libraryItem($0, queue: audio) })
+        var channels: [CPListItem] = []
+        let favorites = store.items.filter { $0.localFilename == nil && $0.favorite }
+        if !favorites.isEmpty {
+            channels.append(settingItem(carTr("القنوات المفضلة", "Favorite channels"), detail: nil, symbol: "star.fill") { [weak self] in self?.showLibraryItems(favorites, title: carTr("القنوات المفضلة", "Favorite channels")) })
+        }
+        channels += M3UStore.shared.playlists.map { playlist in
+            settingItem(playlist.name, detail: "M3U / M3U8", symbol: "list.bullet.rectangle") { [weak self] in self?.showM3UEntries(for: playlist) }
+        }
+        channels += XtreamStore.shared.accounts.map { account in
+            settingItem(account.name, detail: "Xtream Codes", symbol: "antenna.radiowaves.left.and.right") { [weak self] in self?.showCategories(for: account) }
+        }
+        add(carTr("القنوات", "Channels"), channels)
+        let recent = Array(store.items.sorted { $0.added > $1.added }.prefix(20))
+        add(carTr("المضافة حديثاً", "Recently added"), recent.map { libraryItem($0, queue: recent) })
+        library.emptyViewTitleVariants = [carTr("أضف وسائط من iPhone", "Add media on iPhone")]
+        library.updateSections(sections)
+    }
+
+    private func showLibraryItems(_ media: [LibraryMedia], title: String) {
+        let rows = media.prefix(Self.maxItems).map { libraryItem($0, queue: media) }
+        let template = CPListTemplate(title: title, sections: [CPListSection(items: rows)])
+        guard (interfaceController?.templates.count ?? 0) < 5 else { return }
+        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+    }
+
+    private func libraryItem(_ media: LibraryMedia, queue: [LibraryMedia]) -> CPListItem {
+        let progress = media.duration.flatMap { $0 > 0 ? "\(Int(min(1, media.position / $0) * 100))%" : nil }
+        let row = CPListItem(text: media.title, detailText: progress, image: UIImage(contentsOfFile: MediaLibrary.shared.thumbnailURL(media.id).path) ?? UIImage(systemName: media.isAudio ? "waveform" : "play.rectangle"))
+        applyPlaybackConfiguration(to: row)
+        row.handler = { [weak self] _, completion in
+            guard let self else { completion(); return }
+            PlaybackManager.shared.playQueue(queue.compactMap(\.playbackItem), startingAt: media.url, presentOnPhone: false)
+            if !self.supportsVideo, (self.interfaceController?.templates.count ?? 0) < 5 {
+                self.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+            }
+            completion()
+        }
+        return row
     }
 
     // MARK: - أدوات
